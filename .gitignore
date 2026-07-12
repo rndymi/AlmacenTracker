@@ -12,7 +12,7 @@ build/
 **/build/
 bin/
 gen/
-out/
+/out/
 
 # Local Android SDK configuration
 local.properties
