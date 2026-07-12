@@ -1,0 +1,62 @@
+# Android build artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Generated build directories
+.gradle/
+.gradle-cache/
+build/
+**/build/
+bin/
+gen/
+out/
+
+# Local Android SDK configuration
+local.properties
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+
+# Kotlin generated data (kept ignored even though the app is Java)
+.kotlin/
+
+# Native build outputs
+.externalNativeBuild/
+.cxx/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Android Studio captures
+captures/
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+
+# Signing credentials and secrets
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# Local tooling / assistant files
+AGENTS.md
+
+# Project policy: do not version Markdown files except the root README
+*.md
+!README.md
