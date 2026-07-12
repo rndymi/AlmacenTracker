@@ -1,3 +1,24 @@
 <resources>
     <string name="app_name">AlmacenTracker</string>
+
+    <string name="warehouse_list_title">Mercancía</string>
+    <string name="warehouse_empty_title">
+        Todavía no hay mercancía registrada.
+    </string>
+    <string name="warehouse_empty_description">
+        Los registros aparecerán aquí cuando se añadan.
+    </string>
+    <string name="warehouse_load_error">
+        No se pudo cargar la mercancía.
+    </string>
+    <string name="warehouse_site_format">Sitio %1$s</string>
+    <string name="warehouse_site_position_format">
+        Sitio %1$s · %2$s
+    </string>
+    <string name="warehouse_identity_format">
+        %1$s · %2$s
+    </string>
+    <string name="warehouse_item_list">
+        Listado de mercancía
+    </string>
 </resources>
