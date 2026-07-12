@@ -20,6 +20,10 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        viewBinding true
+    }
+
     buildTypes {
         release {
             optimization {
@@ -38,7 +42,18 @@ dependencies {
     implementation libs.appcompat
     implementation libs.constraintlayout
     implementation libs.material
+
+    implementation libs.recyclerview
+    implementation libs.lifecycle.livedata
+    implementation libs.lifecycle.viewmodel
+    implementation libs.room.runtime
+
+    annotationProcessor libs.room.compiler
+
     testImplementation libs.junit
+    testImplementation libs.arch.core.testing
+
     androidTestImplementation libs.espresso.core
     androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.room.testing
 }
