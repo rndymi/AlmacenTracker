@@ -27,6 +27,24 @@ public final class WarehouseItemPersistenceMapper {
         );
     }
 
+    public WarehouseItemEntity toEntity(WarehouseItem item) {
+        if (item == null) {
+            throw new IllegalArgumentException(
+                    "WarehouseItem cannot be null"
+            );
+        }
+        return new WarehouseItemEntity(
+                item.getId(),
+                item.getCategory(),
+                item.getCode(),
+                item.getSite(),
+                normalizeOptional(item.getPosition()),
+                normalizeOptional(item.getObservations()),
+                item.getCreatedAt(),
+                item.getUpdatedAt()
+        );
+    }
+
     public List<WarehouseItem> toDomainList(
             List<WarehouseItemEntity> entities
     ) {

@@ -21,4 +21,44 @@
     <string name="warehouse_item_list">
         Listado de mercancía
     </string>
+
+    <string name="register_warehouse_item_title">
+        Registrar mercancía
+    </string>
+
+    <string name="register_warehouse_item_action">
+        Registrar mercancía
+    </string>
+
+    <string name="category_required_label">
+        Categoría *
+    </string>
+
+    <string name="code_required_label">
+        Código *
+    </string>
+
+    <string name="site_required_label">
+        Sitio *
+    </string>
+
+    <string name="position_optional_label">
+        Posición
+    </string>
+
+    <string name="observations_optional_label">
+        Observaciones
+    </string>
+
+    <string name="save_action">
+        Guardar
+    </string>
+
+    <string name="cancel_action">
+        Cancelar
+    </string>
+
+    <string name="warehouse_item_created">
+        Mercancía registrada correctamente.
+    </string>
 </resources>

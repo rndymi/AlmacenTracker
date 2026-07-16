@@ -16,6 +16,8 @@ import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewMo
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.databinding.ActivityMainBinding;
 
+import android.content.Intent;
+
 public final class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
@@ -31,6 +33,7 @@ public final class MainActivity extends AppCompatActivity {
 
         configureToolbar();
         configureRecyclerView();
+        configureActions();
         observeUiState();
     }
 
@@ -50,6 +53,19 @@ public final class MainActivity extends AppCompatActivity {
         );
 
         binding.warehouseRecyclerView.setHasFixedSize(true);
+    }
+
+    private void configureActions() {
+        binding.addWarehouseItemFab.setOnClickListener(
+                ignored -> {
+                    Intent intent = new Intent(
+                            this,
+                            ItemFormActivity.class
+                    );
+
+                    startActivity(intent);
+                }
+        );
     }
 
     private void observeUiState() {
