@@ -33,11 +33,25 @@ public final class CreateWarehouseItemService
         Objects.requireNonNull(command);
         Objects.requireNonNull(callback);
 
-        String category = normalizeUppercase(command.getCategory());
-        String code = normalizeUppercase(command.getCode());
-        String site = normalizeUppercase(command.getSite());
-        String position = normalizeUppercase(command.getPosition());
-        String observations = normalizeOptional(command.getObservations());
+        String category = normalizeUppercase(
+                command.getCategory()
+        );
+
+        String code = normalizeUppercase(
+                command.getCode()
+        );
+
+        String site = normalizeUppercase(
+                command.getSite()
+        );
+
+        String position = normalizeOptional(
+                command.getPosition()
+        );
+
+        String observations = normalizeOptional(
+                command.getObservations()
+        );
 
         boolean categoryRequired = category.isEmpty();
         boolean codeRequired = code.isEmpty();
@@ -71,10 +85,10 @@ public final class CreateWarehouseItemService
                 warehouseItem,
                 new WarehouseItemInsertCallback() {
                     @Override
-                    public void onSuccess(long createItemId) {
+                    public void onSuccess(long createdItemId) {
                         callback.accept(
                                 CreateWarehouseItemResult.success(
-                                        createItemId
+                                        createdItemId
                                 )
                         );
                     }
@@ -101,16 +115,19 @@ public final class CreateWarehouseItemService
         if (value == null) {
             return "";
         }
+
         return value
                 .trim()
-                .toLowerCase(Locale.ROOT);
+                .toUpperCase(Locale.ROOT);
     }
 
     private String normalizeOptional(String value) {
         if (value == null) {
             return null;
         }
+
         String normalized = value.trim();
+
         return normalized.isEmpty()
                 ? null
                 : normalized;
