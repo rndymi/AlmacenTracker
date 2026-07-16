@@ -4,6 +4,7 @@ import android.content.Context;
 
 import androidx.room.Room;
 
+import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
@@ -60,6 +61,13 @@ public final class AppContainer {
     provideWarehouseItemListViewModelFactory() {
         return new WarehouseItemListViewModelFactory(
                 observeWarehouseItemsUseCase
+        );
+    }
+
+    public WarehouseItemFormViewModelFactory
+    provideWarehouseItemFormViewModelFactory() {
+        return new WarehouseItemFormViewModelFactory(
+                createWarehouseItemUseCase
         );
     }
 }

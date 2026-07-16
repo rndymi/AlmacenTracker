@@ -10,7 +10,7 @@ public final class CreateWarehouseItemResult {
     }
 
     private final Status status;
-    private final long createItemId;
+    private final long createdItemId;
     private final boolean categoryRequired;
     private final boolean codeRequired;
     private final boolean siteRequired;
@@ -18,23 +18,23 @@ public final class CreateWarehouseItemResult {
 
     public CreateWarehouseItemResult(
             Status status,
-            long createItemId,
+            long createdItemId,
             boolean categoryRequired,
             boolean codeRequired,
             boolean siteRequired,
             Throwable cause) {
         this.status = status;
-        this.createItemId = createItemId;
+        this.createdItemId = createdItemId;
         this.categoryRequired = categoryRequired;
         this.codeRequired = codeRequired;
         this.siteRequired = siteRequired;
         this.cause = cause;
     }
 
-    public static CreateWarehouseItemResult success(long createItemId) {
+    public static CreateWarehouseItemResult success(long createdItemId) {
         return new CreateWarehouseItemResult(
                 Status.SUCCESS,
-                createItemId,
+                createdItemId,
                 false,
                 false,
                 false,
@@ -85,8 +85,8 @@ public final class CreateWarehouseItemResult {
         return status;
     }
 
-    public long getCreateItemId() {
-        return createItemId;
+    public long getCreatedItemId() {
+        return createdItemId;
     }
 
     public boolean isCategoryRequired() {
