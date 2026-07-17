@@ -201,7 +201,8 @@ public class CreateWarehouseItemServiceTest {
         public LiveData<WarehouseItemDetailResult> observeById(
                 long warehouseItemId
         ) {
-            return new MutableLiveData<>();
+            return new MutableLiveData<>(
+                    WarehouseItemDetailResult.notFound());
         }
 
         @Override
