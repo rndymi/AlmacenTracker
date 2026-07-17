@@ -47,6 +47,13 @@
 
     </com.google.android.material.appbar.MaterialToolbar>
 
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/toolbarBottomBarrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="toolbar,selectionToolbar" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/searchInputLayout"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -58,7 +65,7 @@
         app:endIconMode="clear_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintTop_toBottomOf="@id/toolbarBottomBarrier"
         app:startIconDrawable="@android:drawable/ic_menu_search">
 
         <com.google.android.material.textfield.TextInputEditText
