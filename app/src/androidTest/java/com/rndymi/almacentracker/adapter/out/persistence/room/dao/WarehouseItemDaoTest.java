@@ -3,6 +3,7 @@ package com.rndymi.almacentracker.adapter.out.persistence.room.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
@@ -962,5 +963,83 @@ public class WarehouseItemDaoTest {
         } catch (SQLiteConstraintException expected) {
             // Expected unique index violation.
         }
+    }
+
+    @Test
+    public void deleteById_deletesOnlySelectedWarehouseItem()
+            throws InterruptedException {
+
+        long firstId = dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        "Nivel 2"
+                )
+        );
+
+        long secondId = dao.insert(
+                createEntity(
+                        "MD",
+                        "1050",
+                        "B3",
+                        null
+                )
+        );
+
+        int affectedRows =
+                dao.deleteById(firstId);
+
+        assertEquals(1, affectedRows);
+
+        WarehouseItemEntity deleted =
+                dao.findById(firstId);
+
+        WarehouseItemEntity preserved =
+                dao.findById(secondId);
+
+        assertNull(deleted);
+        assertNotNull(preserved);
+        assertEquals("MD", preserved.getCategory());
+        assertEquals("1050", preserved.getCode());
+    }
+
+    @Test
+    public void deleteById_returnsZero_whenWarehouseItemDoesNotExist() {
+        int affectedRows =
+                dao.deleteById(999L);
+
+        assertEquals(0, affectedRows);
+    }
+
+    @Test
+    public void deleteById_updatesObservedWarehouseItems()
+            throws InterruptedException {
+
+        long warehouseItemId =
+                dao.insert(
+                        createEntity(
+                                "MR",
+                                "1050",
+                                "A1",
+                                null
+                        )
+                );
+
+        List<WarehouseItemEntity> beforeDelete =
+                getOrAwaitValue(
+                        dao.observeAll()
+                );
+
+        assertEquals(1, beforeDelete.size());
+
+        dao.deleteById(warehouseItemId);
+
+        List<WarehouseItemEntity> afterDelete =
+                getOrAwaitValue(
+                        dao.observeAll()
+                );
+
+        assertTrue(afterDelete.isEmpty());
     }
 }
