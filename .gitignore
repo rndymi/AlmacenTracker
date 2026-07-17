@@ -57,6 +57,9 @@ signing.properties
 # Local tooling / assistant files
 AGENTS.md
 
+# Local project notes that should not be versioned
+docs/md/
+
 # Project policy: do not version Markdown files except the root README
 *.md
 !README.md

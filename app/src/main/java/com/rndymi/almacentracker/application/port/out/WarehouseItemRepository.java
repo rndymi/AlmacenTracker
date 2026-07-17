@@ -8,6 +8,7 @@ import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 public interface WarehouseItemRepository {
     LiveData<WarehouseItemsResult> observeAll();
+    LiveData<WarehouseItemsResult> search(String query);
     LiveData<WarehouseItemDetailResult> observeById(
             long warehouseItemId
     );
