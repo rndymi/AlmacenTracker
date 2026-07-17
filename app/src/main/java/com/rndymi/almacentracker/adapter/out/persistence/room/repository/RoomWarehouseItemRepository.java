@@ -3,22 +3,34 @@ package com.rndymi.almacentracker.adapter.out.persistence.room.repository;
 import android.database.sqlite.SQLiteConstraintException;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.Transformations;
 
 import com.rndymi.almacentracker.adapter.out.persistence.room.dao.WarehouseItemDao;
 import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
+import com.rndymi.almacentracker.application.port.in.PositionFilter;
+import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
 public final class RoomWarehouseItemRepository
         implements WarehouseItemRepository {
+
+    private static final int POSITION_MODE_ALL = 0;
+    private static final int POSITION_MODE_WITHOUT_POSITION = 1;
+    private static final int POSITION_MODE_EXACT_VALUE = 2;
+
     private final WarehouseItemDao warehouseItemDao;
     private final WarehouseItemPersistenceMapper mapper;
     private final Executor executor;
@@ -37,19 +49,8 @@ public final class RoomWarehouseItemRepository
 
     @Override
     public LiveData<WarehouseItemsResult> observeAll() {
-        return Transformations.map(
-                warehouseItemDao.observeAll(),
-                entities -> {
-                    try {
-                        return WarehouseItemsResult.success(
-                                mapper.toDomainList(entities)
-                        );
-                    } catch (RuntimeException exception) {
-                        return WarehouseItemsResult.error(
-                                exception
-                        );
-                    }
-                }
+        return mapWarehouseItems(
+                warehouseItemDao.observeAll()
         );
     }
 
@@ -57,20 +58,101 @@ public final class RoomWarehouseItemRepository
     public LiveData<WarehouseItemsResult> search(String query) {
         Objects.requireNonNull(query);
 
-        return Transformations.map(
-                warehouseItemDao.search(query),
-                entities -> {
-                    try {
-                        return WarehouseItemsResult.success(
-                                mapper.toDomainList(entities)
-                        );
-                    } catch (RuntimeException exception) {
-                        return WarehouseItemsResult.error(
-                                exception
-                        );
-                    }
+        return mapWarehouseItems(
+                warehouseItemDao.search(query)
+        );
+    }
+
+    @Override
+    public LiveData<WarehouseItemsResult> filter(
+            WarehouseItemFilterCriteria criteria
+    ) {
+        Objects.requireNonNull(criteria);
+
+        PositionFilter positionFilter =
+                criteria.getPositionFilter();
+
+        int positionMode = toPositionMode(positionFilter);
+
+        String positionValue =
+                positionFilter.getType()
+                        == PositionFilter.Type.EXACT_VALUE
+                        ? positionFilter.getValue()
+                        : null;
+
+        return mapWarehouseItems(
+                warehouseItemDao.filter(
+                        criteria.getQuery(),
+                        criteria.getCategory(),
+                        criteria.getSite(),
+                        positionMode,
+                        positionValue
+                )
+        );
+    }
+
+    @Override
+    public LiveData<WarehouseItemFilterOptionsResult>
+    observeFilterOptions() {
+        MediatorLiveData<WarehouseItemFilterOptionsResult> result =
+                new MediatorLiveData<>();
+
+        LiveData<List<String>> categoriesSource =
+                warehouseItemDao.observeCategories();
+
+        LiveData<List<String>> sitesSource =
+                warehouseItemDao.observeSites();
+
+        LiveData<List<String>> positionsSource =
+                warehouseItemDao.observePositions();
+
+        LiveData<Integer> withoutPositionCountSource =
+                warehouseItemDao.observeWithoutPositionCount();
+
+        FilterOptionsAccumulator accumulator =
+                new FilterOptionsAccumulator();
+
+        result.addSource(
+                categoriesSource,
+                categories -> {
+                    accumulator.categories =
+                            safeList(categories);
+                    accumulator.categoriesLoaded = true;
+                    emitFilterOptions(result, accumulator);
                 }
         );
+
+        result.addSource(
+                sitesSource,
+                sites -> {
+                    accumulator.sites = safeList(sites);
+                    accumulator.sitesLoaded = true;
+                    emitFilterOptions(result, accumulator);
+                }
+        );
+
+        result.addSource(
+                positionsSource,
+                positions -> {
+                    accumulator.positions =
+                            safeList(positions);
+                    accumulator.positionsLoaded = true;
+                    emitFilterOptions(result, accumulator);
+                }
+        );
+
+        result.addSource(
+                withoutPositionCountSource,
+                count -> {
+                    accumulator.hasItemsWithoutPosition =
+                            count != null && count > 0;
+
+                    accumulator.withoutPositionLoaded = true;
+                    emitFilterOptions(result, accumulator);
+                }
+        );
+
+        return result;
     }
 
     @Override
@@ -120,5 +202,93 @@ public final class RoomWarehouseItemRepository
                 callback.onError(exception);
             }
         });
+    }
+
+    private LiveData<WarehouseItemsResult> mapWarehouseItems(
+            LiveData<List<WarehouseItemEntity>> source
+    ) {
+        return Transformations.map(
+                source,
+                entities -> {
+                    try {
+                        return WarehouseItemsResult.success(
+                                mapper.toDomainList(entities)
+                        );
+                    } catch (RuntimeException exception) {
+                        return WarehouseItemsResult.error(
+                                exception
+                        );
+                    }
+                }
+        );
+    }
+
+    private int toPositionMode(
+            PositionFilter positionFilter
+    ) {
+        switch (positionFilter.getType()) {
+            case WITHOUT_POSITION:
+                return POSITION_MODE_WITHOUT_POSITION;
+
+            case EXACT_VALUE:
+                return POSITION_MODE_EXACT_VALUE;
+
+            case ALL:
+            default:
+                return POSITION_MODE_ALL;
+        }
+    }
+
+    private void emitFilterOptions(
+            MediatorLiveData<WarehouseItemFilterOptionsResult> result,
+            FilterOptionsAccumulator accumulator
+    ) {
+        if (!accumulator.isComplete()) {
+            return;
+        }
+
+        WarehouseItemFilterOptions options =
+                new WarehouseItemFilterOptions(
+                        accumulator.categories,
+                        accumulator.sites,
+                        accumulator.positions,
+                        accumulator.hasItemsWithoutPosition
+                );
+
+        result.setValue(
+                WarehouseItemFilterOptionsResult.success(options)
+        );
+    }
+
+    private List<String> safeList(List<String> values) {
+        return values == null
+                ? Collections.emptyList()
+                : values;
+    }
+
+    private static final class FilterOptionsAccumulator {
+
+        private List<String> categories =
+                Collections.emptyList();
+
+        private List<String> sites =
+                Collections.emptyList();
+
+        private List<String> positions =
+                Collections.emptyList();
+
+        private boolean hasItemsWithoutPosition;
+
+        private boolean categoriesLoaded;
+        private boolean sitesLoaded;
+        private boolean positionsLoaded;
+        private boolean withoutPositionLoaded;
+
+        private boolean isComplete() {
+            return categoriesLoaded
+                    && sitesLoaded
+                    && positionsLoaded
+                    && withoutPositionLoaded;
+        }
     }
 }
