@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
@@ -147,10 +148,11 @@ public class CreateWarehouseItemServiceTest {
         assertTrue(result.isCodeRequired());
         assertTrue(result.isSiteRequired());
         assertFalse(repository.insertCalled);
+        assertFalse(repository.duplicateCheckCalled);
     }
 
     @Test
-    public void duplicateIsReturnedAsApplicationResult() {
+    public void roomDuplicateIsStillReturnedAsApplicationResult() {
         FakeRepository repository = new FakeRepository();
         repository.duplicate = true;
 
@@ -165,8 +167,138 @@ public class CreateWarehouseItemServiceTest {
                 resultReference::set
         );
 
+        assertTrue(repository.duplicateCheckCalled);
+        assertTrue(repository.insertCalled);
+
         assertEquals(
                 CreateWarehouseItemResult.Status.DUPLICATE,
+                resultReference.get().getStatus()
+        );
+    }
+
+
+    @Test
+    public void duplicateCheckUsesNormalizedCategoryAndCode() {
+        FakeRepository repository = new FakeRepository();
+
+        CreateWarehouseItemService service =
+                createService(repository);
+
+        service.createWarehouseItem(
+                new CreateWarehouseItemCommand(
+                        "  mr ",
+                        " ab-1050 ",
+                        "A1",
+                        null,
+                        null
+                ),
+                ignored -> {
+                }
+        );
+
+        assertTrue(repository.duplicateCheckCalled);
+        assertEquals("MR", repository.checkedCategory);
+        assertEquals("AB-1050", repository.checkedCode);
+    }
+
+    @Test
+    public void existingCombinationReturnsDuplicateWithoutInsert() {
+        FakeRepository repository = new FakeRepository();
+        repository.duplicateExists = true;
+
+        CreateWarehouseItemService service =
+                createService(repository);
+
+        AtomicReference<CreateWarehouseItemResult>
+                resultReference = new AtomicReference<>();
+
+        service.createWarehouseItem(
+                validCommand(),
+                resultReference::set
+        );
+
+        assertTrue(repository.duplicateCheckCalled);
+        assertFalse(repository.insertCalled);
+
+        assertEquals(
+                CreateWarehouseItemResult.Status.DUPLICATE,
+                resultReference.get().getStatus()
+        );
+    }
+
+    @Test
+    public void availableCombinationIsInserted() {
+        FakeRepository repository = new FakeRepository();
+        repository.duplicateExists = false;
+
+        CreateWarehouseItemService service =
+                createService(repository);
+
+        AtomicReference<CreateWarehouseItemResult>
+                resultReference = new AtomicReference<>();
+
+        service.createWarehouseItem(
+                validCommand(),
+                resultReference::set
+        );
+
+        assertTrue(repository.duplicateCheckCalled);
+        assertTrue(repository.insertCalled);
+
+        assertEquals(
+                CreateWarehouseItemResult.Status.SUCCESS,
+                resultReference.get().getStatus()
+        );
+    }
+
+    @Test
+    public void validationFailureDoesNotCheckDuplicates() {
+        FakeRepository repository = new FakeRepository();
+
+        CreateWarehouseItemService service =
+                createService(repository);
+
+        service.createWarehouseItem(
+                new CreateWarehouseItemCommand(
+                        " ",
+                        " ",
+                        " ",
+                        null,
+                        null
+                ),
+                ignored -> {
+                }
+        );
+
+        assertFalse(repository.duplicateCheckCalled);
+        assertFalse(repository.insertCalled);
+    }
+
+    @Test
+    public void duplicateCheckErrorReturnsPersistenceError() {
+        FakeRepository repository = new FakeRepository();
+
+        repository.duplicateCheckError =
+                new IllegalStateException(
+                        "Duplicate check failed"
+                );
+
+        CreateWarehouseItemService service =
+                createService(repository);
+
+        AtomicReference<CreateWarehouseItemResult>
+                resultReference = new AtomicReference<>();
+
+        service.createWarehouseItem(
+                validCommand(),
+                resultReference::set
+        );
+
+        assertFalse(repository.insertCalled);
+
+        assertEquals(
+                CreateWarehouseItemResult.Status
+                        .PERSISTENCE_ERROR,
                 resultReference.get().getStatus()
         );
     }
@@ -196,6 +328,12 @@ public class CreateWarehouseItemServiceTest {
         private WarehouseItem insertedItem;
         private boolean insertCalled;
         private boolean duplicate;
+
+        private boolean duplicateExists;
+        private boolean duplicateCheckCalled;
+        private String checkedCategory;
+        private String checkedCode;
+        private Throwable duplicateCheckError;
 
         @Override
         public LiveData<WarehouseItemsResult> observeAll() {
@@ -267,6 +405,34 @@ public class CreateWarehouseItemServiceTest {
         public LiveData<WarehouseItemFilterOptionsResult>
         observeFilterOptions() {
             return new MutableLiveData<>();
+        }
+
+        @Override
+        public void existsByCategoryAndCode(
+                String category,
+                String code,
+                WarehouseItemDuplicateCheckCallback callback
+        ) {
+            duplicateCheckCalled = true;
+            checkedCategory = category;
+            checkedCode = code;
+
+            if (duplicateCheckError != null) {
+                callback.onError(duplicateCheckError);
+                return;
+            }
+
+            callback.onResult(duplicateExists);
+        }
+
+        @Override
+        public void existsByCategoryAndCodeExcludingId(
+                String category,
+                String code,
+                long excludedWarehouseItemId,
+                WarehouseItemDuplicateCheckCallback callback
+        ) {
+            throw new UnsupportedOperationException();
         }
     }
 }
