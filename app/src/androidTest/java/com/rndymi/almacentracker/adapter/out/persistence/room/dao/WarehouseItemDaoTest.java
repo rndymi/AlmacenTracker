@@ -101,6 +101,20 @@ public class WarehouseItemDaoTest {
             String code,
             String site
     ) {
+        return createEntity(
+                category,
+                code,
+                site,
+                null
+        );
+    }
+
+    private WarehouseItemEntity createEntity(
+            String category,
+            String code,
+            String site,
+            String position
+    ) {
         long now = System.currentTimeMillis();
 
         return new WarehouseItemEntity(
@@ -108,7 +122,7 @@ public class WarehouseItemDaoTest {
                 category,
                 code,
                 site,
-                null,
+                position,
                 null,
                 now,
                 now
@@ -229,5 +243,190 @@ public class WarehouseItemDaoTest {
         T value = (T) data[0];
 
         return value;
+    }
+
+    @Test
+    public void searchFindsPartialCategoryIgnoringCase()
+            throws Exception {
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        "Nivel 2"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "2050",
+                        "B1",
+                        null
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(dao.search("mr"));
+
+        assertEquals(1, items.size());
+        assertEquals("MR", items.get(0).getCategory());
+    }
+
+    @Test
+    public void searchFindsPartialCode()
+            throws Exception {
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        null
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "2105",
+                        "B1",
+                        null
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(dao.search("105"));
+
+        assertEquals(2, items.size());
+    }
+
+    @Test
+    public void searchFindsPartialSiteIgnoringCase()
+            throws Exception {
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        null
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "2050",
+                        "B3",
+                        null
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(dao.search("a1"));
+
+        assertEquals(1, items.size());
+        assertEquals("A1", items.get(0).getSite());
+    }
+
+    @Test
+    public void searchFindsPositionAndHandlesNullValues()
+            throws Exception {
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        "Nivel 2"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "2050",
+                        "B3",
+                        null
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(
+                        dao.search("nivel 2")
+                );
+
+        assertEquals(1, items.size());
+        assertEquals(
+                "Nivel 2",
+                items.get(0).getPosition()
+        );
+    }
+
+    @Test
+    public void searchReturnsEmptyListWhenNothingMatches()
+            throws Exception {
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        null
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(
+                        dao.search("ZZZ")
+                );
+
+        assertEquals(0, items.size());
+    }
+
+    @Test
+    public void searchKeepsCategoryAndCodeOrder()
+            throws Exception {
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        null
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "CA",
+                        "2048",
+                        "A1",
+                        null
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "CA",
+                        "1000",
+                        "A1",
+                        null
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(
+                        dao.search("A1")
+                );
+
+        assertEquals(3, items.size());
+        assertEquals("CA", items.get(0).getCategory());
+        assertEquals("1000", items.get(0).getCode());
+        assertEquals("CA", items.get(1).getCategory());
+        assertEquals("2048", items.get(1).getCode());
+        assertEquals("MR", items.get(2).getCategory());
     }
 }
