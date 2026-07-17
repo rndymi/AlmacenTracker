@@ -188,7 +188,7 @@
             android:layout_width="72dp"
             android:layout_height="72dp"
             android:contentDescription="@null"
-            android:src="@android:drawable/ic_menu_agenda"
+            android:src="@drawable/ic_inventory_empty"
             app:tint="?attr/colorPrimary" />
 
         <TextView
@@ -207,6 +207,13 @@
             android:text="@string/warehouse_empty_description"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/emptyStateRegisterButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/register_warehouse_item_action" />
+
     </LinearLayout>
 
     <LinearLayout
@@ -222,10 +229,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/filterControls">
 
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_search_off"
+            app:tint="?attr/colorPrimary" />
+
         <TextView
             android:id="@+id/noResultsText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:gravity="center"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             tools:text="No se encontraron resultados con los filtros seleccionados." />
