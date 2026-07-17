@@ -20,13 +20,14 @@ public final class GetWarehouseItemDetailService
 
     @Override
     public LiveData<WarehouseItemDetailResult>
-    observerWarehouseItemDetail(long warehouseItemId) {
+    observeWarehouseItemDetail(long warehouseItemId) {
         if (warehouseItemId <= 0L) {
             MutableLiveData<WarehouseItemDetailResult> result =
                     new MutableLiveData<>();
             result.setValue(
                     WarehouseItemDetailResult.invalidId()
             );
+            return result;
         }
 
         return repository.observeById(warehouseItemId);
