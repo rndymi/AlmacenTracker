@@ -219,5 +219,12 @@ public class CreateWarehouseItemServiceTest {
                 callback.onSuccess(10L);
             }
         }
+
+        @Override
+        public LiveData<WarehouseItemsResult> search(
+                String query
+        ) {
+            return new MutableLiveData<>();
+        }
     }
 }
