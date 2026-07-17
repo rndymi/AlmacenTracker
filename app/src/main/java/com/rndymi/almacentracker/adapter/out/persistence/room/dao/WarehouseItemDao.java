@@ -21,6 +21,21 @@ public interface WarehouseItemDao {
 
     @Query(
             "SELECT * FROM warehouse_items " +
+                    "WHERE category LIKE '%' || :query || '%' " +
+                    "COLLATE NOCASE " +
+                    "OR code LIKE '%' || :query || '%' " +
+                    "COLLATE NOCASE " +
+                    "OR site LIKE '%' || :query || '%' " +
+                    "COLLATE NOCASE " +
+                    "OR position LIKE '%' || :query || '%' " +
+                    "COLLATE NOCASE " +
+                    "ORDER BY category COLLATE NOCASE ASC, " +
+                    "code COLLATE NOCASE ASC"
+    )
+    LiveData<List<WarehouseItemEntity>> search(String query);
+
+    @Query(
+            "SELECT * FROM warehouse_items " +
                     "WHERE id = :warehouseItemId " +
                     "LIMIT 1"
     )
