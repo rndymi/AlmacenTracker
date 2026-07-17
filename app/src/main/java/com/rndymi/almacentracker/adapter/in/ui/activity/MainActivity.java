@@ -6,19 +6,24 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.rndymi.almacentracker.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.adapter.WarehouseItemAdapter;
 import com.rndymi.almacentracker.adapter.in.ui.state.NoResultsReason;
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemListUiState;
+import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemSelectionUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
+import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.databinding.ActivityMainBinding;
 
@@ -81,7 +86,40 @@ public final class MainActivity extends AppCompatActivity {
     private void configureRecyclerView() {
         warehouseItemAdapter =
                 new WarehouseItemAdapter(
-                        this::openWarehouseItemDetail
+                        new WarehouseItemAdapter
+                                .WarehouseItemInteractionListener() {
+                            @Override
+                            public void onWarehouseItemClick(
+                                    long warehouseItemId
+                            ) {
+                                if (viewModel.hasSelection()) {
+                                    viewModel.toggleSelection(
+                                            warehouseItemId
+                                    );
+                                    return;
+                                }
+
+                                openWarehouseItemDetail(
+                                        warehouseItemId
+                                );
+                            }
+
+                            @Override
+                            public void onWarehouseItemLongClick(
+                                    long warehouseItemId
+                            ) {
+                                if (viewModel.hasSelection()) {
+                                    viewModel.toggleSelection(
+                                            warehouseItemId
+                                    );
+                                    return;
+                                }
+
+                                viewModel.startSelection(
+                                        warehouseItemId
+                                );
+                            }
+                        }
                 );
 
         binding.warehouseRecyclerView.setLayoutManager(
@@ -225,9 +263,35 @@ public final class MainActivity extends AppCompatActivity {
                 this,
                 this::render
         );
+
+        viewModel.getSelectionUiState().observe(
+                this,
+                this::renderSelection
+        );
+
+        getOnBackPressedDispatcher().addCallback(
+                this,
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        if (viewModel.hasSelection()) {
+                            viewModel.clearSelection();
+                            return;
+                        }
+
+                        setEnabled(false);
+                        getOnBackPressedDispatcher()
+                                .onBackPressed();
+                    }
+                }
+        );
     }
 
     private void openWarehouseItemForm() {
+        if (viewModel.hasSelection()) {
+            return;
+        }
+
         Intent intent = new Intent(
                 this,
                 ItemFormActivity.class
@@ -555,5 +619,223 @@ public final class MainActivity extends AppCompatActivity {
 
         binding.warehouseRecyclerView.setAdapter(null);
         binding = null;
+    }
+
+    private void showDeleteSelectionConfirmation() {
+        WarehouseItemSelectionUiState selectionState =
+                viewModel
+                        .getSelectionUiState()
+                        .getValue();
+
+        if (selectionState == null
+                || !selectionState.isSelectionMode()
+                || selectionState.isDeleting()) {
+            return;
+        }
+
+        int selectedCount =
+                selectionState.getSelectedCount();
+
+        String message =
+                selectedCount == 1
+                        ? getString(
+                        R.string
+                        .delete_one_selected_item_message
+                )
+                        : getString(
+                        R.string
+                        .delete_multiple_selected_items_message,
+                        selectedCount
+                );
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string
+                                .delete_selected_items_title
+                )
+                .setMessage(message)
+                .setNegativeButton(
+                        R.string.cancel_action,
+                        null
+                )
+                .setPositiveButton(
+                        R.string.delete_action,
+                        (dialog, which) ->
+                                viewModel.deleteSelectedItems()
+                )
+                .show();
+    }
+
+    private void renderSelection(
+            WarehouseItemSelectionUiState state
+    ) {
+        boolean selectionMode =
+                state.isSelectionMode();
+
+        binding.toolbar.setVisibility(
+                selectionMode
+                        ? View.GONE
+                        : View.VISIBLE
+        );
+
+        binding.selectionToolbar.setVisibility(
+                selectionMode
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        warehouseItemAdapter.setSelectedIds(
+                state.getSelectedIds()
+        );
+
+        if (selectionMode) {
+            binding.selectionToolbar.setTitle(
+                    state.getSelectedCount() == 1
+                            ? getString(
+                            R.string
+                            .selected_item_count
+                    )
+                            : getString(
+                            R.string
+                            .selected_items_count,
+                            state.getSelectedCount()
+                    )
+            );
+        }
+
+        boolean controlsEnabled =
+                !selectionMode
+                        && !state.isDeleting();
+
+        setQueryControlsEnabled(
+                controlsEnabled
+        );
+
+        binding.addWarehouseItemFab.setVisibility(
+                selectionMode
+                        ? View.GONE
+                        : View.VISIBLE
+        );
+
+        binding.selectionDeleteProgress.setVisibility(
+                state.isDeleting()
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        if (selectionMode) {
+            binding.selectionToolbar
+                    .getMenu()
+                    .findItem(
+                            R.id.action_delete_selection
+                    )
+                    .setEnabled(
+                            !state.isDeleting()
+                    );
+        }
+
+        consumeSelectionResult(state);
+    }
+
+    private void setQueryControlsEnabled(
+            boolean enabled
+    ) {
+        binding.searchInputLayout.setEnabled(enabled);
+        binding.searchEditText.setEnabled(enabled);
+
+        binding.categoryFilterLayout.setEnabled(enabled);
+        binding.categoryFilterDropdown.setEnabled(enabled);
+
+        binding.siteFilterLayout.setEnabled(enabled);
+        binding.siteFilterDropdown.setEnabled(enabled);
+
+        binding.positionFilterLayout.setEnabled(enabled);
+        binding.positionFilterDropdown.setEnabled(enabled);
+
+        binding.clearFiltersButton.setEnabled(enabled);
+        binding.emptyStateRegisterButton.setEnabled(enabled);
+        binding.clearNoResultsButton.setEnabled(enabled);
+    }
+
+    private void consumeSelectionResult(
+            WarehouseItemSelectionUiState state
+    ) {
+        if (state.getResultEvent() == null) {
+            return;
+        }
+
+        DeleteWarehouseItemsResult result =
+                state.getResultEvent()
+                        .getContentIfNotHandled();
+
+        if (result == null) {
+            return;
+        }
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+                showMessage(
+                        getString(
+                                R.string.warehouse_items_deleted,
+                                result.getDeletedCount()
+                        )
+                );
+                break;
+
+            case PARTIAL_SUCCESS:
+                showMessage(
+                        getString(
+                                R.string
+                                        .warehouse_items_partial_deleted,
+                                result.getDeletedCount(),
+                                result.getRequestedCount()
+                        )
+                );
+                break;
+
+            case NOT_FOUND:
+                showMessage(
+                        getString(
+                                R.string
+                                        .warehouse_items_not_found
+                        )
+                );
+                break;
+
+            case EMPTY_SELECTION:
+                break;
+
+            case INVALID_IDS:
+                showMessage(
+                        getString(
+                                R.string
+                                        .warehouse_items_invalid_selection
+                        )
+                );
+                break;
+
+            case PERSISTENCE_ERROR:
+                Log.e(
+                        TAG,
+                        "Multiple warehouse item deletion failed",
+                        result.getCause()
+                );
+
+                showMessage(
+                        getString(
+                                R.string
+                                        .warehouse_items_delete_error
+                        )
+                );
+                break;
+        }
+    }
+
+    private void showMessage(String message) {
+        android.widget.Toast.makeText(
+                this,
+                message,
+                android.widget.Toast.LENGTH_SHORT
+        ).show();
     }
 }
