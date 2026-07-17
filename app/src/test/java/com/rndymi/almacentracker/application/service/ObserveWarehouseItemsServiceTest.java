@@ -12,12 +12,15 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
+
+import java.util.List;
 
 public class ObserveWarehouseItemsServiceTest {
     @Test
@@ -101,6 +104,16 @@ public class ObserveWarehouseItemsServiceTest {
                     public void deleteById(
                             long warehouseItemId,
                             WarehouseItemDeleteCallback callback
+                    ) {
+                        throw new UnsupportedOperationException(
+                                "Not required by this test"
+                        );
+                    }
+
+                    @Override
+                    public void deleteByIds(
+                            List<Long> warehouseItemIds,
+                            WarehouseItemsDeleteCallback callback
                     ) {
                         throw new UnsupportedOperationException(
                                 "Not required by this test"
