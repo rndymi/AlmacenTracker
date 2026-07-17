@@ -2,6 +2,9 @@ package com.rndymi.almacentracker.adapter.in.ui.state;
 
 public final class WarehouseItemFormUiState {
 
+    private final WarehouseItemFormMode mode;
+    private final long warehouseItemId;
+
     private final String category;
     private final String code;
     private final String site;
@@ -13,9 +16,14 @@ public final class WarehouseItemFormUiState {
     private final String siteError;
     private final String generalError;
 
+    private final boolean loading;
     private final boolean saving;
+    private final boolean notFound;
+    private final boolean invalidId;
 
     public WarehouseItemFormUiState(
+            WarehouseItemFormMode mode,
+            long warehouseItemId,
             String category,
             String code,
             String site,
@@ -25,8 +33,13 @@ public final class WarehouseItemFormUiState {
             String codeError,
             String siteError,
             String generalError,
-            boolean saving
+            boolean loading,
+            boolean saving,
+            boolean notFound,
+            boolean invalidId
     ) {
+        this.mode = mode;
+        this.warehouseItemId = warehouseItemId;
         this.category = category;
         this.code = code;
         this.site = site;
@@ -36,11 +49,16 @@ public final class WarehouseItemFormUiState {
         this.codeError = codeError;
         this.siteError = siteError;
         this.generalError = generalError;
+        this.loading = loading;
         this.saving = saving;
+        this.notFound = notFound;
+        this.invalidId = invalidId;
     }
 
-    public static WarehouseItemFormUiState initial() {
+    public static WarehouseItemFormUiState createMode() {
         return new WarehouseItemFormUiState(
+                WarehouseItemFormMode.CREATE,
+                0L,
                 "",
                 "",
                 "",
@@ -50,8 +68,41 @@ public final class WarehouseItemFormUiState {
                 null,
                 null,
                 null,
+                false,
+                false,
+                false,
                 false
         );
+    }
+
+    public static WarehouseItemFormUiState editLoading(
+            long warehouseItemId
+    ) {
+        return new WarehouseItemFormUiState(
+                WarehouseItemFormMode.EDIT,
+                warehouseItemId,
+                "",
+                "",
+                "",
+                "",
+                "",
+                null,
+                null,
+                null,
+                null,
+                true,
+                false,
+                false,
+                false
+        );
+    }
+
+    public WarehouseItemFormMode getMode() {
+        return mode;
+    }
+
+    public long getWarehouseItemId() {
+        return warehouseItemId;
     }
 
     public String getCategory() {
@@ -90,7 +141,26 @@ public final class WarehouseItemFormUiState {
         return generalError;
     }
 
+    public boolean isLoading() {
+        return loading;
+    }
+
     public boolean isSaving() {
         return saving;
+    }
+
+    public boolean isNotFound() {
+        return notFound;
+    }
+
+    public boolean isInvalidId() {
+        return invalidId;
+    }
+
+    public boolean isEditable() {
+        return !loading
+                && !saving
+                && !notFound
+                && !invalidId;
     }
 }
