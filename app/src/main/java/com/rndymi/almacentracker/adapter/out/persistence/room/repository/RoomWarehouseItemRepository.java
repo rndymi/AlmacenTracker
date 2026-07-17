@@ -12,6 +12,7 @@ import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseIt
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
@@ -204,6 +205,60 @@ public final class RoomWarehouseItemRepository
                 callback.onFound(
                         mapper.toDomain(entity)
                 );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void existsByCategoryAndCode(
+            String category,
+            String code,
+            WarehouseItemDuplicateCheckCallback callback
+    ) {
+        Objects.requireNonNull(category);
+        Objects.requireNonNull(code);
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                boolean exists =
+                        warehouseItemDao
+                                .existsByCategoryAndCode(
+                                        category,
+                                        code
+                                );
+
+                callback.onResult(exists);
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void existsByCategoryAndCodeExcludingId(
+            String category,
+            String code,
+            long excludedWarehouseItemId,
+            WarehouseItemDuplicateCheckCallback callback
+    ) {
+        Objects.requireNonNull(category);
+        Objects.requireNonNull(code);
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                boolean exists =
+                        warehouseItemDao
+                                .existsByCategoryAndCodeExcludingId(
+                                        category,
+                                        code,
+                                        excludedWarehouseItemId
+                                );
+
+                callback.onResult(exists);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }

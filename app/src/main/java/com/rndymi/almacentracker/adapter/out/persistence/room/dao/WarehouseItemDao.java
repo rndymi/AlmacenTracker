@@ -128,6 +128,32 @@ public interface WarehouseItemDao {
             long warehouseItemId
     );
 
+    @Query(
+            "SELECT EXISTS(" +
+                    "SELECT 1 FROM warehouse_items " +
+                    "WHERE category = :category COLLATE NOCASE " +
+                    "AND code = :code COLLATE NOCASE" +
+                    ")"
+    )
+    boolean existsByCategoryAndCode(
+            String category,
+            String code
+    );
+
+    @Query(
+            "SELECT EXISTS(" +
+                    "SELECT 1 FROM warehouse_items " +
+                    "WHERE category = :category COLLATE NOCASE " +
+                    "AND code = :code COLLATE NOCASE " +
+                    "AND id <> :excludedWarehouseItemId" +
+                    ")"
+    )
+    boolean existsByCategoryAndCodeExcludingId(
+            String category,
+            String code,
+            long excludedWarehouseItemId
+    );
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     long insert(WarehouseItemEntity entity);
 
