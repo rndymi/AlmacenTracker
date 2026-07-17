@@ -22,6 +22,22 @@
         Listado de mercancía
     </string>
 
+    <string name="warehouse_search_hint">
+        Buscar por categoría, código o ubicación
+    </string>
+
+    <string name="warehouse_no_results">
+        No se encontraron resultados para "%1$s".
+    </string>
+
+    <string name="warehouse_search_error">
+        No se pudo realizar la búsqueda.
+    </string>
+
+    <string name="clear_search_action">
+        Limpiar búsqueda
+    </string>
+
     <string name="register_warehouse_item_title">
         Registrar mercancía
     </string>
