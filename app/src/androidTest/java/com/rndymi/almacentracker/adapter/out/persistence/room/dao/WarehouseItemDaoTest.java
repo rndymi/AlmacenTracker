@@ -1,6 +1,7 @@
 package com.rndymi.almacentracker.adapter.out.persistence.room.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -1041,5 +1042,169 @@ public class WarehouseItemDaoTest {
                 );
 
         assertTrue(afterDelete.isEmpty());
+    }
+
+    @Test
+    public void existsByCategoryAndCodeReturnsTrueForExistingIdentity() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        boolean exists =
+                dao.existsByCategoryAndCode(
+                        "MR",
+                        "1050"
+                );
+
+        assertTrue(exists);
+    }
+
+    @Test
+    public void existsByCategoryAndCodeReturnsFalseForAvailableIdentity() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        boolean exists =
+                dao.existsByCategoryAndCode(
+                        "MR",
+                        "2050"
+                );
+
+        assertFalse(exists);
+    }
+
+    @Test
+    public void duplicateCheckIgnoresCategoryAndCodeCase() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "AB-1050",
+                        "A1"
+                )
+        );
+
+        boolean exists =
+                dao.existsByCategoryAndCode(
+                        "mr",
+                        "ab-1050"
+                );
+
+        assertTrue(exists);
+    }
+
+    @Test
+    public void duplicateCheckAllowsSameCodeInDifferentCategory() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        boolean exists =
+                dao.existsByCategoryAndCode(
+                        "MD",
+                        "1050"
+                );
+
+        assertFalse(exists);
+    }
+
+    @Test
+    public void duplicateCheckExcludingIdIgnoresCurrentWarehouseItem() {
+        long warehouseItemId = dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        boolean exists =
+                dao.existsByCategoryAndCodeExcludingId(
+                        "MR",
+                        "1050",
+                        warehouseItemId
+                );
+
+        assertFalse(exists);
+    }
+
+    @Test
+    public void duplicateCheckExcludingIdDetectsAnotherWarehouseItem() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        long secondId = dao.insert(
+                createEntity(
+                        "MD",
+                        "1050",
+                        "B1"
+                )
+        );
+
+        boolean exists =
+                dao.existsByCategoryAndCodeExcludingId(
+                        "MR",
+                        "1050",
+                        secondId
+                );
+
+        assertTrue(exists);
+    }
+
+    @Test
+    public void deletingWarehouseItemReleasesItsIdentity() {
+        long warehouseItemId = dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        assertTrue(
+                dao.existsByCategoryAndCode(
+                        "MR",
+                        "1050"
+                )
+        );
+
+        int affectedRows =
+                dao.deleteById(warehouseItemId);
+
+        assertEquals(1, affectedRows);
+
+        assertFalse(
+                dao.existsByCategoryAndCode(
+                        "MR",
+                        "1050"
+                )
+        );
+
+        long recreatedId = dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "B2"
+                )
+        );
+
+        assertTrue(recreatedId > 0L);
     }
 }

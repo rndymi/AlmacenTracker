@@ -2,6 +2,7 @@ package com.rndymi.almacentracker.application.service;
 
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
@@ -14,6 +15,7 @@ import java.util.function.LongSupplier;
 
 public final class CreateWarehouseItemService
         implements CreateWarehouseItemUseCase {
+
     private final WarehouseItemRepository repository;
     private final LongSupplier currentTimeProvider;
 
@@ -22,7 +24,8 @@ public final class CreateWarehouseItemService
             LongSupplier currentTimeProvider
     ) {
         this.repository = Objects.requireNonNull(repository);
-        this.currentTimeProvider = Objects.requireNonNull(currentTimeProvider);
+        this.currentTimeProvider =
+                Objects.requireNonNull(currentTimeProvider);
     }
 
     @Override
@@ -68,6 +71,51 @@ public final class CreateWarehouseItemService
             return;
         }
 
+        repository.existsByCategoryAndCode(
+                category,
+                code,
+                new WarehouseItemDuplicateCheckCallback() {
+                    @Override
+                    public void onResult(boolean exists) {
+                        if (exists) {
+                            callback.accept(
+                                    CreateWarehouseItemResult
+                                            .duplicate()
+                            );
+                            return;
+                        }
+
+                        insertWarehouseItem(
+                                category,
+                                code,
+                                site,
+                                position,
+                                observations,
+                                callback
+                        );
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        callback.accept(
+                                CreateWarehouseItemResult
+                                        .persistenceError(
+                                                throwable
+                                        )
+                        );
+                    }
+                }
+        );
+    }
+
+    private void insertWarehouseItem(
+            String category,
+            String code,
+            String site,
+            String position,
+            String observations,
+            Consumer<CreateWarehouseItemResult> callback
+    ) {
         long currentTime = currentTimeProvider.getAsLong();
 
         WarehouseItem warehouseItem = new WarehouseItem(
@@ -95,6 +143,11 @@ public final class CreateWarehouseItemService
 
                     @Override
                     public void onDuplicate() {
+                        /*
+                         * Room remains the final protection if the
+                         * combination changes between the previous
+                         * check and this insertion.
+                         */
                         callback.accept(
                                 CreateWarehouseItemResult.duplicate()
                         );
@@ -104,7 +157,9 @@ public final class CreateWarehouseItemService
                     public void onError(Throwable throwable) {
                         callback.accept(
                                 CreateWarehouseItemResult
-                                        .persistenceError(throwable)
+                                        .persistenceError(
+                                                throwable
+                                        )
                         );
                     }
                 }
@@ -112,13 +167,9 @@ public final class CreateWarehouseItemService
     }
 
     private String normalizeUppercase(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        return value
-                .trim()
-                .toUpperCase(Locale.ROOT);
+        return value == null
+                ? ""
+                : value.trim().toUpperCase(Locale.ROOT);
     }
 
     private String normalizeOptional(String value) {

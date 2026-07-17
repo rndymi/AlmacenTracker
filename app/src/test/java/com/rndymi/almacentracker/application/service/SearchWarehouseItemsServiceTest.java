@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
@@ -140,6 +141,25 @@ public class SearchWarehouseItemsServiceTest {
         public void deleteById(
                 long warehouseItemId,
                 WarehouseItemDeleteCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void existsByCategoryAndCode(
+                String category,
+                String code,
+                WarehouseItemDuplicateCheckCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void existsByCategoryAndCodeExcludingId(
+                String category,
+                String code,
+                long excludedWarehouseItemId,
+                WarehouseItemDuplicateCheckCallback callback
         ) {
             throw new UnsupportedOperationException();
         }

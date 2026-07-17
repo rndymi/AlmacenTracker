@@ -9,28 +9,50 @@ import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 public interface WarehouseItemRepository {
+
     LiveData<WarehouseItemsResult> observeAll();
+
     LiveData<WarehouseItemsResult> search(String query);
+
     LiveData<WarehouseItemsResult> filter(
             WarehouseItemFilterCriteria criteria
     );
+
     LiveData<WarehouseItemFilterOptionsResult>
     observeFilterOptions();
+
     LiveData<WarehouseItemDetailResult> observeById(
             long warehouseItemId
     );
+
     void findById(
             long warehouseItemId,
             WarehouseItemFindCallback callback
     );
+
+    void existsByCategoryAndCode(
+            String category,
+            String code,
+            WarehouseItemDuplicateCheckCallback callback
+    );
+
+    void existsByCategoryAndCodeExcludingId(
+            String category,
+            String code,
+            long excludedWarehouseItemId,
+            WarehouseItemDuplicateCheckCallback callback
+    );
+
     void insert(
             WarehouseItem warehouseItem,
             WarehouseItemInsertCallback callback
     );
+
     void update(
             WarehouseItem warehouseItem,
             WarehouseItemUpdateCallback callback
     );
+
     void deleteById(
             long warehouseItemId,
             WarehouseItemDeleteCallback callback

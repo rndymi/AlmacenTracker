@@ -2,6 +2,7 @@ package com.rndymi.almacentracker.application.service;
 
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
@@ -85,7 +86,7 @@ public final class UpdateWarehouseItemService
                     public void onFound(
                             WarehouseItem original
                     ) {
-                        updateExistingItem(
+                        checkDuplicateAndUpdate(
                                 original,
                                 category,
                                 code,
@@ -100,6 +101,54 @@ public final class UpdateWarehouseItemService
                     public void onNotFound() {
                         callback.accept(
                                 UpdateWarehouseItemResult.notFound()
+                        );
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        callback.accept(
+                                UpdateWarehouseItemResult
+                                        .persistenceError(
+                                                throwable
+                                        )
+                        );
+                    }
+                }
+        );
+    }
+
+    private void checkDuplicateAndUpdate(
+            WarehouseItem original,
+            String category,
+            String code,
+            String site,
+            String position,
+            String observations,
+            Consumer<UpdateWarehouseItemResult> callback
+    ) {
+        repository.existsByCategoryAndCodeExcludingId(
+                category,
+                code,
+                original.getId(),
+                new WarehouseItemDuplicateCheckCallback() {
+                    @Override
+                    public void onResult(boolean exists) {
+                        if (exists) {
+                            callback.accept(
+                                    UpdateWarehouseItemResult
+                                            .duplicate()
+                            );
+                            return;
+                        }
+
+                        updateExistingItem(
+                                original,
+                                category,
+                                code,
+                                site,
+                                position,
+                                observations,
+                                callback
                         );
                     }
 
@@ -148,6 +197,10 @@ public final class UpdateWarehouseItemService
 
                     @Override
                     public void onDuplicate() {
+                        /*
+                         * The unique Room index remains the final
+                         * protection after the previous check.
+                         */
                         callback.accept(
                                 UpdateWarehouseItemResult.duplicate()
                         );
