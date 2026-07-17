@@ -166,7 +166,7 @@ public final class WarehouseItemDetailViewModel
             case SUCCESS:
                 deletionCompleted = true;
 
-                deletionSuccess.setValue(
+                deletionSuccess.postValue(
                         new UiEvent<>(true)
                 );
                 break;
@@ -174,7 +174,7 @@ public final class WarehouseItemDetailViewModel
             case INVALID_ID:
                 currentWarehouseItem = null;
 
-                uiState.setValue(
+                uiState.postValue(
                         WarehouseItemDetailUiState.invalidId()
                 );
                 break;
@@ -182,7 +182,7 @@ public final class WarehouseItemDetailViewModel
             case NOT_FOUND:
                 currentWarehouseItem = null;
 
-                uiState.setValue(
+                uiState.postValue(
                         WarehouseItemDetailUiState.notFound()
                 );
                 break;
@@ -190,13 +190,13 @@ public final class WarehouseItemDetailViewModel
             case PERSISTENCE_ERROR:
             default:
                 if (currentWarehouseItem == null) {
-                    uiState.setValue(
+                    uiState.postValue(
                             WarehouseItemDetailUiState.notFound()
                     );
                     return;
                 }
 
-                uiState.setValue(
+                uiState.postValue(
                         WarehouseItemDetailUiState.deleteError(
                                 currentWarehouseItem,
                                 DELETE_ERROR_MESSAGE

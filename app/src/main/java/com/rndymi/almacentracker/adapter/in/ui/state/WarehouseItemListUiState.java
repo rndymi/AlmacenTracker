@@ -154,8 +154,30 @@ public final class WarehouseItemListUiState {
         return criteria.getActiveFilterCount();
     }
 
+    public boolean hasSearchQuery() {
+        return criteria.hasQuery();
+    }
+
     public boolean hasActiveFilters() {
         return criteria.hasActiveFilters();
+    }
+
+    public NoResultsReason getNoResultsReason() {
+        if (status != Status.NO_RESULTS) {
+            throw new IllegalStateException(
+                    "No-results reason is only available for NO_RESULTS"
+            );
+        }
+
+        if (hasSearchQuery() && hasActiveFilters()) {
+            return NoResultsReason.SEARCH_AND_FILTERS;
+        }
+
+        if (hasActiveFilters()) {
+            return NoResultsReason.FILTERS;
+        }
+
+        return NoResultsReason.SEARCH;
     }
 
     public String getErrorMessage() {

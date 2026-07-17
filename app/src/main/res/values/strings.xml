@@ -6,7 +6,7 @@
         Todavía no hay mercancía registrada.
     </string>
     <string name="warehouse_empty_description">
-        Los registros aparecerán aquí cuando se añadan.
+        Registra la primera mercancía para comenzar.
     </string>
     <string name="warehouse_load_error">
         No se pudo cargar la mercancía.
@@ -36,6 +36,10 @@
 
     <string name="clear_search_action">
         Limpiar búsqueda
+    </string>
+
+    <string name="clear_all_criteria_action">
+        Limpiar búsqueda y filtros
     </string>
 
     <string name="register_warehouse_item_title">

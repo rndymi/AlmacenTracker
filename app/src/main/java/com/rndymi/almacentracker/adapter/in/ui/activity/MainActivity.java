@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.rndymi.almacentracker.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.adapter.WarehouseItemAdapter;
+import com.rndymi.almacentracker.adapter.in.ui.state.NoResultsReason;
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemListUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
@@ -93,14 +94,11 @@ public final class MainActivity extends AppCompatActivity {
 
     private void configureActions() {
         binding.addWarehouseItemFab.setOnClickListener(
-                ignored -> {
-                    Intent intent = new Intent(
-                            this,
-                            ItemFormActivity.class
-                    );
+                ignored -> openWarehouseItemForm()
+        );
 
-                    startActivity(intent);
-                }
+        binding.emptyStateRegisterButton.setOnClickListener(
+                ignored -> openWarehouseItemForm()
         );
 
         binding.searchEditText.addTextChangedListener(
@@ -198,17 +196,7 @@ public final class MainActivity extends AppCompatActivity {
         );
 
         binding.clearNoResultsButton.setOnClickListener(
-                ignored -> {
-                    if (viewModel.getUiState().getValue() != null
-                            && viewModel.getUiState()
-                            .getValue()
-                            .hasActiveFilters()) {
-
-                        viewModel.clearFilters();
-                    } else {
-                        viewModel.clearSearch();
-                    }
-                }
+                ignored -> recoverFromNoResults()
         );
     }
 
@@ -217,6 +205,40 @@ public final class MainActivity extends AppCompatActivity {
                 this,
                 this::render
         );
+    }
+
+    private void openWarehouseItemForm() {
+        Intent intent = new Intent(
+                this,
+                ItemFormActivity.class
+        );
+
+        startActivity(intent);
+    }
+
+    private void recoverFromNoResults() {
+        WarehouseItemListUiState state =
+                viewModel.getUiState().getValue();
+
+        if (state == null
+                || state.getStatus()
+                != WarehouseItemListUiState.Status.NO_RESULTS) {
+            return;
+        }
+
+        switch (state.getNoResultsReason()) {
+            case SEARCH:
+                viewModel.clearSearch();
+                break;
+
+            case FILTERS:
+                viewModel.clearFilters();
+                break;
+
+            case SEARCH_AND_FILTERS:
+                viewModel.clearAllCriteria();
+                break;
+        }
     }
 
     private void openWarehouseItemDetail(
@@ -273,9 +295,9 @@ public final class MainActivity extends AppCompatActivity {
                 );
 
                 binding.clearNoResultsButton.setText(
-                        state.hasActiveFilters()
-                                ? R.string.clear_filters_action
-                                : R.string.clear_search_action
+                        getNoResultsActionText(
+                                state.getNoResultsReason()
+                        )
                 );
 
                 binding.noResultsState.setVisibility(
@@ -461,26 +483,42 @@ public final class MainActivity extends AppCompatActivity {
     private String buildNoResultsMessage(
             WarehouseItemListUiState state
     ) {
-        if (state.hasActiveFilters()
-                && !state.getQuery().isEmpty()) {
+        switch (state.getNoResultsReason()) {
+            case SEARCH_AND_FILTERS:
+                return getString(
+                        R.string
+                                .warehouse_search_filter_no_results,
+                        state.getQuery()
+                );
 
-            return getString(
-                    R.string
-                            .warehouse_search_filter_no_results,
-                    state.getQuery()
-            );
+            case FILTERS:
+                return getString(
+                        R.string.warehouse_filter_no_results
+                );
+
+            case SEARCH:
+            default:
+                return getString(
+                        R.string.warehouse_no_results,
+                        state.getQuery()
+                );
         }
+    }
 
-        if (state.hasActiveFilters()) {
-            return getString(
-                    R.string.warehouse_filter_no_results
-            );
+    private int getNoResultsActionText(
+            NoResultsReason reason
+    ) {
+        switch (reason) {
+            case FILTERS:
+                return R.string.clear_filters_action;
+
+            case SEARCH_AND_FILTERS:
+                return R.string.clear_all_criteria_action;
+
+            case SEARCH:
+            default:
+                return R.string.clear_search_action;
         }
-
-        return getString(
-                R.string.warehouse_no_results,
-                state.getQuery()
-        );
     }
 
     private void hideAllContentStates() {
