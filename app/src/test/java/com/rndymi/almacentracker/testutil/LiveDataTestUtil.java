@@ -5,7 +5,6 @@ import androidx.lifecycle.Observer;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public final class LiveDataTestUtil {
     private LiveDataTestUtil() {
@@ -13,7 +12,7 @@ public final class LiveDataTestUtil {
 
     public static <T> T getOrAwaitValue(
             LiveData<T> liveData
-    ) throws InterruptedException, TimeoutException {
+    ) throws InterruptedException {
 
         Object[] data = new Object[1];
         CountDownLatch latch = new CountDownLatch(1);
@@ -36,7 +35,7 @@ public final class LiveDataTestUtil {
 
         if (!completed) {
             liveData.removeObserver(observer);
-            throw new TimeoutException(
+            throw new AssertionError(
                     "LiveData value was never set"
             );
         }
