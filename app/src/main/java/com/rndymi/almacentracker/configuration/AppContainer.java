@@ -4,8 +4,8 @@ import android.content.Context;
 
 import androidx.room.Room;
 
-import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailViewModelFactory;
+import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
@@ -13,10 +13,12 @@ import com.rndymi.almacentracker.adapter.out.persistence.room.repository.RoomWar
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
 import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
+import com.rndymi.almacentracker.application.service.SearchWarehouseItemsService;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,11 +28,13 @@ public final class AppContainer {
     private final ExecutorService databaseExecutor;
     private final WarehouseItemRepository warehouseItemRepository;
     private final ObserveWarehouseItemsUseCase observeWarehouseItemsUseCase;
+    private final SearchWarehouseItemsUseCase searchWarehouseItemsUseCase;
     private final CreateWarehouseItemUseCase createWarehouseItemUseCase;
     private final GetWarehouseItemDetailUseCase getWarehouseItemDetailUseCase;
 
     public AppContainer(Context context) {
-        Context applicationContext = context.getApplicationContext();
+        Context applicationContext =
+                context.getApplicationContext();
 
         database = Room.databaseBuilder(
                 applicationContext,
@@ -38,19 +42,26 @@ public final class AppContainer {
                 "almacen_tracker.db"
         ).build();
 
-        databaseExecutor = Executors.newSingleThreadExecutor();
+        databaseExecutor =
+                Executors.newSingleThreadExecutor();
 
         WarehouseItemPersistenceMapper mapper =
                 new WarehouseItemPersistenceMapper();
 
-        warehouseItemRepository = new RoomWarehouseItemRepository(
-                database.warehouseItemDao(),
-                mapper,
-                databaseExecutor
-        );
+        warehouseItemRepository =
+                new RoomWarehouseItemRepository(
+                        database.warehouseItemDao(),
+                        mapper,
+                        databaseExecutor
+                );
 
         observeWarehouseItemsUseCase =
                 new ObserveWarehouseItemsService(
+                        warehouseItemRepository
+                );
+
+        searchWarehouseItemsUseCase =
+                new SearchWarehouseItemsService(
                         warehouseItemRepository
                 );
 
@@ -79,7 +90,8 @@ public final class AppContainer {
     public WarehouseItemListViewModelFactory
     provideWarehouseItemListViewModelFactory() {
         return new WarehouseItemListViewModelFactory(
-                observeWarehouseItemsUseCase
+                observeWarehouseItemsUseCase,
+                searchWarehouseItemsUseCase
         );
     }
 

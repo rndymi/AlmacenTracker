@@ -28,6 +28,15 @@ public class ObserveWarehouseItemsServiceTest {
                     }
 
                     @Override
+                    public LiveData<WarehouseItemsResult> search(
+                            String query
+                    ) {
+                        throw new UnsupportedOperationException(
+                                "Not required by this test"
+                        );
+                    }
+
+                    @Override
                     public LiveData<WarehouseItemDetailResult>
                     observeById(long warehouseItemId) {
                         throw new UnsupportedOperationException(

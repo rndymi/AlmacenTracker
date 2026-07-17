@@ -28,7 +28,9 @@ public final class RoomWarehouseItemRepository
             WarehouseItemPersistenceMapper mapper,
             Executor executor
     ) {
-        this.warehouseItemDao = Objects.requireNonNull(warehouseItemDao);
+        this.warehouseItemDao = Objects.requireNonNull(
+                warehouseItemDao
+        );
         this.mapper = Objects.requireNonNull(mapper);
         this.executor = Objects.requireNonNull(executor);
     }
@@ -37,6 +39,26 @@ public final class RoomWarehouseItemRepository
     public LiveData<WarehouseItemsResult> observeAll() {
         return Transformations.map(
                 warehouseItemDao.observeAll(),
+                entities -> {
+                    try {
+                        return WarehouseItemsResult.success(
+                                mapper.toDomainList(entities)
+                        );
+                    } catch (RuntimeException exception) {
+                        return WarehouseItemsResult.error(
+                                exception
+                        );
+                    }
+                }
+        );
+    }
+
+    @Override
+    public LiveData<WarehouseItemsResult> search(String query) {
+        Objects.requireNonNull(query);
+
+        return Transformations.map(
+                warehouseItemDao.search(query),
                 entities -> {
                     try {
                         return WarehouseItemsResult.success(
@@ -85,9 +107,13 @@ public final class RoomWarehouseItemRepository
 
         executor.execute(() -> {
             try {
-                WarehouseItemEntity entity = mapper.toEntity(warehouseItem);
-                long generateId = warehouseItemDao.insert(entity);
-                callback.onSuccess(generateId);
+                WarehouseItemEntity entity =
+                        mapper.toEntity(warehouseItem);
+
+                long generatedId =
+                        warehouseItemDao.insert(entity);
+
+                callback.onSuccess(generatedId);
             } catch (SQLiteConstraintException exception) {
                 callback.onDuplicate();
             } catch (RuntimeException exception) {

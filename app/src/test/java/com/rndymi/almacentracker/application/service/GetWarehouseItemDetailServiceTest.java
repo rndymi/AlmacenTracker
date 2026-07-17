@@ -116,5 +116,12 @@ public final class GetWarehouseItemDetailServiceTest {
         ) {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public LiveData<WarehouseItemsResult> search(
+                String query
+        ) {
+            return new MutableLiveData<>();
+        }
     }
 }

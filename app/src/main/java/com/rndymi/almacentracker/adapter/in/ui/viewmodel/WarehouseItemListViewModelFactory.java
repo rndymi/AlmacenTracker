@@ -5,17 +5,25 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
 
 import java.util.Objects;
 
 public final class WarehouseItemListViewModelFactory
         implements ViewModelProvider.Factory {
-    private final ObserveWarehouseItemsUseCase useCase;
+
+    private final ObserveWarehouseItemsUseCase observeUseCase;
+    private final SearchWarehouseItemsUseCase searchUseCase;
 
     public WarehouseItemListViewModelFactory(
-            ObserveWarehouseItemsUseCase useCase
+            ObserveWarehouseItemsUseCase observeUseCase,
+            SearchWarehouseItemsUseCase searchUseCase
     ) {
-        this.useCase = Objects.requireNonNull(useCase);
+        this.observeUseCase =
+                Objects.requireNonNull(observeUseCase);
+
+        this.searchUseCase =
+                Objects.requireNonNull(searchUseCase);
     }
 
     @NonNull
@@ -27,11 +35,15 @@ public final class WarehouseItemListViewModelFactory
         if (modelClass.isAssignableFrom(
                 WarehouseItemListViewModel.class
         )) {
-            return (T) new WarehouseItemListViewModel(useCase);
+            return (T) new WarehouseItemListViewModel(
+                    observeUseCase,
+                    searchUseCase
+            );
         }
 
         throw new IllegalArgumentException(
-                "Unknown ViewModel class: " + modelClass.getName()
+                "Unknown ViewModel class: "
+                        + modelClass.getName()
         );
     }
 }
