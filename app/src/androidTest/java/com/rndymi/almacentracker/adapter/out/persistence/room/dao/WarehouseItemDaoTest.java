@@ -3,8 +3,10 @@ package com.rndymi.almacentracker.adapter.out.persistence.room.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteConstraintException;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.LiveData;
@@ -25,7 +27,6 @@ import org.junit.runner.RunWith;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(AndroidJUnit4.class)
 public class WarehouseItemDaoTest {
@@ -772,5 +773,194 @@ public class WarehouseItemDaoTest {
                 );
 
         assertEquals(Integer.valueOf(1), count);
+    }
+
+    @Test
+    public void updateChangesExistingWarehouseItem()
+            throws InterruptedException {
+
+        long originalCreatedAt = 100L;
+
+        long warehouseItemId = dao.insert(
+                new WarehouseItemEntity(
+                        0L,
+                        "MR",
+                        "1050",
+                        "A1",
+                        "Nivel 1",
+                        "Observación inicial",
+                        originalCreatedAt,
+                        200L
+                )
+        );
+
+        int affectedRows = dao.update(
+                new WarehouseItemEntity(
+                        warehouseItemId,
+                        "MD",
+                        "2050",
+                        "B2",
+                        null,
+                        "Observación actualizada",
+                        originalCreatedAt,
+                        500L
+                )
+        );
+
+        WarehouseItemEntity updated =
+                getOrAwaitValue(
+                        dao.observeById(warehouseItemId)
+                );
+
+        assertEquals(1, affectedRows);
+        assertEquals(warehouseItemId, updated.getId());
+        assertEquals("MD", updated.getCategory());
+        assertEquals("2050", updated.getCode());
+        assertEquals("B2", updated.getSite());
+        assertNull(updated.getPosition());
+
+        assertEquals(
+                "Observación actualizada",
+                updated.getObservations()
+        );
+
+        assertEquals(
+                originalCreatedAt,
+                updated.getCreatedAt()
+        );
+
+        assertEquals(
+                500L,
+                updated.getUpdatedAt()
+        );
+    }
+
+    @Test
+    public void updateDoesNotCreateAdditionalRow()
+            throws InterruptedException {
+
+        long warehouseItemId =
+                dao.insert(
+                        createEntity(
+                                "MR",
+                                "1050",
+                                "A1"
+                        )
+                );
+
+        WarehouseItemEntity original =
+                getOrAwaitValue(
+                        dao.observeById(warehouseItemId)
+                );
+
+        dao.update(
+                new WarehouseItemEntity(
+                        warehouseItemId,
+                        original.getCategory(),
+                        original.getCode(),
+                        "B2",
+                        null,
+                        null,
+                        original.getCreatedAt(),
+                        original.getUpdatedAt() + 1L
+                )
+        );
+
+        List<WarehouseItemEntity> items =
+                getOrAwaitValue(dao.observeAll());
+
+        assertEquals(1, items.size());
+        assertEquals(warehouseItemId, items.get(0).getId());
+    }
+
+    @Test
+    public void updateReturnsZeroWhenWarehouseItemDoesNotExist() {
+        int affectedRows = dao.update(
+                new WarehouseItemEntity(
+                        999L,
+                        "MR",
+                        "1050",
+                        "A1",
+                        null,
+                        null,
+                        100L,
+                        200L
+                )
+        );
+
+        assertEquals(0, affectedRows);
+    }
+
+    @Test
+    public void updateAllowsKeepingSameCategoryAndCode()
+            throws InterruptedException {
+
+        long warehouseItemId =
+                dao.insert(
+                        createEntity(
+                                "MR",
+                                "1050",
+                                "A1"
+                        )
+                );
+
+        WarehouseItemEntity original =
+                getOrAwaitValue(
+                        dao.observeById(warehouseItemId)
+                );
+
+        int affectedRows = dao.update(
+                new WarehouseItemEntity(
+                        warehouseItemId,
+                        "MR",
+                        "1050",
+                        "B3",
+                        null,
+                        null,
+                        original.getCreatedAt(),
+                        original.getUpdatedAt() + 1L
+                )
+        );
+
+        assertEquals(1, affectedRows);
+    }
+
+    @Test
+    public void updateRejectsCategoryAndCodeOwnedByAnotherItem() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        long secondId =
+                dao.insert(
+                        createEntity(
+                                "MD",
+                                "1050",
+                                "B1"
+                        )
+                );
+
+        try {
+            dao.update(
+                    new WarehouseItemEntity(
+                            secondId,
+                            "MR",
+                            "1050",
+                            "B1",
+                            null,
+                            null,
+                            100L,
+                            200L
+                    )
+            );
+
+            fail("Expected SQLiteConstraintException");
+        } catch (SQLiteConstraintException expected) {
+            // Expected unique index violation.
+        }
     }
 }

@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
+import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
+import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
 
 import java.util.Objects;
 
@@ -14,14 +16,39 @@ public final class WarehouseItemFormViewModelFactory
     private final CreateWarehouseItemUseCase
             createWarehouseItemUseCase;
 
+    private final UpdateWarehouseItemUseCase
+            updateWarehouseItemUseCase;
+
+    private final GetWarehouseItemDetailUseCase
+            getWarehouseItemDetailUseCase;
+
+    private final long warehouseItemId;
+
     public WarehouseItemFormViewModelFactory(
             CreateWarehouseItemUseCase
-                    createWarehouseItemUseCase
+                    createWarehouseItemUseCase,
+            UpdateWarehouseItemUseCase
+                    updateWarehouseItemUseCase,
+            GetWarehouseItemDetailUseCase
+                    getWarehouseItemDetailUseCase,
+            long warehouseItemId
     ) {
         this.createWarehouseItemUseCase =
                 Objects.requireNonNull(
                         createWarehouseItemUseCase
                 );
+
+        this.updateWarehouseItemUseCase =
+                Objects.requireNonNull(
+                        updateWarehouseItemUseCase
+                );
+
+        this.getWarehouseItemDetailUseCase =
+                Objects.requireNonNull(
+                        getWarehouseItemDetailUseCase
+                );
+
+        this.warehouseItemId = warehouseItemId;
     }
 
     @NonNull
@@ -41,7 +68,10 @@ public final class WarehouseItemFormViewModelFactory
         @SuppressWarnings("unchecked")
         T viewModel = (T)
                 new WarehouseItemFormViewModel(
-                        createWarehouseItemUseCase
+                        createWarehouseItemUseCase,
+                        updateWarehouseItemUseCase,
+                        getWarehouseItemDetailUseCase,
+                        warehouseItemId
                 );
 
         return viewModel;

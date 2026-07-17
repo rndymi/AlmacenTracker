@@ -11,8 +11,10 @@ import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseIt
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -177,6 +179,64 @@ public final class RoomWarehouseItemRepository
                     }
                 }
         );
+    }
+
+    @Override
+    public void findById(
+            long warehouseItemId,
+            WarehouseItemFindCallback callback
+    ) {
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                WarehouseItemEntity entity =
+                        warehouseItemDao.findById(
+                                warehouseItemId
+                        );
+
+                if (entity == null) {
+                    callback.onNotFound();
+                    return;
+                }
+
+                callback.onFound(
+                        mapper.toDomain(entity)
+                );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void update(
+            WarehouseItem warehouseItem,
+            WarehouseItemUpdateCallback callback
+    ) {
+        Objects.requireNonNull(warehouseItem);
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                WarehouseItemEntity entity =
+                        mapper.toEntity(warehouseItem);
+
+                int affectedRows =
+                        warehouseItemDao.update(entity);
+
+                if (affectedRows == 0) {
+                    callback.onNotFound();
+                    return;
+                }
+
+                callback.onSuccess();
+            } catch (SQLiteConstraintException exception) {
+                callback.onDuplicate();
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
     }
 
     @Override

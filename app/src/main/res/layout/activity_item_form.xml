@@ -20,7 +20,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/initialLoadingProgress"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/formContent"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
@@ -127,7 +138,7 @@
                 android:layout_marginTop="12dp"
                 android:textColor="?attr/colorError"
                 android:visibility="gone"
-                tools:text="No se pudo registrar la mercancía."
+                tools:text="No se pudieron guardar los cambios."
                 tools:visibility="visible" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator

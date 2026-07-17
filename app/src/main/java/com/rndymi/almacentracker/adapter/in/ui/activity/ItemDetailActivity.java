@@ -33,6 +33,8 @@ public final class ItemDetailActivity
             -1L;
 
     private ActivityItemDetailBinding binding;
+    private long currentWarehouseItemId =
+            INVALID_WAREHOUSE_ITEM_ID;
 
     private final WarehouseItemDateFormatter dateFormatter =
             new WarehouseItemDateFormatter();
@@ -65,7 +67,11 @@ public final class ItemDetailActivity
         setContentView(binding.getRoot());
 
         configureToolbar();
-        observeUiState(readWarehouseItemId());
+
+        currentWarehouseItemId = readWarehouseItemId();
+
+        configureActions();
+        observeUiState(currentWarehouseItemId);
     }
 
     private void configureToolbar() {
@@ -111,6 +117,7 @@ public final class ItemDetailActivity
             WarehouseItemDetailUiState state
     ) {
         hideAllStates();
+        binding.editButton.setEnabled(false);
 
         switch (state.getStatus()) {
             case LOADING:
@@ -202,6 +209,8 @@ public final class ItemDetailActivity
         binding.contentScroll.setVisibility(
                 View.VISIBLE
         );
+
+        binding.editButton.setEnabled(true);
     }
 
     private void renderOptionalSection(
@@ -241,5 +250,23 @@ public final class ItemDetailActivity
     protected void onDestroy() {
         super.onDestroy();
         binding = null;
+    }
+
+    private void configureActions() {
+        binding.editButton.setOnClickListener(
+                ignored -> {
+                    if (currentWarehouseItemId
+                            <= INVALID_WAREHOUSE_ITEM_ID) {
+                        return;
+                    }
+
+                    startActivity(
+                            ItemFormActivity.createEditIntent(
+                                    this,
+                                    currentWarehouseItemId
+                            )
+                    );
+                }
+        );
     }
 }

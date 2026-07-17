@@ -19,8 +19,16 @@ public interface WarehouseItemRepository {
     LiveData<WarehouseItemDetailResult> observeById(
             long warehouseItemId
     );
+    void findById(
+            long warehouseItemId,
+            WarehouseItemFindCallback callback
+    );
     void insert(
             WarehouseItem warehouseItem,
             WarehouseItemInsertCallback callback
+    );
+    void update(
+            WarehouseItem warehouseItem,
+            WarehouseItemUpdateCallback callback
     );
 }
