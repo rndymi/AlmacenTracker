@@ -9,6 +9,7 @@ import androidx.lifecycle.LiveData;
 
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
@@ -323,6 +324,14 @@ public class UpdateWarehouseItemServiceTest {
         public void insert(
                 WarehouseItem warehouseItem,
                 WarehouseItemInsertCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteById(
+                long warehouseItemId,
+                WarehouseItemDeleteCallback callback
         ) {
             throw new UnsupportedOperationException();
         }

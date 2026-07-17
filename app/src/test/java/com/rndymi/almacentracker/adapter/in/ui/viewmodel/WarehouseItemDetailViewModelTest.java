@@ -126,6 +126,10 @@ public final class WarehouseItemDetailViewModelTest {
                 )
         );
 
+        LiveDataTestUtil.getOrAwaitValue(
+                viewModel.getUiState()
+        );
+
         viewModel.deleteWarehouseItem();
 
         WarehouseItemDetailUiState state =
@@ -139,7 +143,8 @@ public final class WarehouseItemDetailViewModelTest {
     }
 
     @Test
-    public void delete_ignoresSecondCallWhileDeleting() {
+    public void delete_ignoresSecondCallWhileDeleting()
+            throws InterruptedException {
         FakeGetWarehouseItemDetailUseCase detailUseCase =
                 new FakeGetWarehouseItemDetailUseCase();
 
@@ -157,6 +162,10 @@ public final class WarehouseItemDetailViewModelTest {
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(7L)
                 )
+        );
+
+        LiveDataTestUtil.getOrAwaitValue(
+                viewModel.getUiState()
         );
 
         viewModel.deleteWarehouseItem();
@@ -186,6 +195,10 @@ public final class WarehouseItemDetailViewModelTest {
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(5L)
                 )
+        );
+
+        LiveDataTestUtil.getOrAwaitValue(
+                viewModel.getUiState()
         );
 
         viewModel.deleteWarehouseItem();
@@ -233,6 +246,10 @@ public final class WarehouseItemDetailViewModelTest {
                 )
         );
 
+        LiveDataTestUtil.getOrAwaitValue(
+                viewModel.getUiState()
+        );
+
         viewModel.deleteWarehouseItem();
 
         deleteUseCase.callback.accept(
@@ -271,6 +288,10 @@ public final class WarehouseItemDetailViewModelTest {
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(10L)
                 )
+        );
+
+        LiveDataTestUtil.getOrAwaitValue(
+                viewModel.getUiState()
         );
 
         viewModel.deleteWarehouseItem();
@@ -324,6 +345,10 @@ public final class WarehouseItemDetailViewModelTest {
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(12L)
                 )
+        );
+
+        LiveDataTestUtil.getOrAwaitValue(
+                viewModel.getUiState()
         );
 
         viewModel.deleteWarehouseItem();
