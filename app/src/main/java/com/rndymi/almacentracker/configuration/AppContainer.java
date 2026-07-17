@@ -16,6 +16,7 @@ import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCa
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
 import com.rndymi.almacentracker.application.service.FilterWarehouseItemsService;
@@ -23,6 +24,7 @@ import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailServi
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemFilterOptionsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.SearchWarehouseItemsService;
+import com.rndymi.almacentracker.application.service.UpdateWarehouseItemService;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,6 +51,9 @@ public final class AppContainer {
 
     private final CreateWarehouseItemUseCase
             createWarehouseItemUseCase;
+
+    private final UpdateWarehouseItemUseCase
+            updateWarehouseItemUseCase;
 
     private final GetWarehouseItemDetailUseCase
             getWarehouseItemDetailUseCase;
@@ -102,6 +107,12 @@ public final class AppContainer {
                         System::currentTimeMillis
                 );
 
+        updateWarehouseItemUseCase =
+                new UpdateWarehouseItemService(
+                        warehouseItemRepository,
+                        System::currentTimeMillis
+                );
+
         getWarehouseItemDetailUseCase =
                 new GetWarehouseItemDetailService(
                         warehouseItemRepository
@@ -128,9 +139,14 @@ public final class AppContainer {
     }
 
     public WarehouseItemFormViewModelFactory
-    provideWarehouseItemFormViewModelFactory() {
+    provideWarehouseItemFormViewModelFactory(
+            long warehouseItemId
+    ) {
         return new WarehouseItemFormViewModelFactory(
-                createWarehouseItemUseCase
+                createWarehouseItemUseCase,
+                updateWarehouseItemUseCase,
+                getWarehouseItemDetailUseCase,
+                warehouseItemId
         );
     }
 }
