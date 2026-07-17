@@ -134,6 +134,12 @@ public final class WarehouseItemListViewModel
         updateCriteria(criteria.clearFilters());
     }
 
+    public void clearAllCriteria() {
+        updateCriteria(
+                WarehouseItemFilterCriteria.empty()
+        );
+    }
+
     private void updateCriteria(
             WarehouseItemFilterCriteria newCriteria
     ) {
