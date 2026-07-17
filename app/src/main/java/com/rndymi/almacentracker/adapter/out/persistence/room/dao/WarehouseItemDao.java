@@ -5,6 +5,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Update;
 
 import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
 
@@ -39,14 +40,10 @@ public interface WarehouseItemDao {
             "SELECT * FROM warehouse_items " +
                     "WHERE (" +
                     "    :query = '' " +
-                    "    OR category LIKE '%' || :query || '%' " +
-                    "       COLLATE NOCASE " +
-                    "    OR code LIKE '%' || :query || '%' " +
-                    "       COLLATE NOCASE " +
-                    "    OR site LIKE '%' || :query || '%' " +
-                    "       COLLATE NOCASE " +
-                    "    OR position LIKE '%' || :query || '%' " +
-                    "       COLLATE NOCASE" +
+                    "    OR category LIKE '%' || :query || '%' COLLATE NOCASE " +
+                    "    OR code LIKE '%' || :query || '%' COLLATE NOCASE " +
+                    "    OR site LIKE '%' || :query || '%' COLLATE NOCASE " +
+                    "    OR position LIKE '%' || :query || '%' COLLATE NOCASE" +
                     ") " +
                     "AND (" +
                     "    :category IS NULL " +
@@ -67,8 +64,7 @@ public interface WarehouseItemDao {
                     "    ) " +
                     "    OR (" +
                     "        :positionMode = 2 " +
-                    "        AND position = :position " +
-                    "            COLLATE NOCASE" +
+                    "        AND position = :position COLLATE NOCASE" +
                     "    )" +
                     ") " +
                     "ORDER BY category COLLATE NOCASE ASC, " +
@@ -123,8 +119,20 @@ public interface WarehouseItemDao {
             long warehouseItemId
     );
 
+    @Query(
+            "SELECT * FROM warehouse_items " +
+                    "WHERE id = :warehouseItemId " +
+                    "LIMIT 1"
+    )
+    WarehouseItemEntity findById(
+            long warehouseItemId
+    );
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     long insert(WarehouseItemEntity entity);
+
+    @Update(onConflict = OnConflictStrategy.ABORT)
+    int update(WarehouseItemEntity entity);
 
     @Query("DELETE FROM warehouse_items")
     void deleteAll();
