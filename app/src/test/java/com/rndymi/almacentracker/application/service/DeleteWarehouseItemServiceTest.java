@@ -13,6 +13,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.result.DeleteWarehouseItemResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -21,6 +22,7 @@ import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class DeleteWarehouseItemServiceTest {
@@ -188,6 +190,14 @@ public final class DeleteWarehouseItemServiceTest {
             deleteCalls++;
             deletedId = warehouseItemId;
             deleteCallback = callback;
+        }
+
+        @Override
+        public void deleteByIds(
+                List<Long> warehouseItemIds,
+                WarehouseItemsDeleteCallback callback
+        ) {
+            throw new UnsupportedOperationException();
         }
 
         @Override

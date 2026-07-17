@@ -8,6 +8,8 @@ import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsRe
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
+import java.util.List;
+
 public interface WarehouseItemRepository {
 
     LiveData<WarehouseItemsResult> observeAll();
@@ -56,5 +58,10 @@ public interface WarehouseItemRepository {
     void deleteById(
             long warehouseItemId,
             WarehouseItemDeleteCallback callback
+    );
+
+    void deleteByIds(
+            List<Long> warehouseItemIds,
+            WarehouseItemsDeleteCallback callback
     );
 }

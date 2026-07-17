@@ -5,18 +5,24 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemListUiState;
+import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemSelectionUiState;
+import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public final class WarehouseItemListViewModel
         extends ViewModel {
@@ -30,6 +36,9 @@ public final class WarehouseItemListViewModel
     private final MediatorLiveData<WarehouseItemListUiState>
             uiState = new MediatorLiveData<>();
 
+    private final MediatorLiveData<WarehouseItemSelectionUiState>
+            selectionUiState = new MediatorLiveData<>();
+
     private final FilterWarehouseItemsUseCase
             filterWarehouseItemsUseCase;
 
@@ -38,6 +47,14 @@ public final class WarehouseItemListViewModel
 
     private final LiveData<WarehouseItemFilterOptionsResult>
             filterOptionsSource;
+
+    private final DeleteWarehouseItemsUseCase
+            deleteWarehouseItemsUseCase;
+
+    private final Set<Long> selectedWarehouseItemIds =
+            new LinkedHashSet<>();
+
+    private boolean deletingSelection;
 
     private LiveData<WarehouseItemsResult> filteredItemsSource;
 
@@ -55,7 +72,9 @@ public final class WarehouseItemListViewModel
             ObserveWarehouseItemsUseCase observeWarehouseItemsUseCase,
             FilterWarehouseItemsUseCase filterWarehouseItemsUseCase,
             ObserveWarehouseItemFilterOptionsUseCase
-                    observeFilterOptionsUseCase
+                    observeFilterOptionsUseCase,
+            DeleteWarehouseItemsUseCase
+                    deleteWarehouseItemsUseCase
     ) {
         Objects.requireNonNull(observeWarehouseItemsUseCase);
 
@@ -63,6 +82,15 @@ public final class WarehouseItemListViewModel
                 Objects.requireNonNull(
                         filterWarehouseItemsUseCase
                 );
+
+        this.deleteWarehouseItemsUseCase =
+                Objects.requireNonNull(
+                        deleteWarehouseItemsUseCase
+                );
+
+        selectionUiState.setValue(
+                WarehouseItemSelectionUiState.empty()
+        );
 
         Objects.requireNonNull(observeFilterOptionsUseCase);
 
@@ -258,6 +286,12 @@ public final class WarehouseItemListViewModel
         }
 
         if (databaseEmpty) {
+            selectedWarehouseItemIds.clear();
+
+            selectionUiState.setValue(
+                    WarehouseItemSelectionUiState.empty()
+            );
+
             uiState.setValue(
                     WarehouseItemListUiState.emptyDatabase(
                             criteria,
@@ -273,7 +307,15 @@ public final class WarehouseItemListViewModel
                         latestFilteredResult)
                         .getItems();
 
+        pruneSelectedIds(filteredItems);
+
         if (filteredItems.isEmpty()) {
+            selectedWarehouseItemIds.clear();
+
+            selectionUiState.setValue(
+                    WarehouseItemSelectionUiState.empty()
+            );
+
             uiState.setValue(
                     WarehouseItemListUiState.noResults(
                             criteria,
@@ -301,5 +343,186 @@ public final class WarehouseItemListViewModel
         uiState.removeSource(filteredItemsSource);
         filteredItemsSource = null;
         latestFilteredResult = null;
+    }
+
+    public LiveData<WarehouseItemSelectionUiState>
+    getSelectionUiState() {
+        return selectionUiState;
+    }
+
+    public void startSelection(long warehouseItemId) {
+        if (deletingSelection
+                || warehouseItemId <= 0L
+                || !isVisibleWarehouseItemId(
+                warehouseItemId
+        )) {
+            return;
+        }
+
+        selectedWarehouseItemIds.add(
+                warehouseItemId
+        );
+
+        publishSelectionState();
+    }
+
+    public void toggleSelection(long warehouseItemId) {
+        if (deletingSelection
+                || warehouseItemId <= 0L
+                || !isVisibleWarehouseItemId(
+                warehouseItemId
+        )) {
+            return;
+        }
+
+        if (selectedWarehouseItemIds.contains(
+                warehouseItemId
+        )) {
+            selectedWarehouseItemIds.remove(
+                    warehouseItemId
+            );
+        } else {
+            selectedWarehouseItemIds.add(
+                    warehouseItemId
+            );
+        }
+
+        publishSelectionState();
+    }
+
+    public void clearSelection() {
+        if (deletingSelection) {
+            return;
+        }
+
+        selectedWarehouseItemIds.clear();
+
+        selectionUiState.setValue(
+                WarehouseItemSelectionUiState.empty()
+        );
+    }
+
+    public boolean hasSelection() {
+        return !selectedWarehouseItemIds.isEmpty();
+    }
+
+    public void deleteSelectedItems() {
+        if (deletingSelection
+                || selectedWarehouseItemIds.isEmpty()) {
+            return;
+        }
+
+        deletingSelection = true;
+
+        Set<Long> selectedIdsCopy =
+                new LinkedHashSet<>(
+                        selectedWarehouseItemIds
+                );
+
+        selectionUiState.setValue(
+                WarehouseItemSelectionUiState.deleting(
+                        selectedIdsCopy
+                )
+        );
+
+        deleteWarehouseItemsUseCase
+                .deleteWarehouseItems(
+                        selectedIdsCopy,
+                        this::handleDeleteSelectionResult
+                );
+    }
+
+    private void handleDeleteSelectionResult(
+            DeleteWarehouseItemsResult result
+    ) {
+        deletingSelection = false;
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+            case PARTIAL_SUCCESS:
+            case NOT_FOUND:
+                selectedWarehouseItemIds.clear();
+
+                selectionUiState.postValue(
+                        WarehouseItemSelectionUiState.result(
+                                Collections.emptySet(),
+                                result
+                        )
+                );
+                break;
+
+            case EMPTY_SELECTION:
+            case INVALID_IDS:
+            case PERSISTENCE_ERROR:
+                selectionUiState.postValue(
+                        WarehouseItemSelectionUiState.result(
+                                selectedWarehouseItemIds,
+                                result
+                        )
+                );
+                break;
+        }
+    }
+
+    private void publishSelectionState() {
+        if (selectedWarehouseItemIds.isEmpty()) {
+            selectionUiState.setValue(
+                    WarehouseItemSelectionUiState.empty()
+            );
+            return;
+        }
+
+        selectionUiState.setValue(
+                WarehouseItemSelectionUiState.selecting(
+                        selectedWarehouseItemIds
+                )
+        );
+    }
+
+    private boolean isVisibleWarehouseItemId(
+            long warehouseItemId
+    ) {
+        WarehouseItemListUiState currentState =
+                uiState.getValue();
+
+        if (currentState == null
+                || currentState.getStatus()
+                != WarehouseItemListUiState.Status.CONTENT) {
+            return false;
+        }
+
+        for (WarehouseItem warehouseItem
+                : currentState.getItems()) {
+            if (warehouseItem.getId()
+                    == warehouseItemId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void pruneSelectedIds(
+            List<WarehouseItem> visibleItems
+    ) {
+        if (selectedWarehouseItemIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> visibleIds =
+                new LinkedHashSet<>();
+
+        for (WarehouseItem warehouseItem
+                : visibleItems) {
+            visibleIds.add(warehouseItem.getId());
+        }
+
+        boolean changed =
+                selectedWarehouseItemIds
+                        .retainAll(visibleIds);
+
+        if (changed) {
+            publishSelectionState();
+        }
     }
 }

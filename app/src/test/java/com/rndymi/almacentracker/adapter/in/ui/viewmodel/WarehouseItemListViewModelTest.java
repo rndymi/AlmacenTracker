@@ -8,6 +8,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemListUiState;
+import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
@@ -386,11 +387,17 @@ public class WarehouseItemListViewModelTest {
                     optionsUseCase =
                     () -> filterOptions;
 
+            DeleteWarehouseItemsUseCase deleteUseCase =
+                    (warehouseItemIds, callback) -> {
+                        throw new UnsupportedOperationException();
+                    };
+
             WarehouseItemListViewModel viewModel =
                     new WarehouseItemListViewModel(
                             observeUseCase,
                             filterUseCase,
-                            optionsUseCase
+                            optionsUseCase,
+                            deleteUseCase
                     );
 
             viewModel.getUiState().observeForever(
