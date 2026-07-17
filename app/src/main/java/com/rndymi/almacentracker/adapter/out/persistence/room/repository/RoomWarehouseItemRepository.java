@@ -303,21 +303,24 @@ public final class RoomWarehouseItemRepository
         Objects.requireNonNull(callback);
 
         executor.execute(() -> {
+            int affectedRows;
+
             try {
-                int affectedRows =
+                affectedRows =
                         warehouseItemDao.deleteById(
                                 warehouseItemId
                         );
-
-                if (affectedRows == 0) {
-                    callback.onNotFound();
-                    return;
-                }
-
-                callback.onSuccess();
             } catch (RuntimeException exception) {
                 callback.onError(exception);
+                return;
             }
+
+            if (affectedRows == 0) {
+                callback.onNotFound();
+                return;
+            }
+
+            callback.onSuccess();
         });
     }
 
