@@ -31,4 +31,8 @@ public interface WarehouseItemRepository {
             WarehouseItem warehouseItem,
             WarehouseItemUpdateCallback callback
     );
+    void deleteById(
+            long warehouseItemId,
+            WarehouseItemDeleteCallback callback
+    );
 }

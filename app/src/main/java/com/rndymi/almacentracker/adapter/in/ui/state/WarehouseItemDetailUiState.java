@@ -1,7 +1,9 @@
 package com.rndymi.almacentracker.adapter.in.ui.state;
 
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+
 public final class WarehouseItemDetailUiState {
+
     public enum Status {
         LOADING,
         CONTENT,
@@ -9,24 +11,33 @@ public final class WarehouseItemDetailUiState {
         INVALID_ID,
         ERROR
     }
+
     private final Status status;
     private final WarehouseItem warehouseItem;
     private final String errorMessage;
+    private final boolean deleting;
+    private final String deleteErrorMessage;
 
-    public WarehouseItemDetailUiState(
+    private WarehouseItemDetailUiState(
             Status status,
             WarehouseItem warehouseItem,
-            String errorMessage
+            String errorMessage,
+            boolean deleting,
+            String deleteErrorMessage
     ) {
         this.status = status;
         this.warehouseItem = warehouseItem;
         this.errorMessage = errorMessage;
+        this.deleting = deleting;
+        this.deleteErrorMessage = deleteErrorMessage;
     }
 
     public static WarehouseItemDetailUiState loading() {
         return new WarehouseItemDetailUiState(
                 Status.LOADING,
                 null,
+                null,
+                false,
                 null
         );
     }
@@ -37,7 +48,34 @@ public final class WarehouseItemDetailUiState {
         return new WarehouseItemDetailUiState(
                 Status.CONTENT,
                 warehouseItem,
+                null,
+                false,
                 null
+        );
+    }
+
+    public static WarehouseItemDetailUiState deleting(
+            WarehouseItem warehouseItem
+    ) {
+        return new WarehouseItemDetailUiState(
+                Status.CONTENT,
+                warehouseItem,
+                null,
+                true,
+                null
+        );
+    }
+
+    public static WarehouseItemDetailUiState deleteError(
+            WarehouseItem warehouseItem,
+            String deleteErrorMessage
+    ) {
+        return new WarehouseItemDetailUiState(
+                Status.CONTENT,
+                warehouseItem,
+                null,
+                false,
+                deleteErrorMessage
         );
     }
 
@@ -45,6 +83,8 @@ public final class WarehouseItemDetailUiState {
         return new WarehouseItemDetailUiState(
                 Status.NOT_FOUND,
                 null,
+                null,
+                false,
                 null
         );
     }
@@ -53,6 +93,8 @@ public final class WarehouseItemDetailUiState {
         return new WarehouseItemDetailUiState(
                 Status.INVALID_ID,
                 null,
+                null,
+                false,
                 null
         );
     }
@@ -63,7 +105,9 @@ public final class WarehouseItemDetailUiState {
         return new WarehouseItemDetailUiState(
                 Status.ERROR,
                 null,
-                errorMessage
+                errorMessage,
+                false,
+                null
         );
     }
 
@@ -77,5 +121,13 @@ public final class WarehouseItemDetailUiState {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    public boolean isDeleting() {
+        return deleting;
+    }
+
+    public String getDeleteErrorMessage() {
+        return deleteErrorMessage;
     }
 }

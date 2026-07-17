@@ -4,20 +4,39 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
 
 import java.util.Objects;
 
 public final class WarehouseItemDetailViewModelFactory
         implements ViewModelProvider.Factory {
-    private final GetWarehouseItemDetailUseCase useCase;
+
+    private final GetWarehouseItemDetailUseCase
+            getWarehouseItemDetailUseCase;
+
+    private final DeleteWarehouseItemUseCase
+            deleteWarehouseItemUseCase;
+
     private final long warehouseItemId;
 
     public WarehouseItemDetailViewModelFactory(
-            GetWarehouseItemDetailUseCase useCase,
+            GetWarehouseItemDetailUseCase
+                    getWarehouseItemDetailUseCase,
+            DeleteWarehouseItemUseCase
+                    deleteWarehouseItemUseCase,
             long warehouseItemId
     ) {
-        this.useCase = Objects.requireNonNull(useCase);
+        this.getWarehouseItemDetailUseCase =
+                Objects.requireNonNull(
+                        getWarehouseItemDetailUseCase
+                );
+
+        this.deleteWarehouseItemUseCase =
+                Objects.requireNonNull(
+                        deleteWarehouseItemUseCase
+                );
+
         this.warehouseItemId = warehouseItemId;
     }
 
@@ -37,7 +56,8 @@ public final class WarehouseItemDetailViewModelFactory
 
         return modelClass.cast(
                 new WarehouseItemDetailViewModel(
-                        useCase,
+                        getWarehouseItemDetailUseCase,
+                        deleteWarehouseItemUseCase,
                         warehouseItemId
                 )
         );

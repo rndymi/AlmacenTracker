@@ -6,14 +6,17 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.rndymi.almacentracker.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.formatter.WarehouseItemDateFormatter;
+import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemDetailUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailViewModelFactory;
@@ -33,8 +36,12 @@ public final class ItemDetailActivity
             -1L;
 
     private ActivityItemDetailBinding binding;
+    private WarehouseItemDetailViewModel viewModel;
+
     private long currentWarehouseItemId =
             INVALID_WAREHOUSE_ITEM_ID;
+
+    private WarehouseItem currentWarehouseItem;
 
     private final WarehouseItemDateFormatter dateFormatter =
             new WarehouseItemDateFormatter();
@@ -70,8 +77,9 @@ public final class ItemDetailActivity
 
         currentWarehouseItemId = readWarehouseItemId();
 
+        configureViewModel(currentWarehouseItemId);
         configureActions();
-        observeUiState(currentWarehouseItemId);
+        observeViewModel();
     }
 
     private void configureToolbar() {
@@ -90,7 +98,9 @@ public final class ItemDetailActivity
         );
     }
 
-    private void observeUiState(long warehouseItemId) {
+    private void configureViewModel(
+            long warehouseItemId
+    ) {
         AlmacenTrackerApplication application =
                 (AlmacenTrackerApplication) getApplication();
 
@@ -101,23 +111,93 @@ public final class ItemDetailActivity
                                 warehouseItemId
                         );
 
-        WarehouseItemDetailViewModel viewModel =
+        viewModel =
                 new ViewModelProvider(this, factory)
                         .get(
                                 WarehouseItemDetailViewModel.class
                         );
+    }
 
+    private void observeViewModel() {
         viewModel.getUiState().observe(
                 this,
                 this::render
         );
+
+        viewModel.getDeletionSuccess().observe(
+                this,
+                this::handleDeletionSuccess
+        );
+    }
+
+    private void configureActions() {
+        binding.editButton.setOnClickListener(
+                ignored -> openEditForm()
+        );
+
+        binding.deleteButton.setOnClickListener(
+                ignored -> showDeleteConfirmation()
+        );
+    }
+
+    private void openEditForm() {
+        if (currentWarehouseItemId <= 0L
+                || currentWarehouseItem == null) {
+            return;
+        }
+
+        startActivity(
+                ItemFormActivity.createEditIntent(
+                        this,
+                        currentWarehouseItemId
+                )
+        );
+    }
+
+    private void showDeleteConfirmation() {
+        if (currentWarehouseItem == null) {
+            return;
+        }
+
+        WarehouseItem itemToDelete =
+                currentWarehouseItem;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string.delete_warehouse_item_title
+                )
+                .setMessage(
+                        getString(
+                                R.string.delete_warehouse_item_message,
+                                itemToDelete.getCategory(),
+                                itemToDelete.getCode()
+                        )
+                )
+                .setNegativeButton(
+                        R.string.cancel_action,
+                        null
+                )
+                .setPositiveButton(
+                        R.string.delete_action,
+                        (dialog, which) ->
+                                viewModel.deleteWarehouseItem()
+                )
+                .show();
     }
 
     private void render(
             WarehouseItemDetailUiState state
     ) {
         hideAllStates();
+
+        currentWarehouseItem =
+                state.getWarehouseItem();
+
         binding.editButton.setEnabled(false);
+        binding.deleteButton.setEnabled(false);
+        binding.deleteButton.setText(
+                R.string.delete_action
+        );
 
         switch (state.getStatus()) {
             case LOADING:
@@ -127,7 +207,18 @@ public final class ItemDetailActivity
                 break;
 
             case CONTENT:
-                renderContent(state.getWarehouseItem());
+                renderContent(
+                        state.getWarehouseItem(),
+                        state.isDeleting()
+                );
+
+                if (state.getDeleteErrorMessage() != null) {
+                    Toast.makeText(
+                            this,
+                            state.getDeleteErrorMessage(),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
                 break;
 
             case NOT_FOUND:
@@ -160,8 +251,16 @@ public final class ItemDetailActivity
     }
 
     private void renderContent(
-            WarehouseItem warehouseItem
+            WarehouseItem warehouseItem,
+            boolean deleting
     ) {
+        if (warehouseItem == null) {
+            showStateMessage(
+                    R.string.warehouse_detail_not_found
+            );
+            return;
+        }
+
         binding.identityText.setText(
                 getString(
                         R.string.warehouse_identity_format,
@@ -210,7 +309,37 @@ public final class ItemDetailActivity
                 View.VISIBLE
         );
 
-        binding.editButton.setEnabled(true);
+        binding.editButton.setEnabled(!deleting);
+        binding.deleteButton.setEnabled(!deleting);
+
+        if (deleting) {
+            binding.deleteButton.setText(
+                    R.string.deleting_action
+            );
+        }
+    }
+
+    private void handleDeletionSuccess(
+            UiEvent<Boolean> event
+    ) {
+        if (event == null) {
+            return;
+        }
+
+        Boolean deleted =
+                event.getContentIfNotHandled();
+
+        if (!Boolean.TRUE.equals(deleted)) {
+            return;
+        }
+
+        Toast.makeText(
+                this,
+                R.string.warehouse_item_deleted,
+                Toast.LENGTH_SHORT
+        ).show();
+
+        finish();
     }
 
     private void renderOptionalSection(
@@ -250,23 +379,5 @@ public final class ItemDetailActivity
     protected void onDestroy() {
         super.onDestroy();
         binding = null;
-    }
-
-    private void configureActions() {
-        binding.editButton.setOnClickListener(
-                ignored -> {
-                    if (currentWarehouseItemId
-                            <= INVALID_WAREHOUSE_ITEM_ID) {
-                        return;
-                    }
-
-                    startActivity(
-                            ItemFormActivity.createEditIntent(
-                                    this,
-                                    currentWarehouseItemId
-                            )
-                    );
-                }
-        );
     }
 }

@@ -11,6 +11,7 @@ import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseIt
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
@@ -233,6 +234,32 @@ public final class RoomWarehouseItemRepository
                 callback.onSuccess();
             } catch (SQLiteConstraintException exception) {
                 callback.onDuplicate();
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void deleteById(
+            long warehouseItemId,
+            WarehouseItemDeleteCallback callback
+    ) {
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                int affectedRows =
+                        warehouseItemDao.deleteById(
+                                warehouseItemId
+                        );
+
+                if (affectedRows == 0) {
+                    callback.onNotFound();
+                    return;
+                }
+
+                callback.onSuccess();
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }

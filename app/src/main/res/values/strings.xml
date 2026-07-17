@@ -145,4 +145,24 @@
     <string name="warehouse_item_updated">
         Mercancía actualizada correctamente.
     </string>
+
+    <string name="delete_warehouse_item_title">
+        Eliminar mercancía
+    </string>
+
+    <string name="delete_warehouse_item_message">
+        ¿Quieres eliminar %1$s · %2$s?\nEsta acción no se puede deshacer.
+    </string>
+
+    <string name="warehouse_item_deleted">
+        Mercancía eliminada correctamente.
+    </string>
+
+    <string name="warehouse_item_delete_error">
+        No se pudo eliminar la mercancía.
+    </string>
+
+    <string name="deleting_action">
+        Eliminando...
+    </string>
 </resources>
