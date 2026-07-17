@@ -61,4 +61,34 @@
     <string name="warehouse_item_created">
         Mercancía registrada correctamente.
     </string>
+
+    <string name="warehouse_detail_title">
+    Detalle de mercancía
+</string>
+
+    <string name="warehouse_detail_not_found">
+    La mercancía ya no está disponible.
+</string>
+
+    <string name="warehouse_detail_invalid_id">
+    No se pudo identificar la mercancía.
+</string>
+
+    <string name="warehouse_detail_load_error">
+    No se pudo cargar el detalle de la mercancía.
+</string>
+
+    <string name="category_label">Categoría</string>
+    <string name="code_label">Código</string>
+    <string name="site_label">Sitio</string>
+    <string name="position_label">Posición</string>
+    <string name="observations_label">Observaciones</string>
+    <string name="created_at_label">Creado</string>
+
+    <string name="updated_at_label">
+    Última actualización
+</string>
+
+    <string name="edit_action">Editar</string>
+    <string name="delete_action">Eliminar</string>
 </resources>
