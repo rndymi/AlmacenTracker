@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
@@ -17,12 +18,16 @@ public final class WarehouseItemListViewModelFactory
     private final FilterWarehouseItemsUseCase filterUseCase;
     private final ObserveWarehouseItemFilterOptionsUseCase
             observeFilterOptionsUseCase;
+    private final DeleteWarehouseItemsUseCase
+            deleteWarehouseItemsUseCase;
 
     public WarehouseItemListViewModelFactory(
             ObserveWarehouseItemsUseCase observeUseCase,
             FilterWarehouseItemsUseCase filterUseCase,
             ObserveWarehouseItemFilterOptionsUseCase
-                    observeFilterOptionsUseCase
+                    observeFilterOptionsUseCase,
+            DeleteWarehouseItemsUseCase
+                    deleteWarehouseItemsUseCase
     ) {
         this.observeUseCase =
                 Objects.requireNonNull(observeUseCase);
@@ -33,6 +38,11 @@ public final class WarehouseItemListViewModelFactory
         this.observeFilterOptionsUseCase =
                 Objects.requireNonNull(
                         observeFilterOptionsUseCase
+                );
+
+        this.deleteWarehouseItemsUseCase =
+                Objects.requireNonNull(
+                        deleteWarehouseItemsUseCase
                 );
     }
 
@@ -48,7 +58,8 @@ public final class WarehouseItemListViewModelFactory
             return (T) new WarehouseItemListViewModel(
                     observeUseCase,
                     filterUseCase,
-                    observeFilterOptionsUseCase
+                    observeFilterOptionsUseCase,
+                    deleteWarehouseItemsUseCase
             );
         }
 
