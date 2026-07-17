@@ -7,9 +7,11 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.testutil.LiveDataTestUtil;
@@ -121,6 +123,19 @@ public final class GetWarehouseItemDetailServiceTest {
         public LiveData<WarehouseItemsResult> search(
                 String query
         ) {
+            return new MutableLiveData<>();
+        }
+
+        @Override
+        public LiveData<WarehouseItemsResult> filter(
+                WarehouseItemFilterCriteria criteria
+        ) {
+            return new MutableLiveData<>();
+        }
+
+        @Override
+        public LiveData<WarehouseItemFilterOptionsResult>
+        observeFilterOptions() {
             return new MutableLiveData<>();
         }
     }

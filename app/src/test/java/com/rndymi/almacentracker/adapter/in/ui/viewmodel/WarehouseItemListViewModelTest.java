@@ -45,6 +45,14 @@ public class WarehouseItemListViewModelTest {
                 )
         );
 
+        sources.filteredItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.singletonList(
+                                createItem()
+                        )
+                )
+        );
+
         WarehouseItemListUiState state =
                 getOrAwaitValue(viewModel.getUiState());
 
@@ -65,6 +73,12 @@ public class WarehouseItemListViewModelTest {
                 sources.createViewModel();
 
         sources.allItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.emptyList()
+                )
+        );
+
+        sources.filteredItems.setValue(
                 WarehouseItemsResult.success(
                         Collections.emptyList()
                 )
@@ -176,6 +190,12 @@ public class WarehouseItemListViewModelTest {
 
         viewModel.clearSearch();
 
+        sources.filteredItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.singletonList(item)
+                )
+        );
+
         WarehouseItemListUiState state =
                 getOrAwaitValue(viewModel.getUiState());
 
@@ -280,6 +300,11 @@ public class WarehouseItemListViewModelTest {
                             filterUseCase,
                             optionsUseCase
                     );
+
+            viewModel.getUiState().observeForever(
+                    ignored -> {
+                    }
+            );
 
             filterOptions.setValue(
                     WarehouseItemFilterOptionsResult.success(

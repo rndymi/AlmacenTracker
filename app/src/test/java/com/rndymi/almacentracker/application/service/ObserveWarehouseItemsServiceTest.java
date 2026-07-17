@@ -5,9 +5,11 @@ import static org.junit.Assert.assertSame;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -31,6 +33,23 @@ public class ObserveWarehouseItemsServiceTest {
                     public LiveData<WarehouseItemsResult> search(
                             String query
                     ) {
+                        throw new UnsupportedOperationException(
+                                "Not required by this test"
+                        );
+                    }
+
+                    @Override
+                    public LiveData<WarehouseItemsResult> filter(
+                            WarehouseItemFilterCriteria criteria
+                    ) {
+                        throw new UnsupportedOperationException(
+                                "Not required by this test"
+                        );
+                    }
+
+                    @Override
+                    public LiveData<WarehouseItemFilterOptionsResult>
+                    observeFilterOptions() {
                         throw new UnsupportedOperationException(
                                 "Not required by this test"
                         );
