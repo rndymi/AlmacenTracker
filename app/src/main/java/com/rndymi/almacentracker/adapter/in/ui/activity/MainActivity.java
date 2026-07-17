@@ -42,7 +42,9 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void configureRecyclerView() {
-        warehouseItemAdapter = new WarehouseItemAdapter();
+        warehouseItemAdapter = new WarehouseItemAdapter(
+                this::openWarehouseItemDetail
+        );
 
         binding.warehouseRecyclerView.setLayoutManager(
                 new LinearLayoutManager(this)
@@ -85,6 +87,17 @@ public final class MainActivity extends AppCompatActivity {
                 this,
                 this::render
         );
+    }
+
+    private void openWarehouseItemDetail(
+            long warehouseItemId
+    ) {
+        Intent intent = ItemDetailActivity.createIntent(
+                this,
+                warehouseItemId
+        );
+
+        startActivity(intent);
     }
 
     private void render(WarehouseItemListUiState state) {

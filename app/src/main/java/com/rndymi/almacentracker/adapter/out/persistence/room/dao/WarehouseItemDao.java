@@ -12,7 +12,6 @@ import java.util.List;
 
 @Dao
 public interface WarehouseItemDao {
-
     @Query(
             "SELECT * FROM warehouse_items " +
                     "ORDER BY category COLLATE NOCASE ASC, " +
@@ -20,6 +19,14 @@ public interface WarehouseItemDao {
     )
     LiveData<List<WarehouseItemEntity>> observeAll();
 
+    @Query(
+            "SELECT * FROM warehouse_items " +
+                    "WHERE id = :warehouseItemId " +
+                    "LIMIT 1"
+    )
+    LiveData<WarehouseItemEntity> observeById(
+            long warehouseItemId
+    );
     @Insert(onConflict = OnConflictStrategy.ABORT)
     long insert(WarehouseItemEntity entity);
 

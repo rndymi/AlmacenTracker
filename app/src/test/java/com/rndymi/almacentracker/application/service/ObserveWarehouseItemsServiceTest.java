@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -24,6 +25,14 @@ public class ObserveWarehouseItemsServiceTest {
                     public LiveData<WarehouseItemsResult>
                     observeAll() {
                         return expected;
+                    }
+
+                    @Override
+                    public LiveData<WarehouseItemDetailResult>
+                    observeById(long warehouseItemId) {
+                        throw new UnsupportedOperationException(
+                                "Not required by this test"
+                        );
                     }
 
                     @Override

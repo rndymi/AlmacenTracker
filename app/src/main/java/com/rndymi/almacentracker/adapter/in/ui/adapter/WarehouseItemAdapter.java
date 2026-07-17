@@ -17,7 +17,11 @@ public final class WarehouseItemAdapter
         WarehouseItem,
         WarehouseItemAdapter.WarehouseItemViewHolder
         > {
-    private static final DiffUtil.ItemCallback<WarehouseItem> DIFF_CALLBACK =
+    public interface OnWarehouseItemClickListener {
+        void onWarehouseItemClick(long warehouseItemId);
+    }
+    private static final DiffUtil.ItemCallback<WarehouseItem>
+            DIFF_CALLBACK =
             new DiffUtil.ItemCallback<WarehouseItem>() {
                 @Override
                 public boolean areItemsTheSame(
@@ -50,9 +54,12 @@ public final class WarehouseItemAdapter
                             == newItem.getUpdatedAt();
                 }
             };
-
-    public WarehouseItemAdapter() {
+    private final OnWarehouseItemClickListener clickListener;
+    public WarehouseItemAdapter(
+            OnWarehouseItemClickListener clickListener
+    ) {
         super(DIFF_CALLBACK);
+        this.clickListener = clickListener;
     }
 
     @NonNull
@@ -67,7 +74,6 @@ public final class WarehouseItemAdapter
                         parent,
                         false
                 );
-
         return new WarehouseItemViewHolder(binding);
     }
 
@@ -76,7 +82,10 @@ public final class WarehouseItemAdapter
             @NonNull WarehouseItemViewHolder holder,
             int position
     ) {
-        holder.bind(getItem(position));
+        holder.bind(
+                getItem(position),
+                clickListener
+        );
     }
 
     private static boolean equalsNullable(
@@ -95,33 +104,44 @@ public final class WarehouseItemAdapter
 
         private final ItemWarehouseBinding binding;
 
-        WarehouseItemViewHolder(ItemWarehouseBinding binding) {
+        WarehouseItemViewHolder(
+                ItemWarehouseBinding binding
+        ) {
             super(binding.getRoot());
             this.binding = binding;
         }
 
-        void bind(WarehouseItem item) {
-            binding.identityText.setText(
-                    binding.getRoot().getContext().getString(
-                            R.string.warehouse_identity_format,
-                            item.getCategory(),
-                            item.getCode()
+        void bind(
+                WarehouseItem warehouseItem,
+                OnWarehouseItemClickListener clickListener
+        ) {
+            binding.getRoot().setOnClickListener(
+                    ignored -> clickListener.onWarehouseItemClick(
+                            warehouseItem.getId()
                     )
             );
 
-            if (item.hasPosition()) {
+            binding.identityText.setText(
+                    binding.getRoot().getContext().getString(
+                            R.string.warehouse_identity_format,
+                            warehouseItem.getCategory(),
+                            warehouseItem.getCode()
+                    )
+            );
+
+            if (warehouseItem.hasPosition()) {
                 binding.locationText.setText(
                         binding.getRoot().getContext().getString(
                                 R.string.warehouse_site_position_format,
-                                item.getSite(),
-                                item.getPosition()
+                                warehouseItem.getSite(),
+                                warehouseItem.getPosition()
                         )
                 );
             } else {
                 binding.locationText.setText(
                         binding.getRoot().getContext().getString(
                                 R.string.warehouse_site_format,
-                                item.getSite()
+                                warehouseItem.getSite()
                         )
                 );
             }

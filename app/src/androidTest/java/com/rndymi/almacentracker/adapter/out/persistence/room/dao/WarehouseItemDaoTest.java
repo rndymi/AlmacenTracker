@@ -1,6 +1,8 @@
 package com.rndymi.almacentracker.adapter.out.persistence.room.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import android.content.Context;
 
@@ -23,6 +25,7 @@ import org.junit.runner.RunWith;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(AndroidJUnit4.class)
 public class WarehouseItemDaoTest {
@@ -113,6 +116,86 @@ public class WarehouseItemDaoTest {
     }
 
     private <T> T getOrAwaitValue(
+            LiveData<T> liveData
+    ) throws InterruptedException {
+
+        Object[] data = new Object[1];
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Observer<T> observer = new Observer<T>() {
+            @Override
+            public void onChanged(T value) {
+                data[0] = value;
+                latch.countDown();
+                liveData.removeObserver(this);
+            }
+        };
+
+        liveData.observeForever(observer);
+
+        boolean completed = latch.await(
+                2,
+                TimeUnit.SECONDS
+        );
+
+        if (!completed) {
+            liveData.removeObserver(observer);
+            throw new AssertionError(
+                    "LiveData value was not emitted"
+            );
+        }
+
+        @SuppressWarnings("unchecked")
+        T value = (T) data[0];
+
+        return value;
+    }
+
+    @Test
+    public void observeByIdReturnsRequestedWarehouseItem()
+            throws InterruptedException {
+
+        long firstId = dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "1050",
+                        "B3"
+                )
+        );
+
+        WarehouseItemEntity result =
+                getOrAwaitValue(
+                        dao.observeById(firstId)
+                );
+
+        assertNotNull(result);
+        assertEquals(firstId, result.getId());
+        assertEquals("MR", result.getCategory());
+        assertEquals("1050", result.getCode());
+        assertEquals("A1", result.getSite());
+    }
+
+    @Test
+    public void observeByIdReturnsNullWhenWarehouseItemDoesNotExist()
+            throws InterruptedException {
+
+        WarehouseItemEntity result =
+                getOrAwaitValueAllowingNull(
+                        dao.observeById(999L)
+                );
+
+        assertNull(result);
+    }
+
+    private <T> T getOrAwaitValueAllowingNull(
             LiveData<T> liveData
     ) throws InterruptedException {
 

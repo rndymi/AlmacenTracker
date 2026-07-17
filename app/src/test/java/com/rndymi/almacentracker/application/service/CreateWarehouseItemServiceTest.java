@@ -12,6 +12,7 @@ import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
+import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -194,6 +195,14 @@ public class CreateWarehouseItemServiceTest {
         @Override
         public LiveData<WarehouseItemsResult> observeAll() {
             return new MutableLiveData<>();
+        }
+
+        @Override
+        public LiveData<WarehouseItemDetailResult> observeById(
+                long warehouseItemId
+        ) {
+            return new MutableLiveData<>(
+                    WarehouseItemDetailResult.notFound());
         }
 
         @Override

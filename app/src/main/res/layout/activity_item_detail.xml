@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorSurface"
+        android:title="@string/warehouse_detail_title"
+        app:navigationIcon="@drawable/ic_arrow_back" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize">
+
+        <ProgressBar
+            android:id="@+id/loadingProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <TextView
+            android:id="@+id/stateMessageText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="24dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:visibility="gone" />
+
+        <ScrollView
+            android:id="@+id/contentScroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:id="@+id/identityText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                    android:textStyle="bold" />
+
+                <TextView
+                    style="@style/DetailLabel"
+                    android:text="@string/category_label" />
+
+                <TextView
+                    android:id="@+id/categoryText"
+                    style="@style/DetailValue" />
+
+                <TextView
+                    style="@style/DetailLabel"
+                    android:text="@string/code_label" />
+
+                <TextView
+                    android:id="@+id/codeText"
+                    style="@style/DetailValue" />
+
+                <TextView
+                    style="@style/DetailLabel"
+                    android:text="@string/site_label" />
+
+                <TextView
+                    android:id="@+id/siteText"
+                    style="@style/DetailValue" />
+
+                <LinearLayout
+                    android:id="@+id/positionSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DetailLabel"
+                        android:text="@string/position_label" />
+
+                    <TextView
+                        android:id="@+id/positionText"
+                        style="@style/DetailValue" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/observationsSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DetailLabel"
+                        android:text="@string/observations_label" />
+
+                    <TextView
+                        android:id="@+id/observationsText"
+                        style="@style/DetailValue" />
+
+                </LinearLayout>
+
+                <TextView
+                    style="@style/DetailLabel"
+                    android:text="@string/created_at_label" />
+
+                <TextView
+                    android:id="@+id/createdAtText"
+                    style="@style/DetailValue" />
+
+                <TextView
+                    style="@style/DetailLabel"
+                    android:text="@string/updated_at_label" />
+
+                <TextView
+                    android:id="@+id/updatedAtText"
+                    style="@style/DetailValue" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:gravity="end"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/editButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="false"
+                        android:text="@string/edit_action" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/deleteButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:enabled="false"
+                        android:text="@string/delete_action" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </FrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

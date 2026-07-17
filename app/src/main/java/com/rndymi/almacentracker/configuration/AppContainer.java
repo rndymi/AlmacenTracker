@@ -5,14 +5,17 @@ import android.content.Context;
 import androidx.room.Room;
 
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
+import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
 import com.rndymi.almacentracker.adapter.out.persistence.room.repository.RoomWarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
+import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
+import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
 
 import java.util.concurrent.ExecutorService;
@@ -24,6 +27,7 @@ public final class AppContainer {
     private final WarehouseItemRepository warehouseItemRepository;
     private final ObserveWarehouseItemsUseCase observeWarehouseItemsUseCase;
     private final CreateWarehouseItemUseCase createWarehouseItemUseCase;
+    private final GetWarehouseItemDetailUseCase getWarehouseItemDetailUseCase;
 
     public AppContainer(Context context) {
         Context applicationContext = context.getApplicationContext();
@@ -55,6 +59,21 @@ public final class AppContainer {
                         warehouseItemRepository,
                         System::currentTimeMillis
                 );
+
+        getWarehouseItemDetailUseCase =
+                new GetWarehouseItemDetailService(
+                        warehouseItemRepository
+                );
+    }
+
+    public WarehouseItemDetailViewModelFactory
+    provideWarehouseItemDetailViewModelFactory(
+            long warehouseItemId
+    ) {
+        return new WarehouseItemDetailViewModelFactory(
+                getWarehouseItemDetailUseCase,
+                warehouseItemId
+        );
     }
 
     public WarehouseItemListViewModelFactory
