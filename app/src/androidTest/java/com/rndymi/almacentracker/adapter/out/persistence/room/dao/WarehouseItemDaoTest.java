@@ -26,6 +26,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -1206,5 +1207,66 @@ public class WarehouseItemDaoTest {
         );
 
         assertTrue(recreatedId > 0L);
+    }
+
+    @Test
+    public void deleteByIdsDeletesOnlyRequestedRows() {
+        long firstId = dao.insert(
+                createEntity(
+                        "MR",
+                        "1001",
+                        "A1"
+                )
+        );
+
+        long secondId = dao.insert(
+                createEntity(
+                        "MD",
+                        "1002",
+                        "A2"
+                )
+        );
+
+        long thirdId = dao.insert(
+                createEntity(
+                        "CA",
+                        "1003",
+                        "A3"
+                )
+        );
+
+        int deletedCount =
+                dao.deleteByIds(
+                        Arrays.asList(
+                                firstId,
+                                thirdId
+                        )
+                );
+
+        assertEquals(2, deletedCount);
+        assertNull(dao.findById(firstId));
+        assertNotNull(dao.findById(secondId));
+        assertNull(dao.findById(thirdId));
+    }
+
+    @Test
+    public void deleteByIdsReturnsExistingDeletedCount() {
+        long firstId = dao.insert(
+                createEntity(
+                        "MR",
+                        "2001",
+                        "B1"
+                )
+        );
+
+        int deletedCount =
+                dao.deleteByIds(
+                        Arrays.asList(
+                                firstId,
+                                999999L
+                        )
+                );
+
+        assertEquals(1, deletedCount);
     }
 }
