@@ -166,6 +166,12 @@ public interface WarehouseItemDao {
     )
     int deleteById(long warehouseItemId);
 
+    @Query(
+            "DELETE FROM warehouse_items " +
+                    "WHERE id IN (:warehouseItemIds)"
+    )
+    int deleteByIds(List<Long> warehouseItemIds);
+
     @Query("DELETE FROM warehouse_items")
     void deleteAll();
 }
