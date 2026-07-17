@@ -56,6 +56,26 @@ public final class MainActivity extends AppCompatActivity {
 
     private void configureToolbar() {
         setSupportActionBar(binding.toolbar);
+
+        binding.selectionToolbar.inflateMenu(
+                R.menu.menu_selection
+        );
+
+        binding.selectionToolbar.setNavigationOnClickListener(
+                ignored -> viewModel.clearSelection()
+        );
+
+        binding.selectionToolbar.setOnMenuItemClickListener(
+                item -> {
+                    if (item.getItemId()
+                            == R.id.action_delete_selection) {
+                        showDeleteSelectionConfirmation();
+                        return true;
+                    }
+
+                    return false;
+                }
+        );
     }
 
     private void configureRecyclerView() {

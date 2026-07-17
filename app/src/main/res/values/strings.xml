@@ -169,4 +169,56 @@
     <string name="deleting_action">
         Eliminando...
     </string>
+
+    <string name="selected_items_count">
+        %1$d seleccionados
+    </string>
+
+    <string name="selected_item_count">
+        1 seleccionado
+    </string>
+
+    <string name="delete_selected_action">
+        Eliminar seleccionados
+    </string>
+
+    <string name="delete_selected_items_title">
+        Eliminar mercancía seleccionada
+    </string>
+
+    <string name="delete_one_selected_item_message">
+        ¿Quieres eliminar 1 registro seleccionado?\nEsta acción no se puede deshacer.
+    </string>
+
+    <string name="delete_multiple_selected_items_message">
+        ¿Quieres eliminar %1$d registros seleccionados?\nEsta acción no se puede deshacer.
+    </string>
+
+    <string name="warehouse_items_deleted">
+        Se eliminaron %1$d registros.
+    </string>
+
+    <string name="warehouse_items_partial_deleted">
+        Se eliminaron %1$d de %2$d registros.
+    </string>
+
+    <string name="warehouse_items_not_found">
+        Los registros seleccionados ya no están disponibles.
+    </string>
+
+    <string name="warehouse_items_delete_error">
+        No se pudieron eliminar los registros seleccionados.
+    </string>
+
+    <string name="warehouse_items_invalid_selection">
+        La selección contiene registros no válidos.
+    </string>
+
+    <string name="warehouse_item_selected_description">
+        %1$s · %2$s, seleccionado
+    </string>
+
+    <string name="warehouse_item_not_selected_description">
+        %1$s · %2$s
+    </string>
 </resources>
