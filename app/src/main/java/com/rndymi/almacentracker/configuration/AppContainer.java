@@ -11,12 +11,16 @@ import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTr
 import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
 import com.rndymi.almacentracker.adapter.out.persistence.room.repository.RoomWarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
+import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
+import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
+import com.rndymi.almacentracker.application.service.FilterWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailService;
+import com.rndymi.almacentracker.application.service.ObserveWarehouseItemFilterOptionsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.SearchWarehouseItemsService;
 
@@ -24,13 +28,30 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class AppContainer {
+
     private final AlmacenTrackerDatabase database;
     private final ExecutorService databaseExecutor;
-    private final WarehouseItemRepository warehouseItemRepository;
-    private final ObserveWarehouseItemsUseCase observeWarehouseItemsUseCase;
-    private final SearchWarehouseItemsUseCase searchWarehouseItemsUseCase;
-    private final CreateWarehouseItemUseCase createWarehouseItemUseCase;
-    private final GetWarehouseItemDetailUseCase getWarehouseItemDetailUseCase;
+
+    private final WarehouseItemRepository
+            warehouseItemRepository;
+
+    private final ObserveWarehouseItemsUseCase
+            observeWarehouseItemsUseCase;
+
+    private final SearchWarehouseItemsUseCase
+            searchWarehouseItemsUseCase;
+
+    private final FilterWarehouseItemsUseCase
+            filterWarehouseItemsUseCase;
+
+    private final ObserveWarehouseItemFilterOptionsUseCase
+            observeFilterOptionsUseCase;
+
+    private final CreateWarehouseItemUseCase
+            createWarehouseItemUseCase;
+
+    private final GetWarehouseItemDetailUseCase
+            getWarehouseItemDetailUseCase;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -65,6 +86,16 @@ public final class AppContainer {
                         warehouseItemRepository
                 );
 
+        filterWarehouseItemsUseCase =
+                new FilterWarehouseItemsService(
+                        warehouseItemRepository
+                );
+
+        observeFilterOptionsUseCase =
+                new ObserveWarehouseItemFilterOptionsService(
+                        warehouseItemRepository
+                );
+
         createWarehouseItemUseCase =
                 new CreateWarehouseItemService(
                         warehouseItemRepository,
@@ -91,7 +122,8 @@ public final class AppContainer {
     provideWarehouseItemListViewModelFactory() {
         return new WarehouseItemListViewModelFactory(
                 observeWarehouseItemsUseCase,
-                searchWarehouseItemsUseCase
+                filterWarehouseItemsUseCase,
+                observeFilterOptionsUseCase
         );
     }
 
