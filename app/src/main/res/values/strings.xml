@@ -133,4 +133,16 @@
     <string name="warehouse_filter_error">
         No se pudieron aplicar los filtros.
     </string>
+
+    <string name="edit_warehouse_item_title">
+        Editar mercancía
+    </string>
+
+    <string name="save_changes_action">
+        Guardar cambios
+    </string>
+
+    <string name="warehouse_item_updated">
+        Mercancía actualizada correctamente.
+    </string>
 </resources>

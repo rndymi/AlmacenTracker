@@ -1,5 +1,7 @@
 package com.rndymi.almacentracker.adapter.in.ui.activity;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -10,16 +12,38 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
+import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemFormMode;
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemFormUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.databinding.ActivityItemFormBinding;
 
-public final class ItemFormActivity extends AppCompatActivity {
+public final class ItemFormActivity
+        extends AppCompatActivity {
+
+    public static final String EXTRA_WAREHOUSE_ITEM_ID =
+            "com.rndymi.almacentracker.extra.FORM_WAREHOUSE_ITEM_ID";
+
+    private static final long CREATE_MODE_ITEM_ID = 0L;
 
     private ActivityItemFormBinding binding;
     private WarehouseItemFormViewModel viewModel;
     private boolean rendering;
+
+    public static Intent createEditIntent(
+            Context context,
+            long warehouseItemId
+    ) {
+        Intent intent =
+                new Intent(context, ItemFormActivity.class);
+
+        intent.putExtra(
+                EXTRA_WAREHOUSE_ITEM_ID,
+                warehouseItemId
+        );
+
+        return intent;
+    }
 
     @Override
     protected void onCreate(
@@ -44,7 +68,8 @@ public final class ItemFormActivity extends AppCompatActivity {
         setSupportActionBar(binding.toolbar);
 
         binding.toolbar.setNavigationOnClickListener(
-                ignored -> finish()
+                ignored -> getOnBackPressedDispatcher()
+                        .onBackPressed()
         );
     }
 
@@ -56,12 +81,21 @@ public final class ItemFormActivity extends AppCompatActivity {
         WarehouseItemFormViewModelFactory factory =
                 application
                         .getAppContainer()
-                        .provideWarehouseItemFormViewModelFactory();
+                        .provideWarehouseItemFormViewModelFactory(
+                                readWarehouseItemId()
+                        );
 
         viewModel = new ViewModelProvider(
                 this,
                 factory
         ).get(WarehouseItemFormViewModel.class);
+    }
+
+    private long readWarehouseItemId() {
+        return getIntent().getLongExtra(
+                EXTRA_WAREHOUSE_ITEM_ID,
+                CREATE_MODE_ITEM_ID
+        );
     }
 
     private void configureInputListeners() {
@@ -137,14 +171,8 @@ public final class ItemFormActivity extends AppCompatActivity {
         viewModel.getCreationSuccess().observe(
                 this,
                 event -> {
-                    if (event == null) {
-                        return;
-                    }
-
-                    Long createdItemId =
-                            event.getContentIfNotHandled();
-
-                    if (createdItemId == null) {
+                    if (event == null
+                            || event.getContentIfNotHandled() == null) {
                         return;
                     }
 
@@ -157,70 +185,109 @@ public final class ItemFormActivity extends AppCompatActivity {
                     finish();
                 }
         );
+
+        viewModel.getUpdateSuccess().observe(
+                this,
+                event -> {
+                    if (event == null
+                            || event.getContentIfNotHandled() == null) {
+                        return;
+                    }
+
+                    Toast.makeText(
+                            this,
+                            R.string.warehouse_item_updated,
+                            Toast.LENGTH_SHORT
+                    ).show();
+
+                    finish();
+                }
+        );
     }
 
     private void render(
             WarehouseItemFormUiState state
     ) {
+        renderMode(state);
+        renderContent(state);
+        renderErrors(state);
+        renderAvailability(state);
+    }
+
+    private void renderMode(
+            WarehouseItemFormUiState state
+    ) {
+        boolean editMode =
+                state.getMode()
+                        == WarehouseItemFormMode.EDIT;
+
+        binding.toolbar.setTitle(
+                editMode
+                        ? R.string.edit_warehouse_item_title
+                        : R.string.register_warehouse_item_title
+        );
+
+        binding.saveButton.setText(
+                editMode
+                        ? R.string.save_changes_action
+                        : R.string.save_action
+        );
+    }
+
+    private void renderContent(
+            WarehouseItemFormUiState state
+    ) {
+        binding.initialLoadingProgress.setVisibility(
+                state.isLoading()
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        binding.formContent.setVisibility(
+                state.isLoading()
+                        ? View.GONE
+                        : View.VISIBLE
+        );
+
         rendering = true;
 
         setTextIfDifferent(
-                binding.categoryEditText.getText() != null
-                        ? binding.categoryEditText
-                          .getText()
-                          .toString()
-                        : "",
+                textOf(binding.categoryEditText),
                 state.getCategory(),
-                value -> binding.categoryEditText
-                        .setText(value)
+                value -> binding.categoryEditText.setText(value)
         );
 
         setTextIfDifferent(
-                binding.codeEditText.getText() != null
-                        ? binding.codeEditText
-                          .getText()
-                          .toString()
-                        : "",
+                textOf(binding.codeEditText),
                 state.getCode(),
-                value -> binding.codeEditText
-                        .setText(value)
+                value -> binding.codeEditText.setText(value)
         );
 
         setTextIfDifferent(
-                binding.siteEditText.getText() != null
-                        ? binding.siteEditText
-                          .getText()
-                          .toString()
-                        : "",
+                textOf(binding.siteEditText),
                 state.getSite(),
-                value -> binding.siteEditText
-                        .setText(value)
+                value -> binding.siteEditText.setText(value)
         );
 
         setTextIfDifferent(
-                binding.positionEditText.getText() != null
-                        ? binding.positionEditText
-                          .getText()
-                          .toString()
-                        : "",
+                textOf(binding.positionEditText),
                 state.getPosition(),
-                value -> binding.positionEditText
-                        .setText(value)
+                value -> binding.positionEditText.setText(value)
         );
 
         setTextIfDifferent(
-                binding.observationsEditText.getText() != null
-                        ? binding.observationsEditText
-                          .getText()
-                          .toString()
-                        : "",
+                textOf(binding.observationsEditText),
                 state.getObservations(),
                 value -> binding.observationsEditText
                         .setText(value)
         );
 
         rendering = false;
+    }
 
+    private void renderErrors(
+            WarehouseItemFormUiState state
+    ) {
         binding.categoryInputLayout.setError(
                 state.getCategoryError()
         );
@@ -245,22 +312,23 @@ public final class ItemFormActivity extends AppCompatActivity {
                         ? View.VISIBLE
                         : View.GONE
         );
+    }
 
+    private void renderAvailability(
+            WarehouseItemFormUiState state
+    ) {
         binding.savingProgress.setVisibility(
                 state.isSaving()
                         ? View.VISIBLE
                         : View.GONE
         );
 
-        binding.saveButton.setEnabled(
-                !state.isSaving()
-        );
+        boolean editable = state.isEditable();
 
-        binding.cancelButton.setEnabled(
-                !state.isSaving()
-        );
+        binding.saveButton.setEnabled(editable);
+        binding.cancelButton.setEnabled(!state.isSaving());
 
-        setFieldsEnabled(!state.isSaving());
+        setFieldsEnabled(editable);
     }
 
     private void setFieldsEnabled(boolean enabled) {
@@ -271,13 +339,24 @@ public final class ItemFormActivity extends AppCompatActivity {
         binding.observationsEditText.setEnabled(enabled);
     }
 
+    private String textOf(
+            android.widget.EditText editText
+    ) {
+        return editText.getText() == null
+                ? ""
+                : editText.getText().toString();
+    }
+
     private void setTextIfDifferent(
             String current,
             String expected,
             TextSetter setter
     ) {
-        if (!current.equals(expected)) {
-            setter.set(expected);
+        String safeExpected =
+                expected == null ? "" : expected;
+
+        if (!current.equals(safeExpected)) {
+            setter.set(safeExpected);
         }
     }
 
