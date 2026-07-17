@@ -134,6 +134,12 @@ public interface WarehouseItemDao {
     @Update(onConflict = OnConflictStrategy.ABORT)
     int update(WarehouseItemEntity entity);
 
+    @Query(
+            "DELETE FROM warehouse_items " +
+                    "WHERE id = :warehouseItemId"
+    )
+    int deleteById(long warehouseItemId);
+
     @Query("DELETE FROM warehouse_items")
     void deleteAll();
 }
