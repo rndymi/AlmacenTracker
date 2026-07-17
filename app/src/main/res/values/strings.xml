@@ -79,20 +79,20 @@
     </string>
 
     <string name="warehouse_detail_title">
-    Detalle de mercancía
-</string>
+        Detalle de mercancía
+    </string>
 
     <string name="warehouse_detail_not_found">
-    La mercancía ya no está disponible.
-</string>
+        La mercancía ya no está disponible.
+    </string>
 
     <string name="warehouse_detail_invalid_id">
-    No se pudo identificar la mercancía.
-</string>
+        No se pudo identificar la mercancía.
+    </string>
 
     <string name="warehouse_detail_load_error">
-    No se pudo cargar el detalle de la mercancía.
-</string>
+        No se pudo cargar el detalle de la mercancía.
+    </string>
 
     <string name="category_label">Categoría</string>
     <string name="code_label">Código</string>
@@ -102,9 +102,35 @@
     <string name="created_at_label">Creado</string>
 
     <string name="updated_at_label">
-    Última actualización
-</string>
+        Última actualización
+    </string>
 
     <string name="edit_action">Editar</string>
     <string name="delete_action">Eliminar</string>
+
+    <string name="category_filter_label">Categoría</string>
+    <string name="site_filter_label">Sitio</string>
+    <string name="position_filter_label">Posición</string>
+
+    <string name="all_categories_option">Todas</string>
+    <string name="all_sites_option">Todos</string>
+    <string name="all_positions_option">Todas</string>
+    <string name="without_position_option">Sin posición</string>
+
+    <string name="clear_filters_action">Limpiar filtros</string>
+    <string name="active_filters_format">
+        Filtros activos: %1$d
+    </string>
+
+    <string name="warehouse_filter_no_results">
+        No se encontraron resultados con los filtros seleccionados.
+    </string>
+
+    <string name="warehouse_search_filter_no_results">
+        No se encontraron resultados para "%1$s" con los filtros seleccionados.
+    </string>
+
+    <string name="warehouse_filter_error">
+        No se pudieron aplicar los filtros.
+    </string>
 </resources>

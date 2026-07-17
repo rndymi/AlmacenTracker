@@ -2,13 +2,19 @@ package com.rndymi.almacentracker.adapter.in.ui.viewmodel;
 
 import static com.rndymi.almacentracker.testutil.LiveDataTestUtil.getOrAwaitValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemListUiState;
+import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.PositionFilter;
+import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -32,6 +38,14 @@ public class WarehouseItemListViewModelTest {
                 sources.createViewModel();
 
         sources.allItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.singletonList(
+                                createItem()
+                        )
+                )
+        );
+
+        sources.filteredItems.setValue(
                 WarehouseItemsResult.success(
                         Collections.singletonList(
                                 createItem()
@@ -64,6 +78,12 @@ public class WarehouseItemListViewModelTest {
                 )
         );
 
+        sources.filteredItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.emptyList()
+                )
+        );
+
         WarehouseItemListUiState state =
                 getOrAwaitValue(viewModel.getUiState());
 
@@ -91,7 +111,7 @@ public class WarehouseItemListViewModelTest {
 
         viewModel.setSearchQuery("ZZZ");
 
-        sources.searchItems.setValue(
+        sources.filteredItems.setValue(
                 WarehouseItemsResult.success(
                         Collections.emptyList()
                 )
@@ -126,7 +146,7 @@ public class WarehouseItemListViewModelTest {
 
         viewModel.setSearchQuery("105");
 
-        sources.searchItems.setValue(
+        sources.filteredItems.setValue(
                 WarehouseItemsResult.success(
                         Collections.singletonList(item)
                 )
@@ -162,13 +182,19 @@ public class WarehouseItemListViewModelTest {
 
         viewModel.setSearchQuery("ZZZ");
 
-        sources.searchItems.setValue(
+        sources.filteredItems.setValue(
                 WarehouseItemsResult.success(
                         Collections.emptyList()
                 )
         );
 
         viewModel.clearSearch();
+
+        sources.filteredItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.singletonList(item)
+                )
+        );
 
         WarehouseItemListUiState state =
                 getOrAwaitValue(viewModel.getUiState());
@@ -200,7 +226,7 @@ public class WarehouseItemListViewModelTest {
 
         viewModel.setSearchQuery("  A1  ");
 
-        assertEquals("A1", sources.requestedQuery);
+        assertEquals("A1", sources.requestedCriteria.getQuery());
     }
 
     @Test
@@ -247,24 +273,156 @@ public class WarehouseItemListViewModelTest {
                 allItems = new MutableLiveData<>();
 
         private final MutableLiveData<WarehouseItemsResult>
-                searchItems = new MutableLiveData<>();
+                filteredItems = new MutableLiveData<>();
 
-        private String requestedQuery;
+        private final MutableLiveData<WarehouseItemFilterOptionsResult>
+                filterOptions = new MutableLiveData<>();
+
+        private WarehouseItemFilterCriteria requestedCriteria;
 
         private WarehouseItemListViewModel createViewModel() {
             ObserveWarehouseItemsUseCase observeUseCase =
                     () -> allItems;
 
-            SearchWarehouseItemsUseCase searchUseCase =
-                    query -> {
-                        requestedQuery = query;
-                        return searchItems;
+            FilterWarehouseItemsUseCase filterUseCase =
+                    criteria -> {
+                        requestedCriteria = criteria;
+                        return filteredItems;
                     };
 
-            return new WarehouseItemListViewModel(
-                    observeUseCase,
-                    searchUseCase
+            ObserveWarehouseItemFilterOptionsUseCase
+                    optionsUseCase =
+                    () -> filterOptions;
+
+            WarehouseItemListViewModel viewModel =
+                    new WarehouseItemListViewModel(
+                            observeUseCase,
+                            filterUseCase,
+                            optionsUseCase
+                    );
+
+            viewModel.getUiState().observeForever(
+                    ignored -> {
+                    }
             );
+
+            filterOptions.setValue(
+                    WarehouseItemFilterOptionsResult.success(
+                            WarehouseItemFilterOptions.empty()
+                    )
+            );
+
+            return viewModel;
         }
+    }
+
+    @Test
+    public void appliesCategoryFilter() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setCategoryFilter("MR");
+
+        assertEquals(
+                "MR",
+                sources.requestedCriteria.getCategory()
+        );
+    }
+
+    @Test
+    public void appliesSiteFilter() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setSiteFilter("A1");
+
+        assertEquals(
+                "A1",
+                sources.requestedCriteria.getSite()
+        );
+    }
+
+    @Test
+    public void appliesWithoutPositionFilter() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setPositionFilter(
+                PositionFilter.withoutPosition()
+        );
+
+        assertEquals(
+                PositionFilter.Type.WITHOUT_POSITION,
+                sources.requestedCriteria
+                        .getPositionFilter()
+                        .getType()
+        );
+    }
+
+    @Test
+    public void combinesSearchAndFilters() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setSearchQuery("105");
+        viewModel.setCategoryFilter("MR");
+        viewModel.setSiteFilter("A1");
+
+        assertEquals(
+                "105",
+                sources.requestedCriteria.getQuery()
+        );
+
+        assertEquals(
+                "MR",
+                sources.requestedCriteria.getCategory()
+        );
+
+        assertEquals(
+                "A1",
+                sources.requestedCriteria.getSite()
+        );
+    }
+
+    @Test
+    public void clearFiltersPreservesSearchQuery() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setSearchQuery("105");
+        viewModel.setCategoryFilter("MR");
+        viewModel.setSiteFilter("A1");
+
+        viewModel.clearFilters();
+
+        assertEquals(
+                "105",
+                sources.requestedCriteria.getQuery()
+        );
+
+        assertNull(
+                sources.requestedCriteria.getCategory()
+        );
+
+        assertNull(
+                sources.requestedCriteria.getSite()
+        );
+
+        assertEquals(
+                PositionFilter.Type.ALL,
+                sources.requestedCriteria
+                        .getPositionFilter()
+                        .getType()
+        );
     }
 }
