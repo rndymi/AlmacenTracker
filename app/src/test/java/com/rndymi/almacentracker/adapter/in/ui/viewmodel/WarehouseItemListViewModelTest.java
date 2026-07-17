@@ -254,6 +254,98 @@ public class WarehouseItemListViewModelTest {
         );
     }
 
+    @Test
+    public void emptyDatabaseHasPriorityOverActiveCriteria()
+            throws Exception {
+
+        TestSources sources = new TestSources();
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setSearchQuery("ZZZ");
+        viewModel.setCategoryFilter("MR");
+
+        sources.allItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.emptyList()
+                )
+        );
+
+        sources.filteredItems.setValue(
+                WarehouseItemsResult.success(
+                        Collections.emptyList()
+                )
+        );
+
+        WarehouseItemListUiState state =
+                getOrAwaitValue(viewModel.getUiState());
+
+        assertEquals(
+                WarehouseItemListUiState.Status.EMPTY_DATABASE,
+                state.getStatus()
+        );
+    }
+
+    @Test
+    public void clearSearchPreservesFilters() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setSearchQuery("105");
+        viewModel.setCategoryFilter("MR");
+
+        viewModel.clearSearch();
+
+        assertEquals(
+                "",
+                sources.requestedCriteria.getQuery()
+        );
+
+        assertEquals(
+                "MR",
+                sources.requestedCriteria.getCategory()
+        );
+    }
+
+    @Test
+    public void clearAllCriteriaRemovesSearchAndFilters() {
+        TestSources sources = new TestSources();
+
+        WarehouseItemListViewModel viewModel =
+                sources.createViewModel();
+
+        viewModel.setSearchQuery("105");
+        viewModel.setCategoryFilter("MR");
+        viewModel.setSiteFilter("A1");
+        viewModel.setPositionFilter(
+                PositionFilter.exact("Nivel 2")
+        );
+
+        viewModel.clearAllCriteria();
+
+        assertEquals(
+                "",
+                sources.requestedCriteria.getQuery()
+        );
+
+        assertNull(
+                sources.requestedCriteria.getCategory()
+        );
+
+        assertNull(
+                sources.requestedCriteria.getSite()
+        );
+
+        assertEquals(
+                PositionFilter.Type.ALL,
+                sources.requestedCriteria
+                        .getPositionFilter()
+                        .getType()
+        );
+    }
+
     private WarehouseItem createItem() {
         return new WarehouseItem(
                 1L,
