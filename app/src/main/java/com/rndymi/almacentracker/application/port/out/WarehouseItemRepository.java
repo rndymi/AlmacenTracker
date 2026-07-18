@@ -27,6 +27,10 @@ public interface WarehouseItemRepository {
             long warehouseItemId
     );
 
+    void findAll(
+            WarehouseItemsFindCallback callback
+    );
+
     void findById(
             long warehouseItemId,
             WarehouseItemFindCallback callback

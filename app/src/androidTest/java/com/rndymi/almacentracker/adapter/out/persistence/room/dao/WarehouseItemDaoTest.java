@@ -1269,4 +1269,24 @@ public class WarehouseItemDaoTest {
 
         assertEquals(1, deletedCount);
     }
+
+    @Test
+    public void findAllReturnsItemsOrderedByCategoryAndCode() {
+        dao.insert(createEntity("MR", "2000", "A1"));
+        dao.insert(createEntity("MD", "3000", "A1"));
+        dao.insert(createEntity("MR", "1000", "A1"));
+
+        List<WarehouseItemEntity> result = dao.findAll();
+
+        assertEquals(3, result.size());
+
+        assertEquals("MD", result.get(0).getCategory());
+        assertEquals("3000", result.get(0).getCode());
+
+        assertEquals("MR", result.get(1).getCategory());
+        assertEquals("1000", result.get(1).getCode());
+
+        assertEquals("MR", result.get(2).getCategory());
+        assertEquals("2000", result.get(2).getCode());
+    }
 }

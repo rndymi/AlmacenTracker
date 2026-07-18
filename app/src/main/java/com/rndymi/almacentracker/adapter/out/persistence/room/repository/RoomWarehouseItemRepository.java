@@ -18,6 +18,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallbac
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -183,6 +184,26 @@ public final class RoomWarehouseItemRepository
                     }
                 }
         );
+    }
+
+    @Override
+    public void findAll(
+            WarehouseItemsFindCallback callback
+    ) {
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                List<WarehouseItemEntity> entities =
+                        warehouseItemDao.findAll();
+
+                callback.onSuccess(
+                        mapper.toDomainList(entities)
+                );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
     }
 
     @Override

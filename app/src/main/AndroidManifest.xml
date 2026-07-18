@@ -27,6 +27,9 @@
         <activity
             android:name=".adapter.in.ui.activity.ItemDetailActivity"
             android:exported="false" />
+        <activity
+            android:name=".adapter.in.ui.activity.DataManagementActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -1,0 +1,54 @@
+package com.rndymi.almacentracker.adapter.in.ui.state;
+
+public final class DataManagementUiState {
+
+    public enum Status {
+        IDLE,
+        SELECTING_DESTINATION,
+        EXPORTING,
+        EMPTY_DATABASE,
+        ERROR
+    }
+
+    private final Status status;
+    private final String message;
+
+    private DataManagementUiState(Status status, String message) {
+        this.status = status;
+        this.message = message;
+    }
+
+    public static DataManagementUiState idle() {
+        return new DataManagementUiState(Status.IDLE, null);
+    }
+
+    public static DataManagementUiState selectingDestination() {
+        return new DataManagementUiState(
+                Status.SELECTING_DESTINATION,
+                null
+        );
+    }
+
+    public static DataManagementUiState exporting() {
+        return new DataManagementUiState(Status.EXPORTING, null);
+    }
+
+    public static DataManagementUiState emptyDatabase(String message) {
+        return new DataManagementUiState(
+                Status.EMPTY_DATABASE,
+                message
+        );
+    }
+
+    public static DataManagementUiState error(String message) {
+        return new DataManagementUiState(Status.ERROR, message);
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+}

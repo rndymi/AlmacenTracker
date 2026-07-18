@@ -23,6 +23,13 @@ public interface WarehouseItemDao {
 
     @Query(
             "SELECT * FROM warehouse_items " +
+                    "ORDER BY category COLLATE NOCASE ASC, " +
+                    "code COLLATE NOCASE ASC"
+    )
+    List<WarehouseItemEntity> findAll();
+
+    @Query(
+            "SELECT * FROM warehouse_items " +
                     "WHERE category LIKE '%' || :query || '%' " +
                     "COLLATE NOCASE " +
                     "OR code LIKE '%' || :query || '%' " +
