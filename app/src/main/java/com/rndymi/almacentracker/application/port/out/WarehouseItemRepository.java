@@ -54,6 +54,11 @@ public interface WarehouseItemRepository {
             WarehouseItemInsertCallback callback
     );
 
+    void insertAll(
+            List<WarehouseItem> warehouseItems,
+            WarehouseItemsInsertCallback callback
+    );
+
     void update(
             WarehouseItem warehouseItem,
             WarehouseItemUpdateCallback callback
