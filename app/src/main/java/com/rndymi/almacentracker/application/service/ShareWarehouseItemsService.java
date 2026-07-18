@@ -1,17 +1,11 @@
 package com.rndymi.almacentracker.application.service;
 
-import com.rndymi.almacentracker.application.port.in
-        .ShareWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.out
-        .WarehouseItemCsvShareFileCallback;
-import com.rndymi.almacentracker.application.port.out
-        .WarehouseItemCsvShareFileGateway;
-import com.rndymi.almacentracker.application.port.out
-        .WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out
-        .WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.result
-        .ShareWarehouseItemsResult;
+import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileGateway;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
+import com.rndymi.almacentracker.application.result.ShareWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 

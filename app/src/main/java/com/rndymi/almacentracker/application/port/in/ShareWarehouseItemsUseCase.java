@@ -1,7 +1,6 @@
 package com.rndymi.almacentracker.application.port.in;
 
-import com.rndymi.almacentracker.application.result
-        .ShareWarehouseItemsResult;
+import com.rndymi.almacentracker.application.result.ShareWarehouseItemsResult;
 
 public interface ShareWarehouseItemsUseCase {
 
