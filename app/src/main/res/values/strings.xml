@@ -236,4 +236,29 @@
         <item quantity="one">Se exportó %1$d registro.</item>
         <item quantity="other">Se exportaron %1$d registros.</item>
     </plurals>
+
+
+    <string name="share_csv_title">
+        Compartir CSV
+    </string>
+
+    <string name="share_csv_description">
+        Genera un archivo temporal con todos los registros para enviarlo a otra aplicación.
+    </string>
+
+    <string name="share_csv_action">
+        Compartir
+    </string>
+
+    <string name="share_csv_preparing">
+        Preparando archivo para compartir...
+    </string>
+
+    <string name="share_csv_chooser_title">
+        Compartir exportación CSV
+    </string>
+
+    <string name="share_csv_subject">
+        Exportación de AlmacenTracker
+    </string>
 </resources>

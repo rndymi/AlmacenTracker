@@ -1,5 +1,7 @@
 package com.rndymi.almacentracker.adapter.in.ui.activity;
 
+import android.content.ClipData;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -16,28 +18,34 @@ import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModelFactory;
+import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 import com.rndymi.almacentracker.databinding.ActivityDataManagementBinding;
 
-public final class DataManagementActivity extends AppCompatActivity {
+public final class DataManagementActivity
+        extends AppCompatActivity {
 
     private ActivityDataManagementBinding binding;
     private DataManagementViewModel viewModel;
 
     private final ActivityResultLauncher<String>
-            createCsvDocumentLauncher = registerForActivityResult(
-            new ActivityResultContracts.CreateDocument(
-                    "text/csv"
-            ),
-            this::handleDestinationResult
-    );
+            createCsvDocumentLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.CreateDocument(
+                            "text/csv"
+                    ),
+                    this::handleDestinationResult
+            );
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(
+            @Nullable Bundle savedInstanceState
+    ) {
         super.onCreate(savedInstanceState);
 
         binding = ActivityDataManagementBinding.inflate(
                 getLayoutInflater()
         );
+
         setContentView(binding.getRoot());
 
         configureToolbar();
@@ -61,13 +69,21 @@ public final class DataManagementActivity extends AppCompatActivity {
                         .getAppContainer()
                         .provideDataManagementViewModelFactory();
 
-        viewModel = new ViewModelProvider(this, factory)
-                .get(DataManagementViewModel.class);
+        viewModel = new ViewModelProvider(
+                this,
+                factory
+        ).get(DataManagementViewModel.class);
     }
 
     private void configureActions() {
         binding.exportCsvButton.setOnClickListener(
-                ignored -> viewModel.requestExportDestination()
+                ignored ->
+                        viewModel.requestExportDestination()
+        );
+
+        binding.shareCsvButton.setOnClickListener(
+                ignored ->
+                        viewModel.shareWarehouseItems()
         );
 
         binding.retryExportButton.setOnClickListener(
@@ -105,7 +121,8 @@ public final class DataManagementActivity extends AppCompatActivity {
                         Toast.makeText(
                                 this,
                                 getResources().getQuantityString(
-                                        R.plurals.export_csv_success,
+                                        R.plurals
+                                                .export_csv_success,
                                         exportedCount,
                                         exportedCount
                                 ),
@@ -114,9 +131,23 @@ public final class DataManagementActivity extends AppCompatActivity {
                     }
                 }
         );
+
+        viewModel.getShareFileReady().observe(
+                this,
+                event -> {
+                    ShareableCsvFile shareableFile =
+                            event.getContentIfNotHandled();
+
+                    if (shareableFile != null) {
+                        openShareChooser(shareableFile);
+                    }
+                }
+        );
     }
 
-    private void handleDestinationResult(Uri destinationUri) {
+    private void handleDestinationResult(
+            Uri destinationUri
+    ) {
         viewModel.onDestinationSelected(
                 destinationUri == null
                         ? null
@@ -124,16 +155,99 @@ public final class DataManagementActivity extends AppCompatActivity {
         );
     }
 
-    private void renderState(DataManagementUiState state) {
-        boolean busy = state.getStatus()
-                == DataManagementUiState.Status.SELECTING_DESTINATION
-                || state.getStatus()
-                == DataManagementUiState.Status.EXPORTING;
+    private void openShareChooser(
+            ShareableCsvFile shareableFile
+    ) {
+        final Uri contentUri;
+
+        try {
+            contentUri = Uri.parse(
+                    shareableFile.getContentReference()
+            );
+        } catch (RuntimeException exception) {
+            viewModel.onInvalidShareReference();
+            return;
+        }
+
+        if (!"content".equals(contentUri.getScheme())) {
+            viewModel.onInvalidShareReference();
+            return;
+        }
+
+        Intent sendIntent =
+                new Intent(Intent.ACTION_SEND);
+
+        sendIntent.setType(
+                shareableFile.getMimeType()
+        );
+
+        sendIntent.putExtra(
+                Intent.EXTRA_STREAM,
+                contentUri
+        );
+
+        sendIntent.putExtra(
+                Intent.EXTRA_SUBJECT,
+                getString(R.string.share_csv_subject)
+        );
+
+        sendIntent.setClipData(
+                ClipData.newUri(
+                        getContentResolver(),
+                        shareableFile.getFileName(),
+                        contentUri
+                )
+        );
+
+        sendIntent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+        );
+
+        /*
+         * No se añade FLAG_GRANT_WRITE_URI_PERMISSION.
+         */
+        if (sendIntent.resolveActivity(
+                getPackageManager()
+        ) == null) {
+            viewModel.onNoShareApplicationAvailable();
+            return;
+        }
+
+        Intent chooser = Intent.createChooser(
+                sendIntent,
+                getString(
+                        R.string.share_csv_chooser_title
+                )
+        );
+
+        startActivity(chooser);
+        viewModel.onShareChooserLaunched();
+    }
+
+    private void renderState(
+            DataManagementUiState state
+    ) {
+        boolean busy =
+                state.getStatus()
+                        == DataManagementUiState.Status
+                        .SELECTING_DESTINATION
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .EXPORTING
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .PREPARING_SHARE;
 
         binding.exportCsvButton.setEnabled(!busy);
+        binding.shareCsvButton.setEnabled(!busy);
+
         binding.exportProgress.setVisibility(
                 state.getStatus()
-                        == DataManagementUiState.Status.EXPORTING
+                        == DataManagementUiState.Status
+                        .EXPORTING
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .PREPARING_SHARE
                         ? View.VISIBLE
                         : View.GONE
         );
@@ -155,7 +269,8 @@ public final class DataManagementActivity extends AppCompatActivity {
         switch (state.getStatus()) {
             case SELECTING_DESTINATION:
                 binding.exportStatusText.setText(
-                        R.string.export_csv_selecting_destination
+                        R.string
+                                .export_csv_selecting_destination
                 );
                 break;
 
@@ -165,9 +280,17 @@ public final class DataManagementActivity extends AppCompatActivity {
                 );
                 break;
 
+            case PREPARING_SHARE:
+                binding.exportStatusText.setText(
+                        R.string.share_csv_preparing
+                );
+                break;
+
             case EMPTY_DATABASE:
             case ERROR:
-                binding.exportStatusText.setText(state.getMessage());
+                binding.exportStatusText.setText(
+                        state.getMessage()
+                );
                 break;
 
             case IDLE:

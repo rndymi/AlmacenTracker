@@ -6,6 +6,7 @@ public final class DataManagementUiState {
         IDLE,
         SELECTING_DESTINATION,
         EXPORTING,
+        PREPARING_SHARE,
         EMPTY_DATABASE,
         ERROR
     }
@@ -13,16 +14,23 @@ public final class DataManagementUiState {
     private final Status status;
     private final String message;
 
-    private DataManagementUiState(Status status, String message) {
+    private DataManagementUiState(
+            Status status,
+            String message
+    ) {
         this.status = status;
         this.message = message;
     }
 
     public static DataManagementUiState idle() {
-        return new DataManagementUiState(Status.IDLE, null);
+        return new DataManagementUiState(
+                Status.IDLE,
+                null
+        );
     }
 
-    public static DataManagementUiState selectingDestination() {
+    public static DataManagementUiState
+    selectingDestination() {
         return new DataManagementUiState(
                 Status.SELECTING_DESTINATION,
                 null
@@ -30,18 +38,35 @@ public final class DataManagementUiState {
     }
 
     public static DataManagementUiState exporting() {
-        return new DataManagementUiState(Status.EXPORTING, null);
+        return new DataManagementUiState(
+                Status.EXPORTING,
+                null
+        );
     }
 
-    public static DataManagementUiState emptyDatabase(String message) {
+    public static DataManagementUiState preparingShare() {
+        return new DataManagementUiState(
+                Status.PREPARING_SHARE,
+                null
+        );
+    }
+
+    public static DataManagementUiState emptyDatabase(
+            String message
+    ) {
         return new DataManagementUiState(
                 Status.EMPTY_DATABASE,
                 message
         );
     }
 
-    public static DataManagementUiState error(String message) {
-        return new DataManagementUiState(Status.ERROR, message);
+    public static DataManagementUiState error(
+            String message
+    ) {
+        return new DataManagementUiState(
+                Status.ERROR,
+                message
+        );
     }
 
     public Status getStatus() {

@@ -9,6 +9,7 @@ import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailView
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentExporter;
+import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvShareFileGateway;
 import com.rndymi.almacentracker.adapter.out.file.csv.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.adapter.out.file.csv.WarehouseItemCsvMapper;
 import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
@@ -23,6 +24,7 @@ import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCa
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.service.DeleteWarehouseItemService;
@@ -34,9 +36,11 @@ import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailServi
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemFilterOptionsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.SearchWarehouseItemsService;
+import com.rndymi.almacentracker.application.service.ShareWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.UpdateWarehouseItemService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +49,7 @@ public final class AppContainer {
 
     private final AlmacenTrackerDatabase database;
     private final ExecutorService databaseExecutor;
+    private final ExecutorService fileExecutor;
 
     private final WarehouseItemRepository
             warehouseItemRepository;
@@ -79,6 +84,8 @@ public final class AppContainer {
     private final ExportWarehouseItemsUseCase
             exportWarehouseItemsUseCase;
 
+    private final ShareWarehouseItemsUseCase
+            shareWarehouseItemsUseCase;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -91,6 +98,9 @@ public final class AppContainer {
         ).build();
 
         databaseExecutor =
+                Executors.newSingleThreadExecutor();
+
+        fileExecutor =
                 Executors.newSingleThreadExecutor();
 
         WarehouseItemPersistenceMapper mapper =
@@ -160,13 +170,35 @@ public final class AppContainer {
                 new AndroidCsvDocumentExporter(
                         applicationContext.getContentResolver(),
                         csvCodec,
-                        databaseExecutor
+                        fileExecutor
                 );
 
         exportWarehouseItemsUseCase =
                 new ExportWarehouseItemsService(
                         warehouseItemRepository,
                         csvExporter
+                );
+
+        AndroidCsvShareFileGateway shareFileGateway =
+                new AndroidCsvShareFileGateway(
+                        applicationContext,
+                        csvCodec,
+                        fileExecutor,
+                        applicationContext.getPackageName()
+                                + ".fileprovider"
+                );
+
+        shareWarehouseItemsUseCase =
+                new ShareWarehouseItemsService(
+                        warehouseItemRepository,
+                        shareFileGateway,
+                        () -> "almacentracker-share-"
+                                + LocalDateTime.now().format(
+                                DateTimeFormatter.ofPattern(
+                                        "yyyy-MM-dd-HHmmss"
+                                )
+                        )
+                                + ".csv"
                 );
     }
 
@@ -207,6 +239,7 @@ public final class AppContainer {
     provideDataManagementViewModelFactory() {
         return new DataManagementViewModelFactory(
                 exportWarehouseItemsUseCase,
+                shareWarehouseItemsUseCase,
                 () -> "almacentracker-export-"
                         + LocalDate.now().format(
                         DateTimeFormatter.ISO_LOCAL_DATE
