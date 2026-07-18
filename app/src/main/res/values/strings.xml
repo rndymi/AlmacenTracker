@@ -261,4 +261,35 @@
     <string name="share_csv_subject">
         Exportación de AlmacenTracker
     </string>
+
+
+    <string name="import_csv_title">Importar CSV</string>
+
+    <string name="import_csv_description">
+        Añade mercadería desde un archivo CSV compatible sin eliminar los registros actuales.
+    </string>
+
+    <string name="import_csv_action">Importar</string>
+
+    <string name="import_csv_selecting_source">
+        Selecciona el archivo CSV que quieres importar.
+    </string>
+
+    <string name="import_csv_in_progress">
+        Importando mercadería...
+    </string>
+
+    <string name="import_csv_invalid_format">
+        El archivo no utiliza el formato CSV esperado.
+    </string>
+
+    <string name="import_csv_no_valid_rows">
+        No se encontró ninguna fila nueva válida para importar.
+    </string>
+
+    <string name="import_csv_summary">
+        Importadas: %1$d
+        Duplicadas: %2$d
+        Inválidas: %3$d
+    </string>
 </resources>
