@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
 import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.result.ExportWarehouseItemsResult;
+import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 
@@ -52,8 +54,24 @@ public final class DataManagementViewModel
     private static final String SHARE_UNKNOWN_ERROR_MESSAGE =
             "No se pudo preparar la mercancía para compartir.";
 
+    private static final String INVALID_IMPORT_SOURCE_MESSAGE =
+            "No se pudo acceder al archivo seleccionado.";
+
+    private static final String INVALID_IMPORT_FORMAT_MESSAGE =
+            "El archivo no utiliza el formato CSV esperado.";
+
+    private static final String IMPORT_READ_ERROR_MESSAGE =
+            "No se pudo leer el archivo CSV.";
+
+    private static final String IMPORT_PERSISTENCE_ERROR_MESSAGE =
+            "No se pudo guardar la mercancía importada.";
+
+    private static final String IMPORT_UNKNOWN_ERROR_MESSAGE =
+            "No se pudo importar la mercancía.";
+
     private final ExportWarehouseItemsUseCase exportUseCase;
     private final ShareWarehouseItemsUseCase shareUseCase;
+    private final ImportWarehouseItemsUseCase importUseCase;
     private final Supplier<String> exportFileNameSupplier;
 
     private final MutableLiveData<DataManagementUiState>
@@ -70,12 +88,20 @@ public final class DataManagementViewModel
     private final MutableLiveData<UiEvent<ShareableCsvFile>>
             shareFileReady = new MutableLiveData<>();
 
+    private final MutableLiveData<UiEvent<Boolean>>
+            sourceRequest = new MutableLiveData<>();
+
+    private final MutableLiveData<
+            UiEvent<ImportWarehouseItemsResult>>
+            importCompleted = new MutableLiveData<>();
+
     private boolean selectorRequested;
     private boolean operationInProgress;
 
     public DataManagementViewModel(
             ExportWarehouseItemsUseCase exportUseCase,
             ShareWarehouseItemsUseCase shareUseCase,
+            ImportWarehouseItemsUseCase importUseCase,
             Supplier<String> exportFileNameSupplier
     ) {
         this.exportUseCase =
@@ -83,6 +109,9 @@ public final class DataManagementViewModel
 
         this.shareUseCase =
                 Objects.requireNonNull(shareUseCase);
+
+        this.importUseCase =
+                Objects.requireNonNull(importUseCase);
 
         this.exportFileNameSupplier =
                 Objects.requireNonNull(
@@ -106,6 +135,16 @@ public final class DataManagementViewModel
     public LiveData<UiEvent<ShareableCsvFile>>
     getShareFileReady() {
         return shareFileReady;
+    }
+
+    public LiveData<UiEvent<Boolean>>
+    getSourceRequest() {
+        return sourceRequest;
+    }
+
+    public LiveData<UiEvent<ImportWarehouseItemsResult>>
+    getImportCompleted() {
+        return importCompleted;
     }
 
     public void requestExportDestination() {
@@ -136,6 +175,51 @@ public final class DataManagementViewModel
 
         destinationRequest.setValue(
                 new UiEvent<>(suggestedFileName)
+        );
+    }
+
+    public void requestImportSource() {
+        if (isBusy()) {
+            return;
+        }
+
+        selectorRequested = true;
+
+        uiState.setValue(
+                DataManagementUiState.selectingSource()
+        );
+
+        sourceRequest.setValue(
+                new UiEvent<>(true)
+        );
+    }
+
+    public void onImportSourceSelected(
+            String sourceReference
+    ) {
+        if (!selectorRequested || operationInProgress) {
+            return;
+        }
+
+        selectorRequested = false;
+
+        if (sourceReference == null
+                || sourceReference.trim().isEmpty()) {
+            uiState.setValue(
+                    DataManagementUiState.idle()
+            );
+            return;
+        }
+
+        operationInProgress = true;
+
+        uiState.setValue(
+                DataManagementUiState.importing()
+        );
+
+        importUseCase.importWarehouseItems(
+                sourceReference,
+                this::handleImportResult
         );
     }
 
@@ -344,5 +428,56 @@ public final class DataManagementViewModel
         uiState.postValue(
                 DataManagementUiState.error(message)
         );
+    }
+
+    private void handleImportResult(
+            ImportWarehouseItemsResult result
+    ) {
+        operationInProgress = false;
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+            case PARTIAL_SUCCESS:
+            case NO_VALID_ROWS:
+                uiState.postValue(
+                        DataManagementUiState.idle()
+                );
+
+                importCompleted.postValue(
+                        new UiEvent<>(result)
+                );
+                break;
+
+            case INVALID_SOURCE:
+                postError(
+                        INVALID_IMPORT_SOURCE_MESSAGE
+                );
+                break;
+
+            case INVALID_FORMAT:
+                postError(
+                        INVALID_IMPORT_FORMAT_MESSAGE
+                );
+                break;
+
+            case READ_ERROR:
+                postError(
+                        IMPORT_READ_ERROR_MESSAGE
+                );
+                break;
+
+            case PERSISTENCE_ERROR:
+                postError(
+                        IMPORT_PERSISTENCE_ERROR_MESSAGE
+                );
+                break;
+
+            case UNKNOWN_ERROR:
+            default:
+                postError(
+                        IMPORT_UNKNOWN_ERROR_MESSAGE
+                );
+                break;
+        }
     }
 }

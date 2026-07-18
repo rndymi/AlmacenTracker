@@ -5,8 +5,10 @@ public final class DataManagementUiState {
     public enum Status {
         IDLE,
         SELECTING_DESTINATION,
+        SELECTING_SOURCE,
         EXPORTING,
         PREPARING_SHARE,
+        IMPORTING,
         EMPTY_DATABASE,
         ERROR
     }
@@ -37,6 +39,14 @@ public final class DataManagementUiState {
         );
     }
 
+    public static DataManagementUiState
+    selectingSource() {
+        return new DataManagementUiState(
+                Status.SELECTING_SOURCE,
+                null
+        );
+    }
+
     public static DataManagementUiState exporting() {
         return new DataManagementUiState(
                 Status.EXPORTING,
@@ -44,14 +54,22 @@ public final class DataManagementUiState {
         );
     }
 
-    public static DataManagementUiState preparingShare() {
+    public static DataManagementUiState
+    preparingShare() {
         return new DataManagementUiState(
                 Status.PREPARING_SHARE,
                 null
         );
     }
 
-    public static DataManagementUiState emptyDatabase(
+    public static DataManagementUiState importing() {
+        return new DataManagementUiState(
+                Status.IMPORTING,
+                null
+        );
+    }
+
+    public static DataManagementUiState empty(
             String message
     ) {
         return new DataManagementUiState(
