@@ -3,6 +3,8 @@ package com.rndymi.almacentracker.adapter.in.ui.activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 
@@ -837,5 +839,23 @@ public final class MainActivity extends AppCompatActivity {
                 message,
                 android.widget.Toast.LENGTH_SHORT
         ).show();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_data_management) {
+            startActivity(
+                    new Intent(this, DataManagementActivity.class)
+            );
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 }

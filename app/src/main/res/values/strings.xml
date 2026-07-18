@@ -1,15 +1,15 @@
 <resources>
     <string name="app_name">AlmacenTracker</string>
 
-    <string name="warehouse_list_title">Mercancía</string>
+    <string name="warehouse_list_title">Mercadería</string>
     <string name="warehouse_empty_title">
-        Todavía no hay mercancía registrada.
+        Todavía no hay mercadería registrada.
     </string>
     <string name="warehouse_empty_description">
-        Registra la primera mercancía para comenzar.
+        Registra la primera mercadería para comenzar.
     </string>
     <string name="warehouse_load_error">
-        No se pudo cargar la mercancía.
+        No se pudo cargar la mercadería.
     </string>
     <string name="warehouse_site_format">Sitio %1$s</string>
     <string name="warehouse_site_position_format">
@@ -19,7 +19,7 @@
         %1$s · %2$s
     </string>
     <string name="warehouse_item_list">
-        Listado de mercancía
+        Listado de mercadería
     </string>
 
     <string name="warehouse_search_hint">
@@ -43,11 +43,11 @@
     </string>
 
     <string name="register_warehouse_item_title">
-        Registrar mercancía
+        Registrar mercadería
     </string>
 
     <string name="register_warehouse_item_action">
-        Registrar mercancía
+        Registrar mercadería
     </string>
 
     <string name="category_required_label">
@@ -79,23 +79,23 @@
     </string>
 
     <string name="warehouse_item_created">
-        Mercancía registrada correctamente.
+        Mercadería registrada correctamente.
     </string>
 
     <string name="warehouse_detail_title">
-        Detalle de mercancía
+        Detalle de mercadería
     </string>
 
     <string name="warehouse_detail_not_found">
-        La mercancía ya no está disponible.
+        La mercadería ya no está disponible.
     </string>
 
     <string name="warehouse_detail_invalid_id">
-        No se pudo identificar la mercancía.
+        No se pudo identificar la mercadería.
     </string>
 
     <string name="warehouse_detail_load_error">
-        No se pudo cargar el detalle de la mercancía.
+        No se pudo cargar el detalle de la mercadería.
     </string>
 
     <string name="category_label">Categoría</string>
@@ -139,7 +139,7 @@
     </string>
 
     <string name="edit_warehouse_item_title">
-        Editar mercancía
+        Editar mercadería
     </string>
 
     <string name="save_changes_action">
@@ -147,11 +147,11 @@
     </string>
 
     <string name="warehouse_item_updated">
-        Mercancía actualizada correctamente.
+        Mercadería actualizada correctamente.
     </string>
 
     <string name="delete_warehouse_item_title">
-        Eliminar mercancía
+        Eliminar mercadería
     </string>
 
     <string name="delete_warehouse_item_message">
@@ -159,11 +159,11 @@
     </string>
 
     <string name="warehouse_item_deleted">
-        Mercancía eliminada correctamente.
+        Mercadería eliminada correctamente.
     </string>
 
     <string name="warehouse_item_delete_error">
-        No se pudo eliminar la mercancía.
+        No se pudo eliminar la mercadería.
     </string>
 
     <string name="deleting_action">
@@ -183,7 +183,7 @@
     </string>
 
     <string name="delete_selected_items_title">
-        Eliminar mercancía seleccionada
+        Eliminar mercadería seleccionada
     </string>
 
     <string name="delete_one_selected_item_message">
@@ -221,4 +221,19 @@
     <string name="warehouse_item_not_selected_description">
         %1$s · %2$s
     </string>
+
+
+    <string name="data_management_title">Gestión de datos</string>
+    <string name="data_management_action">Gestión de datos</string>
+    <string name="export_csv_title">Exportar CSV</string>
+    <string name="export_csv_description">Guarda todos los registros en un archivo CSV.</string>
+    <string name="export_csv_action">Exportar</string>
+    <string name="export_csv_selecting_destination">Selecciona el destino del archivo.</string>
+    <string name="export_csv_in_progress">Exportando mercadería...</string>
+    <string name="retry_action">Reintentar</string>
+
+    <plurals name="export_csv_success">
+        <item quantity="one">Se exportó %1$d registro.</item>
+        <item quantity="other">Se exportaron %1$d registros.</item>
+    </plurals>
 </resources>
