@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -13,14 +14,24 @@ public final class DataManagementViewModelFactory
         implements ViewModelProvider.Factory {
 
     private final ExportWarehouseItemsUseCase exportUseCase;
-    private final Supplier<String> fileNameSupplier;
+    private final ShareWarehouseItemsUseCase shareUseCase;
+    private final Supplier<String> exportFileNameSupplier;
 
     public DataManagementViewModelFactory(
             ExportWarehouseItemsUseCase exportUseCase,
-            Supplier<String> fileNameSupplier
+            ShareWarehouseItemsUseCase shareUseCase,
+            Supplier<String> exportFileNameSupplier
     ) {
-        this.exportUseCase = Objects.requireNonNull(exportUseCase);
-        this.fileNameSupplier = Objects.requireNonNull(fileNameSupplier);
+        this.exportUseCase =
+                Objects.requireNonNull(exportUseCase);
+
+        this.shareUseCase =
+                Objects.requireNonNull(shareUseCase);
+
+        this.exportFileNameSupplier =
+                Objects.requireNonNull(
+                        exportFileNameSupplier
+                );
     }
 
     @NonNull
@@ -40,7 +51,8 @@ public final class DataManagementViewModelFactory
         return modelClass.cast(
                 new DataManagementViewModel(
                         exportUseCase,
-                        fileNameSupplier
+                        shareUseCase,
+                        exportFileNameSupplier
                 )
         );
     }

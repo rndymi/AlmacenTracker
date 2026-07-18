@@ -7,15 +7,22 @@ import androidx.lifecycle.ViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
 import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.result.ExportWarehouseItemsResult;
+import com.rndymi.almacentracker.application.result.ShareWarehouseItemsResult;
+import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public final class DataManagementViewModel extends ViewModel {
+public final class DataManagementViewModel
+        extends ViewModel {
 
-    private static final String EMPTY_MESSAGE =
+    private static final String EXPORT_EMPTY_MESSAGE =
             "No hay mercancía para exportar.";
+
+    private static final String SHARE_EMPTY_MESSAGE =
+            "No hay mercancía para compartir.";
 
     private static final String INVALID_DESTINATION_MESSAGE =
             "No se pudo acceder al destino seleccionado.";
@@ -29,37 +36,66 @@ public final class DataManagementViewModel extends ViewModel {
     private static final String WRITE_ERROR_MESSAGE =
             "No se pudo escribir el archivo CSV.";
 
-    private static final String UNKNOWN_ERROR_MESSAGE =
+    private static final String TEMP_FILE_ERROR_MESSAGE =
+            "No se pudo preparar el archivo temporal.";
+
+    private static final String FILE_PROVIDER_ERROR_MESSAGE =
+            "No se pudo compartir el archivo de forma segura.";
+
+    private static final String NO_RECEIVER_MESSAGE =
+            "No hay ninguna aplicación disponible "
+                    + "para compartir el archivo CSV.";
+
+    private static final String EXPORT_UNKNOWN_ERROR_MESSAGE =
             "No se pudo exportar la mercancía.";
 
+    private static final String SHARE_UNKNOWN_ERROR_MESSAGE =
+            "No se pudo preparar la mercancía para compartir.";
+
     private final ExportWarehouseItemsUseCase exportUseCase;
-    private final Supplier<String> fileNameSupplier;
+    private final ShareWarehouseItemsUseCase shareUseCase;
+    private final Supplier<String> exportFileNameSupplier;
 
-    private final MutableLiveData<DataManagementUiState> uiState =
-            new MutableLiveData<>(DataManagementUiState.idle());
+    private final MutableLiveData<DataManagementUiState>
+            uiState = new MutableLiveData<>(
+            DataManagementUiState.idle()
+    );
 
-    private final MutableLiveData<UiEvent<String>> destinationRequest =
-            new MutableLiveData<>();
+    private final MutableLiveData<UiEvent<String>>
+            destinationRequest = new MutableLiveData<>();
 
-    private final MutableLiveData<UiEvent<Integer>> exportSuccess =
-            new MutableLiveData<>();
+    private final MutableLiveData<UiEvent<Integer>>
+            exportSuccess = new MutableLiveData<>();
+
+    private final MutableLiveData<UiEvent<ShareableCsvFile>>
+            shareFileReady = new MutableLiveData<>();
 
     private boolean selectorRequested;
-    private boolean exportInProgress;
+    private boolean operationInProgress;
 
     public DataManagementViewModel(
             ExportWarehouseItemsUseCase exportUseCase,
-            Supplier<String> fileNameSupplier
+            ShareWarehouseItemsUseCase shareUseCase,
+            Supplier<String> exportFileNameSupplier
     ) {
-        this.exportUseCase = Objects.requireNonNull(exportUseCase);
-        this.fileNameSupplier = Objects.requireNonNull(fileNameSupplier);
+        this.exportUseCase =
+                Objects.requireNonNull(exportUseCase);
+
+        this.shareUseCase =
+                Objects.requireNonNull(shareUseCase);
+
+        this.exportFileNameSupplier =
+                Objects.requireNonNull(
+                        exportFileNameSupplier
+                );
     }
 
     public LiveData<DataManagementUiState> getUiState() {
         return uiState;
     }
 
-    public LiveData<UiEvent<String>> getDestinationRequest() {
+    public LiveData<UiEvent<String>>
+    getDestinationRequest() {
         return destinationRequest;
     }
 
@@ -67,23 +103,46 @@ public final class DataManagementViewModel extends ViewModel {
         return exportSuccess;
     }
 
+    public LiveData<UiEvent<ShareableCsvFile>>
+    getShareFileReady() {
+        return shareFileReady;
+    }
+
     public void requestExportDestination() {
-        if (selectorRequested || exportInProgress) {
+        if (isBusy()) {
+            return;
+        }
+
+        final String suggestedFileName;
+
+        try {
+            suggestedFileName =
+                    exportFileNameSupplier.get();
+        } catch (RuntimeException exception) {
+            uiState.setValue(
+                    DataManagementUiState.error(
+                            EXPORT_UNKNOWN_ERROR_MESSAGE
+                    )
+            );
             return;
         }
 
         selectorRequested = true;
+
         uiState.setValue(
-                DataManagementUiState.selectingDestination()
+                DataManagementUiState
+                        .selectingDestination()
         );
 
         destinationRequest.setValue(
-                new UiEvent<>(fileNameSupplier.get())
+                new UiEvent<>(suggestedFileName)
         );
     }
 
-    public void onDestinationSelected(String destinationReference) {
-        if (!selectorRequested || exportInProgress) {
+    public void onDestinationSelected(
+            String destinationReference
+    ) {
+        if (!selectorRequested || operationInProgress) {
             return;
         }
 
@@ -91,12 +150,17 @@ public final class DataManagementViewModel extends ViewModel {
 
         if (destinationReference == null
                 || destinationReference.trim().isEmpty()) {
-            uiState.setValue(DataManagementUiState.idle());
+            uiState.setValue(
+                    DataManagementUiState.idle()
+            );
             return;
         }
 
-        exportInProgress = true;
-        uiState.setValue(DataManagementUiState.exporting());
+        operationInProgress = true;
+
+        uiState.setValue(
+                DataManagementUiState.exporting()
+        );
 
         exportUseCase.exportWarehouseItems(
                 destinationReference,
@@ -104,31 +168,82 @@ public final class DataManagementViewModel extends ViewModel {
         );
     }
 
-    public void retry() {
-        if (!exportInProgress && !selectorRequested) {
-            uiState.setValue(DataManagementUiState.idle());
+    public void shareWarehouseItems() {
+        if (isBusy()) {
+            return;
         }
+
+        operationInProgress = true;
+
+        uiState.setValue(
+                DataManagementUiState.preparingShare()
+        );
+
+        shareUseCase.prepareWarehouseItemsForSharing(
+                this::handleShareResult
+        );
+    }
+
+    public void onShareChooserLaunched() {
+        operationInProgress = false;
+
+        uiState.setValue(
+                DataManagementUiState.idle()
+        );
+    }
+
+    public void onNoShareApplicationAvailable() {
+        operationInProgress = false;
+
+        uiState.setValue(
+                DataManagementUiState.error(
+                        NO_RECEIVER_MESSAGE
+                )
+        );
+    }
+
+    public void onInvalidShareReference() {
+        operationInProgress = false;
+
+        uiState.setValue(
+                DataManagementUiState.error(
+                        FILE_PROVIDER_ERROR_MESSAGE
+                )
+        );
+    }
+
+    public void retry() {
+        if (!isBusy()) {
+            uiState.setValue(
+                    DataManagementUiState.idle()
+            );
+        }
+    }
+
+    private boolean isBusy() {
+        return selectorRequested || operationInProgress;
     }
 
     private void handleExportResult(
             ExportWarehouseItemsResult result
     ) {
-        exportInProgress = false;
+        operationInProgress = false;
 
         switch (result.getStatus()) {
             case SUCCESS:
-                uiState.postValue(DataManagementUiState.idle());
+                uiState.postValue(
+                        DataManagementUiState.idle()
+                );
+
                 exportSuccess.postValue(
-                        new UiEvent<>(result.getExportedCount())
+                        new UiEvent<>(
+                                result.getExportedCount()
+                        )
                 );
                 break;
 
             case EMPTY_DATABASE:
-                uiState.postValue(
-                        DataManagementUiState.emptyDatabase(
-                                EMPTY_MESSAGE
-                        )
-                );
+                postEmpty(EXPORT_EMPTY_MESSAGE);
                 break;
 
             case INVALID_DESTINATION:
@@ -149,12 +264,85 @@ public final class DataManagementViewModel extends ViewModel {
 
             case UNKNOWN_ERROR:
             default:
-                postError(UNKNOWN_ERROR_MESSAGE);
+                postError(
+                        EXPORT_UNKNOWN_ERROR_MESSAGE
+                );
                 break;
         }
     }
 
+    private void handleShareResult(
+            ShareWarehouseItemsResult result
+    ) {
+        switch (result.getStatus()) {
+            case SUCCESS:
+                ShareableCsvFile shareableFile =
+                        result.getShareableFile();
+
+                if (shareableFile == null) {
+                    operationInProgress = false;
+                    postError(
+                            SHARE_UNKNOWN_ERROR_MESSAGE
+                    );
+                    return;
+                }
+
+                /*
+                 * Se mantiene operationInProgress = true
+                 * hasta que la Activity abra el chooser o
+                 * informe que no existe receptor.
+                 */
+                shareFileReady.postValue(
+                        new UiEvent<>(shareableFile)
+                );
+                break;
+
+            case EMPTY_DATABASE:
+                operationInProgress = false;
+                postEmpty(SHARE_EMPTY_MESSAGE);
+                break;
+
+            case READ_ERROR:
+                operationInProgress = false;
+                postError(READ_ERROR_MESSAGE);
+                break;
+
+            case SERIALIZATION_ERROR:
+                operationInProgress = false;
+                postError(SERIALIZATION_ERROR_MESSAGE);
+                break;
+
+            case TEMP_FILE_ERROR:
+                operationInProgress = false;
+                postError(TEMP_FILE_ERROR_MESSAGE);
+                break;
+
+            case FILE_PROVIDER_ERROR:
+                operationInProgress = false;
+                postError(FILE_PROVIDER_ERROR_MESSAGE);
+                break;
+
+            case UNKNOWN_ERROR:
+            default:
+                operationInProgress = false;
+                postError(
+                        SHARE_UNKNOWN_ERROR_MESSAGE
+                );
+                break;
+        }
+    }
+
+    private void postEmpty(String message) {
+        uiState.postValue(
+                DataManagementUiState.emptyDatabase(
+                        message
+                )
+        );
+    }
+
     private void postError(String message) {
-        uiState.postValue(DataManagementUiState.error(message));
+        uiState.postValue(
+                DataManagementUiState.error(message)
+        );
     }
 }
