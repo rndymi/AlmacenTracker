@@ -17,6 +17,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallbac
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -348,6 +349,13 @@ public class CreateWarehouseItemServiceTest {
         ) {
             return new MutableLiveData<>(
                     WarehouseItemDetailResult.notFound());
+        }
+
+        @Override
+        public void findAll(
+                WarehouseItemsFindCallback callback
+        ) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
