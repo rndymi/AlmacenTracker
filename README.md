@@ -1,29 +1,42 @@
 # AlmacenTracker
 
-AlmacenTracker es una aplicación Android para registrar, consultar y localizar mercancía dentro de un almacén.
+AlmacenTracker es una aplicación Android para registrar, consultar y localizar mercadería dentro de un almacén.
 
-La aplicación permitirá organizar cada registro mediante una categoría, un código y una ubicación compuesta por sitio y posición.
+## Versión actual
 
-## Funcionalidades previstas
+**v1.0.0 — Gestión local de mercadería**
+
+## Funcionalidades
 
 - Consultar el listado de mercancía.
 - Registrar nuevos elementos.
 - Visualizar el detalle de cada registro.
-- Buscar mercancía por categoría, código o ubicación.
-- Filtrar resultados.
+- Buscar por categoría, código, sitio o posición.
+- Filtrar por categoría, sitio y posición.
 - Editar registros existentes.
-- Eliminar registros.
-- Validar campos obligatorios.
+- Eliminar registros individualmente.
+- Seleccionar y eliminar varios registros.
+- Validar y normalizar campos.
 - Evitar combinaciones duplicadas de categoría y código.
-- Funcionar sin conexión a Internet.
+- Conservar los datos mediante Room.
+- Funcionar completamente sin conexión a Internet.
 
 ## Tecnologías
 
 - Android
 - Java
+- Android Views
+- ViewModel y LiveData
 - Room
 - SQLite
+- JUnit
+- Espresso
 - GitHub Actions
+
+## Requisitos
+
+- Android 8.0 o superior
+- No requiere conexión a Internet
 
 ## Autor
 
