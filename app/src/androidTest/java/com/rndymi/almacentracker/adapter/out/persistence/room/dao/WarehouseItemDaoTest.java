@@ -963,7 +963,7 @@ public class WarehouseItemDaoTest {
 
             fail("Expected SQLiteConstraintException");
         } catch (SQLiteConstraintException expected) {
-            // Expected unique index violation.
+
         }
     }
 
@@ -1288,5 +1288,59 @@ public class WarehouseItemDaoTest {
 
         assertEquals("MR", result.get(2).getCategory());
         assertEquals("2000", result.get(2).getCode());
+    }
+
+    @Test
+    public void insertAllPersistsEveryEntity() {
+        List<WarehouseItemEntity> entities =
+                Arrays.asList(
+                        createEntity(
+                                "MR",
+                                "1050",
+                                "A1"
+                        ),
+                        createEntity(
+                                "MD",
+                                "1050",
+                                "B1"
+                        )
+                );
+
+        List<Long> ids = dao.insertAll(entities);
+
+        assertEquals(2, ids.size());
+        assertEquals(2, dao.findAll().size());
+    }
+
+    @Test
+    public void insertAllRollsBackWhenBatchContainsDuplicate() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        List<WarehouseItemEntity> entities =
+                Arrays.asList(
+                        createEntity(
+                                "MD",
+                                "2000",
+                                "B1"
+                        ),
+                        createEntity(
+                                "MR",
+                                "1050",
+                                "C1"
+                        )
+                );
+
+        try {
+            dao.insertAll(entities);
+            fail("Expected SQLiteConstraintException");
+        } catch (SQLiteConstraintException expected) {
+            assertEquals(1, dao.findAll().size());
+        }
     }
 }

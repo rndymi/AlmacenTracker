@@ -5,6 +5,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Transaction;
 import androidx.room.Update;
 
 import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
@@ -163,6 +164,18 @@ public interface WarehouseItemDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     long insert(WarehouseItemEntity entity);
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    List<Long> insertAllInternal(
+            List<WarehouseItemEntity> entities
+    );
+
+    @Transaction
+    default List<Long> insertAll(
+            List<WarehouseItemEntity> entities
+    ) {
+        return insertAllInternal(entities);
+    }
 
     @Update(onConflict = OnConflictStrategy.ABORT)
     int update(WarehouseItemEntity entity);

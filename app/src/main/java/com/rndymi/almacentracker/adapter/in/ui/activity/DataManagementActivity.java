@@ -13,11 +13,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 import com.rndymi.almacentracker.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModelFactory;
+import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 import com.rndymi.almacentracker.databinding.ActivityDataManagementBinding;
 
@@ -34,6 +37,13 @@ public final class DataManagementActivity
                             "text/csv"
                     ),
                     this::handleDestinationResult
+            );
+
+    private final ActivityResultLauncher<String[]>
+            openCsvDocumentLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.OpenDocument(),
+                    this::handleImportSourceResult
             );
 
     @Override
@@ -89,6 +99,10 @@ public final class DataManagementActivity
         binding.retryExportButton.setOnClickListener(
                 ignored -> viewModel.retry()
         );
+
+        binding.importCsvButton.setOnClickListener(
+                ignored -> viewModel.requestImportSource()
+        );
     }
 
     private void observeViewModel() {
@@ -140,6 +154,37 @@ public final class DataManagementActivity
 
                     if (shareableFile != null) {
                         openShareChooser(shareableFile);
+                    }
+                }
+        );
+
+        viewModel.getSourceRequest().observe(
+                this,
+                event -> {
+                    Boolean shouldOpen =
+                            event.getContentIfNotHandled();
+
+                    if (Boolean.TRUE.equals(shouldOpen)) {
+                        openCsvDocumentLauncher.launch(
+                                new String[]{
+                                        "text/csv",
+                                        "text/comma-separated-values",
+                                        "application/csv",
+                                        "text/plain"
+                                }
+                        );
+                    }
+                }
+        );
+
+        viewModel.getImportCompleted().observe(
+                this,
+                event -> {
+                    ImportWarehouseItemsResult result =
+                            event.getContentIfNotHandled();
+
+                    if (result != null) {
+                        showImportResult(result);
                     }
                 }
         );
@@ -233,13 +278,20 @@ public final class DataManagementActivity
                         .SELECTING_DESTINATION
                         || state.getStatus()
                         == DataManagementUiState.Status
+                        .SELECTING_SOURCE
+                        || state.getStatus()
+                        == DataManagementUiState.Status
                         .EXPORTING
                         || state.getStatus()
                         == DataManagementUiState.Status
-                        .PREPARING_SHARE;
+                        .PREPARING_SHARE
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .IMPORTING;
 
         binding.exportCsvButton.setEnabled(!busy);
         binding.shareCsvButton.setEnabled(!busy);
+        binding.importCsvButton.setEnabled(!busy);
 
         binding.exportProgress.setVisibility(
                 state.getStatus()
@@ -248,6 +300,9 @@ public final class DataManagementActivity
                         || state.getStatus()
                         == DataManagementUiState.Status
                         .PREPARING_SHARE
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .IMPORTING
                         ? View.VISIBLE
                         : View.GONE
         );
@@ -297,6 +352,71 @@ public final class DataManagementActivity
             default:
                 binding.exportStatusText.setText("");
                 break;
+
+            case SELECTING_SOURCE:
+                binding.exportStatusText.setText(
+                        R.string.import_csv_selecting_source
+                );
+                break;
+
+            case IMPORTING:
+                binding.exportStatusText.setText(
+                        R.string.import_csv_in_progress
+                );
+                break;
         }
+    }
+
+    private void handleImportSourceResult(
+            Uri sourceUri
+    ) {
+        viewModel.onImportSourceSelected(
+                sourceUri == null
+                        ? null
+                        : sourceUri.toString()
+        );
+    }
+
+    private void showImportResult(
+            ImportWarehouseItemsResult result
+    ) {
+        final String message;
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+            case PARTIAL_SUCCESS:
+                message = getString(
+                        R.string.import_csv_summary,
+                        result.getImportedCount(),
+                        result.getDuplicateCount(),
+                        result.getInvalidCount()
+                );
+                break;
+
+            case NO_VALID_ROWS:
+                message = getString(
+                        R.string.import_csv_no_valid_rows
+                )
+                        + "\n\n"
+                        + getString(
+                        R.string.import_csv_summary,
+                        result.getImportedCount(),
+                        result.getDuplicateCount(),
+                        result.getInvalidCount()
+                );
+                break;
+
+            default:
+                return;
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.import_csv_title)
+                .setMessage(message)
+                .setPositiveButton(
+                        android.R.string.ok,
+                        null
+                )
+                .show();
     }
 }

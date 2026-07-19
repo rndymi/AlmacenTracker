@@ -10,6 +10,7 @@ import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewMo
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentExporter;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvShareFileGateway;
+import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentReader;
 import com.rndymi.almacentracker.adapter.out.file.csv.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.adapter.out.file.csv.WarehouseItemCsvMapper;
 import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
@@ -21,6 +22,7 @@ import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
+import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
@@ -33,6 +35,7 @@ import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
 import com.rndymi.almacentracker.application.service.ExportWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.FilterWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailService;
+import com.rndymi.almacentracker.application.service.ImportWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemFilterOptionsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.SearchWarehouseItemsService;
@@ -86,6 +89,9 @@ public final class AppContainer {
 
     private final ShareWarehouseItemsUseCase
             shareWarehouseItemsUseCase;
+
+    private final ImportWarehouseItemsUseCase
+            importWarehouseItemsUseCase;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -166,6 +172,20 @@ public final class AppContainer {
         WarehouseItemCsvCodec csvCodec =
                 new WarehouseItemCsvCodec(csvMapper);
 
+        AndroidCsvDocumentReader csvReader =
+                new AndroidCsvDocumentReader(
+                        applicationContext.getContentResolver(),
+                        csvCodec,
+                        fileExecutor
+                );
+
+        importWarehouseItemsUseCase =
+                new ImportWarehouseItemsService(
+                        csvReader,
+                        warehouseItemRepository,
+                        System::currentTimeMillis
+                );
+
         AndroidCsvDocumentExporter csvExporter =
                 new AndroidCsvDocumentExporter(
                         applicationContext.getContentResolver(),
@@ -240,6 +260,7 @@ public final class AppContainer {
         return new DataManagementViewModelFactory(
                 exportWarehouseItemsUseCase,
                 shareWarehouseItemsUseCase,
+                importWarehouseItemsUseCase,
                 () -> "almacentracker-export-"
                         + LocalDate.now().format(
                         DateTimeFormatter.ISO_LOCAL_DATE

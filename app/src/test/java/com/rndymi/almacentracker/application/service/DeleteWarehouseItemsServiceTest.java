@@ -12,6 +12,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
 import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -340,8 +341,16 @@ public final class DeleteWarehouseItemsServiceTest {
             throw new UnsupportedOperationException();
         }
 
+       @Override
+        public void insertAll(
+                List<WarehouseItem> warehouseItems,
+                WarehouseItemsInsertCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
         @Override
-        public void update(
+       public void update(
                 WarehouseItem warehouseItem,
                 WarehouseItemUpdateCallback callback
         ) {

@@ -19,6 +19,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -312,6 +313,44 @@ public final class RoomWarehouseItemRepository
                 callback.onSuccess();
             } catch (SQLiteConstraintException exception) {
                 callback.onDuplicate();
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void insertAll(
+            List<WarehouseItem> warehouseItems,
+            WarehouseItemsInsertCallback callback
+    ) {
+        Objects.requireNonNull(warehouseItems);
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                List<WarehouseItemEntity> entities =
+                        new ArrayList<>(
+                                warehouseItems.size()
+                        );
+
+                for (WarehouseItem warehouseItem
+                        : warehouseItems) {
+                    entities.add(
+                            mapper.toEntity(warehouseItem)
+                    );
+                }
+
+                List<Long> generatedIds =
+                        warehouseItemDao.insertAll(
+                                entities
+                        );
+
+                callback.onSuccess(
+                        generatedIds.size()
+                );
+            } catch (SQLiteConstraintException exception) {
+                callback.onDuplicate(exception);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }
