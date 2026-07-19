@@ -355,4 +355,67 @@
             Se guardaron %1$d registros en la copia de seguridad.
         </item>
     </plurals>
+
+
+    <string name="restore_backup_title">
+        Restaurar copia de seguridad
+    </string>
+
+    <string name="restore_backup_description">
+        Reemplaza toda la mercadería actual por los registros de una copia creada por AlmacenTracker.
+    </string>
+
+    <string name="restore_backup_action">
+        Restaurar
+    </string>
+
+    <string name="restore_backup_selecting_source">
+        Selecciona la copia de seguridad que quieres restaurar.
+    </string>
+
+    <string name="restore_backup_validating">
+        Validando la copia de seguridad…
+    </string>
+
+    <string name="restore_backup_in_progress">
+        Restaurando la copia de seguridad…
+    </string>
+
+    <string name="restore_backup_confirmation_title">
+        Restaurar copia de seguridad
+    </string>
+
+    <string name="restore_backup_confirmation_empty">
+        La copia no contiene registros. Al continuar se eliminará toda la mercadería actual. Esta acción no se puede deshacer desde la aplicación.
+    </string>
+
+    <string name="restore_backup_confirmation_action">
+        Restaurar
+    </string>
+
+    <string name="restore_backup_cancel_action">
+        Cancelar
+    </string>
+
+    <string name="restore_backup_empty_success">
+        La copia se restauró correctamente. No hay mercadería registrada.
+    </string>
+
+    <plurals name="restore_backup_confirmation_message">
+        <item quantity="one">
+            La restauración reemplazará toda la mercadería actual por %1$d registro. Esta acción no se puede deshacer desde la aplicación.
+        </item>
+        <item quantity="other">
+            La restauración reemplazará toda la mercadería actual por %1$d registros. Esta acción no se puede deshacer desde la aplicación.
+        </item>
+    </plurals>
+
+    <plurals name="restore_backup_success">
+        <item quantity="one">
+            Se restauró %1$d registro.
+        </item>
+        <item quantity="other">
+            Se restauraron %1$d registros.
+        </item>
+    </plurals>
 </resources>
