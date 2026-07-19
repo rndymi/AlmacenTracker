@@ -350,6 +350,15 @@ public final class DeleteWarehouseItemsServiceTest {
         }
 
         @Override
+        public void replaceAll(
+                List<WarehouseItem> warehouseItems,
+                com.rndymi.almacentracker.application.port.out
+                        .WarehouseItemsReplaceCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
        public void update(
                 WarehouseItem warehouseItem,
                 WarehouseItemUpdateCallback callback

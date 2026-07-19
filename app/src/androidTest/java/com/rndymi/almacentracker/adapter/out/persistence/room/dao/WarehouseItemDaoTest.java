@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -130,6 +131,26 @@ public class WarehouseItemDaoTest {
                 null,
                 now,
                 now
+        );
+    }
+
+    private WarehouseItemEntity createEntity(
+            long id,
+            String category,
+            String code,
+            String site,
+            long createdAt,
+            long updatedAt
+    ) {
+        return new WarehouseItemEntity(
+                id,
+                category,
+                code,
+                site,
+                null,
+                null,
+                createdAt,
+                updatedAt
         );
     }
 
@@ -1342,5 +1363,132 @@ public class WarehouseItemDaoTest {
         } catch (SQLiteConstraintException expected) {
             assertEquals(1, dao.findAll().size());
         }
+    }
+
+    @Test
+    public void replaceAll_whenReplacementIsValid_replacesExistingData() {
+        WarehouseItemEntity existing =
+                createEntity(
+                        0L,
+                        "OLD",
+                        "100",
+                        "A1",
+                        1000L,
+                        1000L
+                );
+
+        dao.insert(existing);
+
+        List<WarehouseItemEntity> replacement =
+                Arrays.asList(
+                        createEntity(
+                                0L,
+                                "MR",
+                                "1050",
+                                "B1",
+                                2000L,
+                                3000L
+                        ),
+                        createEntity(
+                                0L,
+                                "MD",
+                                "1050",
+                                "B2",
+                                2000L,
+                                3000L
+                        )
+                );
+
+        List<Long> generatedIds =
+                dao.replaceAll(replacement);
+
+        List<WarehouseItemEntity> stored =
+                dao.findAll();
+
+        assertEquals(2, generatedIds.size());
+        assertEquals(2, stored.size());
+
+        assertEquals("MD", stored.get(0).getCategory());
+        assertEquals("MR", stored.get(1).getCategory());
+
+        assertEquals(2000L, stored.get(0).getCreatedAt());
+        assertEquals(3000L, stored.get(0).getUpdatedAt());
+
+        assertTrue(stored.get(0).getId() > 0L);
+        assertTrue(stored.get(1).getId() > 0L);
+    }
+
+    @Test
+    public void replaceAll_whenBackupIsEmpty_clearsDatabase() {
+        dao.insert(
+                createEntity(
+                        0L,
+                        "MR",
+                        "1050",
+                        "A1",
+                        1000L,
+                        1000L
+                )
+        );
+
+        dao.replaceAll(
+                Collections.emptyList()
+        );
+
+        assertTrue(
+                dao.findAll().isEmpty()
+        );
+    }
+
+    @Test
+    public void replaceAll_whenInsertFails_rollsBackExistingData() {
+        WarehouseItemEntity existing =
+                createEntity(
+                        0L,
+                        "OLD",
+                        "100",
+                        "A1",
+                        1000L,
+                        1000L
+                );
+
+        dao.insert(existing);
+
+        List<WarehouseItemEntity> invalidReplacement =
+                Arrays.asList(
+                        createEntity(
+                                0L,
+                                "MR",
+                                "1050",
+                                "B1",
+                                2000L,
+                                2000L
+                        ),
+                        createEntity(
+                                0L,
+                                "MR",
+                                "1050",
+                                "B2",
+                                2000L,
+                                2000L
+                        )
+                );
+
+        try {
+            dao.replaceAll(
+                    invalidReplacement
+            );
+
+            fail("Expected SQLiteConstraintException");
+        } catch (SQLiteConstraintException expected) {
+
+        }
+
+        List<WarehouseItemEntity> stored =
+                dao.findAll();
+
+        assertEquals(1, stored.size());
+        assertEquals("OLD", stored.get(0).getCategory());
+        assertEquals("100", stored.get(0).getCode());
     }
 }

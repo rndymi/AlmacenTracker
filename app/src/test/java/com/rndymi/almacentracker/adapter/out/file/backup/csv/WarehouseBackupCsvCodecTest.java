@@ -2,9 +2,12 @@ package com.rndymi.almacentracker.adapter.out.file.backup.csv;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
+import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Before;
@@ -272,6 +275,177 @@ public final class WarehouseBackupCsvCodecTest {
                 csv.replace("\r\n", "")
                         .contains("\n")
         );
+    }
+
+    @Test
+    public void decode_validBackup_returnsRows() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "1,MR,1050,A1,Nivel 2,Correcto,1000,2000\r\n"
+                        + "1,MD,2050,B1,,,3000,4000\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertEquals(2, result.getRows().size());
+
+        WarehouseBackupCsvRow firstRow =
+                result.getRows().get(0);
+
+        assertEquals(2, firstRow.getRowNumber());
+        assertEquals("1", firstRow.getFormatVersion());
+        assertEquals("MR", firstRow.getCategory());
+        assertEquals("1050", firstRow.getCode());
+        assertEquals("A1", firstRow.getSite());
+        assertEquals("Nivel 2", firstRow.getPosition());
+        assertEquals("Correcto", firstRow.getObservations());
+        assertEquals("1000", firstRow.getCreatedAt());
+        assertEquals("2000", firstRow.getUpdatedAt());
+    }
+
+    @Test
+    public void decode_headerOnly_returnsEmptyBackup() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertTrue(result.getRows().isEmpty());
+    }
+
+    @Test
+    public void decode_exchangeCsv_rejectsFormat() {
+        WarehouseBackupReadResult result = decode(
+                "category,code,site,position,observations\r\n"
+                        + "MR,1050,A1,Nivel 2,Correcto\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.INVALID_FORMAT,
+                result.getStatus()
+        );
+        assertTrue(result.getRows().isEmpty());
+        assertNotNull(result.getCause());
+    }
+
+    @Test
+    public void decode_versionTwo_rejectsVersion() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "2,MR,1050,A1,,,1000,2000\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.INCOMPATIBLE_VERSION,
+                result.getStatus()
+        );
+        assertTrue(result.getRows().isEmpty());
+    }
+
+    @Test
+    public void decode_mixedVersions_rejectsVersion() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "1,MR,1050,A1,,,1000,2000\r\n"
+                        + "2,MD,2050,B1,,,3000,4000\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.INCOMPATIBLE_VERSION,
+                result.getStatus()
+        );
+        assertTrue(result.getRows().isEmpty());
+    }
+
+    @Test
+    public void decode_quotedComma_preservesValue() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "1,MR,1050,A1,,\"Caja A, revisar\",1000,2000\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertEquals(1, result.getRows().size());
+        assertEquals(
+                "Caja A, revisar",
+                result.getRows().get(0).getObservations()
+        );
+    }
+
+    @Test
+    public void decode_multilineObservation_preservesSingleRecord() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "1,MR,1050,A1,,\"Primera línea\n"
+                        + "Segunda línea\",1000,2000\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertEquals(1, result.getRows().size());
+        assertEquals(
+                "Primera línea\nSegunda línea",
+                result.getRows().get(0).getObservations()
+        );
+        assertEquals(2, result.getRows().get(0).getRowNumber());
+    }
+
+    @Test
+    public void decode_unclosedQuote_rejectsFormat() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "1,MR,1050,A1,,\"Sin cerrar,1000,2000"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.INVALID_FORMAT,
+                result.getStatus()
+        );
+        assertTrue(result.getRows().isEmpty());
+        assertNotNull(result.getCause());
+    }
+
+    @Test
+    public void decode_formulaProtectedValue_restoresOriginalValue() {
+        WarehouseBackupReadResult result = decode(
+                backupHeader()
+                        + "1,MR,'=SUM(A1:A2),A1,,'@command,1000,2000\r\n"
+        );
+
+        assertEquals(
+                WarehouseBackupReadResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertEquals(1, result.getRows().size());
+        assertEquals(
+                "=SUM(A1:A2)",
+                result.getRows().get(0).getCode()
+        );
+        assertEquals(
+                "@command",
+                result.getRows().get(0).getObservations()
+        );
+    }
+
+    private WarehouseBackupReadResult decode(String csv) {
+        return codec.decode(
+                csv.getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
+    private String backupHeader() {
+        return "format_version,category,code,site,"
+                + "position,observations,created_at,updated_at\r\n";
     }
 
     private String encode(

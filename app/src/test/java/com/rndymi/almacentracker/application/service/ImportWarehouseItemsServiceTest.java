@@ -454,6 +454,15 @@ public final class ImportWarehouseItemsServiceTest {
         }
 
         @Override
+        public void replaceAll(
+                List<WarehouseItem> warehouseItems,
+                com.rndymi.almacentracker.application.port.out
+                        .WarehouseItemsReplaceCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public LiveData<WarehouseItemsResult> observeAll() {
             throw new UnsupportedOperationException();
         }
