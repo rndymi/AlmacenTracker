@@ -20,13 +20,17 @@ import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModel;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModelFactory;
+import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 import com.rndymi.almacentracker.databinding.ActivityDataManagementBinding;
 
+import java.util.List;
+
 public final class DataManagementActivity
         extends AppCompatActivity {
 
+    private static final int MAX_VISIBLE_IMPORT_ISSUES = 100;
     private ActivityDataManagementBinding binding;
     private DataManagementViewModel viewModel;
 
@@ -380,43 +384,113 @@ public final class DataManagementActivity
     private void showImportResult(
             ImportWarehouseItemsResult result
     ) {
-        final String message;
-
         switch (result.getStatus()) {
             case SUCCESS:
             case PARTIAL_SUCCESS:
-                message = getString(
-                        R.string.import_csv_summary,
-                        result.getImportedCount(),
-                        result.getDuplicateCount(),
-                        result.getInvalidCount()
-                );
-                break;
-
             case NO_VALID_ROWS:
-                message = getString(
-                        R.string.import_csv_no_valid_rows
-                )
-                        + "\n\n"
-                        + getString(
-                        R.string.import_csv_summary,
-                        result.getImportedCount(),
-                        result.getDuplicateCount(),
-                        result.getInvalidCount()
-                );
+                showCompletedImportResult(result);
                 break;
 
             default:
-                return;
+                break;
+        }
+    }
+
+    private void showCompletedImportResult(
+            ImportWarehouseItemsResult result
+    ) {
+        StringBuilder message = new StringBuilder();
+
+        if (result.getStatus()
+                == ImportWarehouseItemsResult.Status
+                .NO_VALID_ROWS) {
+            message.append(
+                    getString(
+                            R.string.import_csv_no_valid_rows
+                    )
+            ).append("\n\n");
+        }
+
+        message.append(
+                getString(
+                        R.string.import_csv_detailed_summary,
+                        result.getTotalRows(),
+                        result.getImportedCount(),
+                        result.getDuplicateCount(),
+                        result.getInvalidCount()
+                )
+        );
+
+        if (result.hasIssues()) {
+            appendImportIssues(
+                    message,
+                    result.getIssues()
+            );
         }
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.import_csv_title)
-                .setMessage(message)
+                .setTitle(
+                        result.getStatus()
+                                == ImportWarehouseItemsResult
+                                .Status.SUCCESS
+                                ? R.string
+                                  .import_csv_success_title
+                                : R.string
+                                  .import_csv_result_title
+                )
+                .setMessage(message.toString())
                 .setPositiveButton(
-                        android.R.string.ok,
+                        R.string.close_action,
                         null
                 )
                 .show();
+    }
+
+    private void appendImportIssues(
+            StringBuilder message,
+            List<ImportWarehouseItemIssue> issues
+    ) {
+        message.append("\n\n")
+                .append(
+                        getString(
+                                R.string
+                                        .import_csv_issues_title
+                        )
+                );
+
+        int visibleCount = Math.min(
+                issues.size(),
+                MAX_VISIBLE_IMPORT_ISSUES
+        );
+
+        for (int index = 0;
+             index < visibleCount;
+             index++) {
+
+            ImportWarehouseItemIssue issue =
+                    issues.get(index);
+
+            message.append("\n")
+                    .append(
+                            getString(
+                                    R.string
+                                            .import_csv_issue_format,
+                                    issue.getRowNumber(),
+                                    issue.getMessage()
+                            )
+                    );
+        }
+
+        if (issues.size() > visibleCount) {
+            message.append("\n\n")
+                    .append(
+                            getString(
+                                    R.string
+                                            .import_csv_visible_issues_limit,
+                                    visibleCount,
+                                    issues.size()
+                            )
+                    );
+        }
     }
 }
