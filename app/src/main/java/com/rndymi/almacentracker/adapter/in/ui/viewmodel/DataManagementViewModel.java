@@ -9,13 +9,21 @@ import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.RestoreWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ValidateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.result.CreateWarehouseBackupResult;
 import com.rndymi.almacentracker.application.result.ExportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
+import com.rndymi.almacentracker.application.result.RestoreWarehouseBackupResult;
 import com.rndymi.almacentracker.application.result.ShareWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
+import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -83,10 +91,37 @@ public final class DataManagementViewModel
     private static final String BACKUP_UNKNOWN_ERROR_MESSAGE =
             "No se pudo crear la copia de seguridad.";
 
+    private static final String RESTORE_INVALID_SOURCE_MESSAGE =
+            "No se pudo acceder a la copia seleccionada.";
+
+    private static final String RESTORE_INVALID_FORMAT_MESSAGE =
+            "El archivo no es una copia de seguridad válida de AlmacenTracker.";
+
+    private static final String RESTORE_INCOMPATIBLE_VERSION_MESSAGE =
+            "La versión de la copia de seguridad no es compatible.";
+
+    private static final String RESTORE_INVALID_DATA_MESSAGE =
+            "La copia contiene datos no válidos.";
+
+    private static final String RESTORE_DUPLICATE_DATA_MESSAGE =
+            "La copia contiene mercancía duplicada.";
+
+    private static final String RESTORE_READ_ERROR_MESSAGE =
+            "No se pudo leer la copia de seguridad.";
+
+    private static final String RESTORE_PERSISTENCE_ERROR_MESSAGE =
+            "No se pudo restaurar la copia. Los datos anteriores se conservaron.";
+
+    private static final String RESTORE_UNKNOWN_ERROR_MESSAGE =
+            "No se pudo restaurar la copia de seguridad.";
+
     private final ExportWarehouseItemsUseCase exportUseCase;
     private final ShareWarehouseItemsUseCase shareUseCase;
     private final ImportWarehouseItemsUseCase importUseCase;
     private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
+    private final ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase;
+
+    private final RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase;
     private final Supplier<String> exportFileNameSupplier;
     private final Supplier<String> backupFileNameSupplier;
 
@@ -112,12 +147,22 @@ public final class DataManagementViewModel
             importCompleted = new MutableLiveData<>();
 
     private final MutableLiveData<UiEvent<String>>
-            backupDestinationRequest =
-            new MutableLiveData<>();
+            backupDestinationRequest = new MutableLiveData<>();
 
     private final MutableLiveData<UiEvent<Integer>>
-            backupSuccess =
-            new MutableLiveData<>();
+            backupSuccess = new MutableLiveData<>();
+
+    private final MutableLiveData<UiEvent<Boolean>>
+            backupSourceRequest = new MutableLiveData<>();
+
+    private final MutableLiveData<UiEvent<Integer>>
+            backupRestoreConfirmation = new MutableLiveData<>();
+
+    private final MutableLiveData<UiEvent<Integer>>
+            backupRestoreSuccess = new MutableLiveData<>();
+
+    private List<WarehouseItem> pendingRestoreItems =
+            Collections.emptyList();
 
     private boolean selectorRequested;
     private boolean operationInProgress;
@@ -126,8 +171,9 @@ public final class DataManagementViewModel
             ExportWarehouseItemsUseCase exportUseCase,
             ShareWarehouseItemsUseCase shareUseCase,
             ImportWarehouseItemsUseCase importUseCase,
-            CreateWarehouseBackupUseCase
-                    createWarehouseBackupUseCase,
+            CreateWarehouseBackupUseCase createWarehouseBackupUseCase,
+            ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase,
+            RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase,
             Supplier<String> exportFileNameSupplier,
             Supplier<String> backupFileNameSupplier
     ) {
@@ -153,6 +199,16 @@ public final class DataManagementViewModel
         this.backupFileNameSupplier =
                 Objects.requireNonNull(
                         backupFileNameSupplier
+                );
+
+        this.validateWarehouseBackupUseCase =
+                Objects.requireNonNull(
+                        validateWarehouseBackupUseCase
+                );
+
+        this.restoreWarehouseBackupUseCase =
+                Objects.requireNonNull(
+                        restoreWarehouseBackupUseCase
                 );
     }
 
@@ -192,6 +248,21 @@ public final class DataManagementViewModel
     public LiveData<UiEvent<Integer>>
     getBackupSuccess() {
         return backupSuccess;
+    }
+
+    public LiveData<UiEvent<Boolean>>
+    getBackupSourceRequest() {
+        return backupSourceRequest;
+    }
+
+    public LiveData<UiEvent<Integer>>
+    getBackupRestoreConfirmation() {
+        return backupRestoreConfirmation;
+    }
+
+    public LiveData<UiEvent<Integer>>
+    getBackupRestoreSuccess() {
+        return backupRestoreSuccess;
     }
 
     public void requestExportDestination() {
@@ -628,5 +699,238 @@ public final class DataManagementViewModel
                 postError(BACKUP_UNKNOWN_ERROR_MESSAGE);
                 break;
         }
+    }
+
+    public void requestBackupRestoreSource() {
+        if (isBusy()) {
+            return;
+        }
+
+        selectorRequested = true;
+
+        uiState.setValue(
+                DataManagementUiState
+                        .selectingBackupSource()
+        );
+
+        backupSourceRequest.setValue(
+                new UiEvent<>(true)
+        );
+    }
+
+    public void onBackupRestoreSourceSelected(
+            String sourceReference
+    ) {
+        if (!selectorRequested || operationInProgress) {
+            return;
+        }
+
+        selectorRequested = false;
+
+        if (sourceReference == null
+                || sourceReference.trim().isEmpty()) {
+            uiState.setValue(
+                    DataManagementUiState.idle()
+            );
+            return;
+        }
+
+        operationInProgress = true;
+        pendingRestoreItems = Collections.emptyList();
+
+        uiState.setValue(
+                DataManagementUiState.validatingBackup()
+        );
+
+        validateWarehouseBackupUseCase.validateBackup(
+                sourceReference,
+                this::handleBackupValidationResult
+        );
+    }
+
+    private void handleBackupValidationResult(
+            WarehouseBackupValidationResult result
+    ) {
+        operationInProgress = false;
+
+        switch (result.getStatus()) {
+            case VALID:
+                pendingRestoreItems =
+                        Collections.unmodifiableList(
+                                new ArrayList<>(
+                                        result.getWarehouseItems()
+                                )
+                        );
+
+                int restorableCount =
+                        pendingRestoreItems.size();
+
+                uiState.postValue(
+                        DataManagementUiState.backupReady(
+                                restorableCount
+                        )
+                );
+
+                backupRestoreConfirmation.postValue(
+                        new UiEvent<>(restorableCount)
+                );
+                break;
+
+            case INVALID_SOURCE:
+                clearPendingRestore();
+                postError(
+                        RESTORE_INVALID_SOURCE_MESSAGE
+                );
+                break;
+
+            case INVALID_FORMAT:
+                clearPendingRestore();
+                postError(
+                        RESTORE_INVALID_FORMAT_MESSAGE
+                );
+                break;
+
+            case INCOMPATIBLE_VERSION:
+                clearPendingRestore();
+                postError(
+                        RESTORE_INCOMPATIBLE_VERSION_MESSAGE
+                );
+                break;
+
+            case INVALID_DATA:
+                clearPendingRestore();
+
+                String invalidDataMessage =
+                        result.getInvalidRowNumber() > 0
+                                ? RESTORE_INVALID_DATA_MESSAGE
+                                  + " Fila "
+                                  + result.getInvalidRowNumber()
+                                  + "."
+                                : RESTORE_INVALID_DATA_MESSAGE;
+
+                postError(invalidDataMessage);
+                break;
+
+            case DUPLICATE_DATA:
+                clearPendingRestore();
+
+                String duplicateMessage =
+                        result.getInvalidRowNumber() > 0
+                                ? RESTORE_DUPLICATE_DATA_MESSAGE
+                                  + " Fila "
+                                  + result.getInvalidRowNumber()
+                                  + "."
+                                : RESTORE_DUPLICATE_DATA_MESSAGE;
+
+                postError(duplicateMessage);
+                break;
+
+            case READ_ERROR:
+                clearPendingRestore();
+                postError(
+                        RESTORE_READ_ERROR_MESSAGE
+                );
+                break;
+
+            case UNKNOWN_ERROR:
+            default:
+                clearPendingRestore();
+                postError(
+                        RESTORE_UNKNOWN_ERROR_MESSAGE
+                );
+                break;
+        }
+    }
+
+    public void cancelBackupRestore() {
+        if (operationInProgress) {
+            return;
+        }
+
+        clearPendingRestore();
+
+        uiState.setValue(
+                DataManagementUiState.idle()
+        );
+    }
+
+    public void confirmBackupRestore() {
+        if (operationInProgress
+                || pendingRestoreItems == null) {
+            return;
+        }
+
+        List<WarehouseItem> snapshot =
+                Collections.unmodifiableList(
+                        new ArrayList<>(
+                                pendingRestoreItems
+                        )
+                );
+
+        operationInProgress = true;
+
+        uiState.setValue(
+                DataManagementUiState.restoringBackup()
+        );
+
+        restoreWarehouseBackupUseCase.restoreBackup(
+                snapshot,
+                this::handleBackupRestoreResult
+        );
+    }
+
+    private void handleBackupRestoreResult(
+            RestoreWarehouseBackupResult result
+    ) {
+        operationInProgress = false;
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+                int restoredCount =
+                        result.getRestoredCount();
+
+                clearPendingRestore();
+
+                uiState.postValue(
+                        DataManagementUiState.idle()
+                );
+
+                backupRestoreSuccess.postValue(
+                        new UiEvent<>(restoredCount)
+                );
+                break;
+
+            case INVALID_BACKUP:
+                clearPendingRestore();
+                postError(
+                        RESTORE_INVALID_DATA_MESSAGE
+                );
+                break;
+
+            case DUPLICATE_DATA:
+                clearPendingRestore();
+                postError(
+                        RESTORE_DUPLICATE_DATA_MESSAGE
+                );
+                break;
+
+            case PERSISTENCE_ERROR:
+                postError(
+                        RESTORE_PERSISTENCE_ERROR_MESSAGE
+                );
+                break;
+
+            case UNKNOWN_ERROR:
+            default:
+                postError(
+                        RESTORE_UNKNOWN_ERROR_MESSAGE
+                );
+                break;
+        }
+    }
+
+    private void clearPendingRestore() {
+        pendingRestoreItems =
+                Collections.emptyList();
     }
 }
