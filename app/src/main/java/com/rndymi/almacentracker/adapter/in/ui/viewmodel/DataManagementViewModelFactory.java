@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
@@ -17,13 +18,18 @@ public final class DataManagementViewModelFactory
     private final ExportWarehouseItemsUseCase exportUseCase;
     private final ShareWarehouseItemsUseCase shareUseCase;
     private final ImportWarehouseItemsUseCase importUseCase;
+    private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
     private final Supplier<String> exportFileNameSupplier;
+    private final Supplier<String> backupFileNameSupplier;
 
     public DataManagementViewModelFactory(
             ExportWarehouseItemsUseCase exportUseCase,
             ShareWarehouseItemsUseCase shareUseCase,
             ImportWarehouseItemsUseCase importUseCase,
-            Supplier<String> exportFileNameSupplier
+            CreateWarehouseBackupUseCase
+                    createWarehouseBackupUseCase,
+            Supplier<String> exportFileNameSupplier,
+            Supplier<String> backupFileNameSupplier
     ) {
         this.exportUseCase =
                 Objects.requireNonNull(exportUseCase);
@@ -34,9 +40,19 @@ public final class DataManagementViewModelFactory
         this.importUseCase =
                 Objects.requireNonNull(importUseCase);
 
+        this.createWarehouseBackupUseCase =
+                Objects.requireNonNull(
+                        createWarehouseBackupUseCase
+                );
+
         this.exportFileNameSupplier =
                 Objects.requireNonNull(
                         exportFileNameSupplier
+                );
+
+        this.backupFileNameSupplier =
+                Objects.requireNonNull(
+                        backupFileNameSupplier
                 );
     }
 
@@ -59,7 +75,9 @@ public final class DataManagementViewModelFactory
                         exportUseCase,
                         shareUseCase,
                         importUseCase,
-                        exportFileNameSupplier
+                        createWarehouseBackupUseCase,
+                        exportFileNameSupplier,
+                        backupFileNameSupplier
                 )
         );
     }
