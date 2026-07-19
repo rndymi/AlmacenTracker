@@ -261,11 +261,6 @@ public final class CreateWarehouseBackupServiceTest {
         }
     }
 
-    /*
-     * Conserva aquí el mismo FakeRepository completo que ya
-     * utiliza ImportWarehouseItemsServiceTest, modificando
-     * únicamente findAll().
-     */
     private static final class FakeRepository
             implements WarehouseItemRepository {
 
@@ -360,6 +355,15 @@ public final class CreateWarehouseBackupServiceTest {
         public void insertAll(
                 List<WarehouseItem> warehouseItems,
                 WarehouseItemsInsertCallback callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void replaceAll(
+                List<WarehouseItem> warehouseItems,
+                com.rndymi.almacentracker.application.port.out
+                        .WarehouseItemsReplaceCallback callback
         ) {
             throw new UnsupportedOperationException();
         }

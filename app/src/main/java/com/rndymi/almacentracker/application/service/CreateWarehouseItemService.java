@@ -143,11 +143,6 @@ public final class CreateWarehouseItemService
 
                     @Override
                     public void onDuplicate() {
-                        /*
-                         * Room remains the final protection if the
-                         * combination changes between the previous
-                         * check and this insertion.
-                         */
                         callback.accept(
                                 CreateWarehouseItemResult.duplicate()
                         );

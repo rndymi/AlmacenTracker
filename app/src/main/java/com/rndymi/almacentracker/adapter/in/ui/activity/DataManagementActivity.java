@@ -59,6 +59,13 @@ public final class DataManagementActivity
                     this::handleImportSourceResult
             );
 
+    private final ActivityResultLauncher<String[]>
+            openBackupDocumentLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.OpenDocument(),
+                    this::handleBackupSourceResult
+            );
+
     @Override
     protected void onCreate(
             @Nullable Bundle savedInstanceState
@@ -120,6 +127,11 @@ public final class DataManagementActivity
         binding.createBackupButton.setOnClickListener(
                 ignored ->
                         viewModel.requestBackupDestination()
+        );
+
+        binding.restoreBackupButton.setOnClickListener(
+                ignored ->
+                        viewModel.requestBackupRestoreSource()
         );
     }
 
@@ -255,6 +267,71 @@ public final class DataManagementActivity
                     ).show();
                 }
         );
+
+        viewModel.getBackupSourceRequest().observe(
+                this,
+                event -> {
+                    Boolean shouldOpen =
+                            event.getContentIfNotHandled();
+
+                    if (Boolean.TRUE.equals(shouldOpen)) {
+                        openBackupDocumentLauncher.launch(
+                                new String[]{
+                                        "text/csv",
+                                        "text/comma-separated-values",
+                                        "application/csv",
+                                        "text/plain"
+                                }
+                        );
+                    }
+                }
+        );
+
+        viewModel.getBackupRestoreConfirmation().observe(
+                this,
+                event -> {
+                    Integer restorableCount =
+                            event.getContentIfNotHandled();
+
+                    if (restorableCount != null) {
+                        showRestoreConfirmation(
+                                restorableCount
+                        );
+                    }
+                }
+        );
+
+        viewModel.getBackupRestoreSuccess().observe(
+                this,
+                event -> {
+                    Integer restoredCount =
+                            event.getContentIfNotHandled();
+
+                    if (restoredCount == null) {
+                        return;
+                    }
+
+                    String message =
+                            restoredCount == 0
+                                    ? getString(
+                                    R.string
+                                    .restore_backup_empty_success
+                            )
+                                    : getResources()
+                                    .getQuantityString(
+                                            R.plurals
+                                            .restore_backup_success,
+                                            restoredCount,
+                                            restoredCount
+                                    );
+
+                    Toast.makeText(
+                            this,
+                            message,
+                            Toast.LENGTH_LONG
+                    ).show();
+                }
+        );
     }
 
     private void handleDestinationResult(
@@ -315,9 +392,6 @@ public final class DataManagementActivity
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
         );
 
-        /*
-         * No se añade FLAG_GRANT_WRITE_URI_PERMISSION.
-         */
         if (sendIntent.resolveActivity(
                 getPackageManager()
         ) == null) {
@@ -341,31 +415,19 @@ public final class DataManagementActivity
     ) {
         boolean busy =
                 state.getStatus()
-                        == DataManagementUiState.Status
-                        .SELECTING_DESTINATION
-                        || state.getStatus()
-                        == DataManagementUiState.Status
-                        .SELECTING_SOURCE
-                        || state.getStatus()
-                        == DataManagementUiState.Status
-                        .EXPORTING
-                        || state.getStatus()
-                        == DataManagementUiState.Status
-                        .PREPARING_SHARE
-                        || state.getStatus()
-                        == DataManagementUiState.Status
-                        .IMPORTING
-                        || state.getStatus()
-                        == DataManagementUiState.Status
-                        .SELECTING_BACKUP_DESTINATION
-                        || state.getStatus()
-                        == DataManagementUiState.Status
-                        .CREATING_BACKUP;
+                        != DataManagementUiState.Status.IDLE
+                        && state.getStatus()
+                        != DataManagementUiState.Status.ERROR
+                        && state.getStatus()
+                        != DataManagementUiState.Status.EMPTY_DATABASE
+                        && state.getStatus()
+                        != DataManagementUiState.Status.BACKUP_READY;
 
         binding.exportCsvButton.setEnabled(!busy);
         binding.shareCsvButton.setEnabled(!busy);
         binding.importCsvButton.setEnabled(!busy);
         binding.createBackupButton.setEnabled(!busy);
+        binding.restoreBackupButton.setEnabled(!busy);
 
         binding.exportProgress.setVisibility(
                 state.getStatus()
@@ -454,7 +516,52 @@ public final class DataManagementActivity
                         R.string.create_backup_in_progress
                 );
                 break;
+
+            case SELECTING_BACKUP_SOURCE:
+                showProgress(
+                        getString(
+                                R.string
+                                        .restore_backup_selecting_source
+                        )
+                );
+                break;
+
+            case VALIDATING_BACKUP:
+                showProgress(
+                        getString(
+                                R.string
+                                        .restore_backup_validating
+                        )
+                );
+                break;
+
+            case BACKUP_READY:
+                hideProgressAndStatus();
+                break;
+
+            case RESTORING_BACKUP:
+                showProgress(
+                        getString(
+                                R.string
+                                        .restore_backup_in_progress
+                        )
+                );
+                break;
         }
+    }
+
+    private void showProgress(
+            String message
+    ) {
+        binding.exportProgress.setVisibility(View.VISIBLE);
+        binding.exportStatusText.setVisibility(View.VISIBLE);
+        binding.exportStatusText.setText(message);
+    }
+
+    private void hideProgressAndStatus() {
+        binding.exportProgress.setVisibility(View.GONE);
+        binding.exportStatusText.setVisibility(View.GONE);
+        binding.exportStatusText.setText("");
     }
 
     private void handleImportSourceResult(
@@ -588,5 +695,59 @@ public final class DataManagementActivity
                         ? null
                         : destinationUri.toString()
         );
+    }
+
+    private void handleBackupSourceResult(
+            Uri sourceUri
+    ) {
+        viewModel.onBackupRestoreSourceSelected(
+                sourceUri == null
+                        ? null
+                        : sourceUri.toString()
+        );
+    }
+
+    private void showRestoreConfirmation(
+            int restorableCount
+    ) {
+        String message =
+                restorableCount == 0
+                        ? getString(
+                        R.string
+                        .restore_backup_confirmation_empty
+                )
+                        : getResources().getQuantityString(
+                        R.plurals
+                        .restore_backup_confirmation_message,
+                        restorableCount,
+                        restorableCount
+                );
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string
+                                .restore_backup_confirmation_title
+                )
+                .setMessage(message)
+                .setNegativeButton(
+                        R.string
+                                .restore_backup_cancel_action,
+                        (dialog, which) ->
+                                viewModel
+                                        .cancelBackupRestore()
+                )
+                .setPositiveButton(
+                        R.string
+                                .restore_backup_confirmation_action,
+                        (dialog, which) ->
+                                viewModel
+                                        .confirmBackupRestore()
+                )
+                .setOnCancelListener(
+                        dialog ->
+                                viewModel
+                                        .cancelBackupRestore()
+                )
+                .show();
     }
 }
