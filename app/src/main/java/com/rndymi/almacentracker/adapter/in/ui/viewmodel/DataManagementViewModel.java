@@ -418,7 +418,7 @@ public final class DataManagementViewModel
 
     private void postEmpty(String message) {
         uiState.postValue(
-                DataManagementUiState.emptyDatabase(
+                DataManagementUiState.empty(
                         message
                 )
         );
