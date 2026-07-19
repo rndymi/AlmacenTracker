@@ -315,9 +315,6 @@ public final class DataManagementActivity
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
         );
 
-        /*
-         * No se añade FLAG_GRANT_WRITE_URI_PERMISSION.
-         */
         if (sendIntent.resolveActivity(
                 getPackageManager()
         ) == null) {

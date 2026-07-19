@@ -418,11 +418,6 @@ public final class DataManagementViewModel
                     return;
                 }
 
-                /*
-                 * Se mantiene operationInProgress = true
-                 * hasta que la Activity abra el chooser o
-                 * informe que no existe receptor.
-                 */
                 shareFileReady.postValue(
                         new UiEvent<>(shareableFile)
                 );

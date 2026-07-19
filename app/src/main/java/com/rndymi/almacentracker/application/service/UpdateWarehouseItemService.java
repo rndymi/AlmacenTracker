@@ -197,10 +197,6 @@ public final class UpdateWarehouseItemService
 
                     @Override
                     public void onDuplicate() {
-                        /*
-                         * The unique Room index remains the final
-                         * protection after the previous check.
-                         */
                         callback.accept(
                                 UpdateWarehouseItemResult.duplicate()
                         );
