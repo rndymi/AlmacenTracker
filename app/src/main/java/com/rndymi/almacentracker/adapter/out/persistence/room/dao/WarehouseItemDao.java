@@ -193,5 +193,18 @@ public interface WarehouseItemDao {
     int deleteByIds(List<Long> warehouseItemIds);
 
     @Query("DELETE FROM warehouse_items")
-    void deleteAll();
+    void deleteAllInternal();
+
+    @Transaction
+    default List<Long> replaceAll(
+            List<WarehouseItemEntity> entities
+    ) {
+        deleteAllInternal();
+
+        if (entities == null || entities.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        return insertAllInternal(entities);
+    }
 }

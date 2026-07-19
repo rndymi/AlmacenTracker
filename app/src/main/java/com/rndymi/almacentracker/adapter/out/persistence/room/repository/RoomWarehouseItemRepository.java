@@ -20,6 +20,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallbac
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsReplaceCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -345,6 +346,57 @@ public final class RoomWarehouseItemRepository
                         warehouseItemDao.insertAll(
                                 entities
                         );
+
+                callback.onSuccess(
+                        generatedIds.size()
+                );
+            } catch (SQLiteConstraintException exception) {
+                callback.onDuplicate(exception);
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void replaceAll(
+            List<WarehouseItem> warehouseItems,
+            WarehouseItemsReplaceCallback callback
+    ) {
+        Objects.requireNonNull(warehouseItems);
+        Objects.requireNonNull(callback);
+
+        List<WarehouseItem> itemsCopy =
+                Collections.unmodifiableList(
+                        new ArrayList<>(warehouseItems)
+                );
+
+        executor.execute(() -> {
+            try {
+                List<WarehouseItemEntity> entities =
+                        new ArrayList<>(itemsCopy.size());
+
+                for (WarehouseItem warehouseItem
+                        : itemsCopy) {
+                    WarehouseItem restoredItem =
+                            new WarehouseItem(
+                                    0L,
+                                    warehouseItem.getCategory(),
+                                    warehouseItem.getCode(),
+                                    warehouseItem.getSite(),
+                                    warehouseItem.getPosition(),
+                                    warehouseItem.getObservations(),
+                                    warehouseItem.getCreatedAt(),
+                                    warehouseItem.getUpdatedAt()
+                            );
+
+                    entities.add(
+                            mapper.toEntity(restoredItem)
+                    );
+                }
+
+                List<Long> generatedIds =
+                        warehouseItemDao.replaceAll(entities);
 
                 callback.onSuccess(
                         generatedIds.size()
