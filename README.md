@@ -2,63 +2,75 @@
 
 AlmacenTracker es una aplicación Android para registrar, consultar y localizar mercancía dentro de un almacén.
 
-La aplicación organiza cada registro mediante una categoría, un código y una ubicación compuesta por sitio y posición opcional.
+Cada registro se identifica mediante una combinación única de categoría y código, e incluye una ubicación formada por sitio y posición opcional. Toda la información se almacena localmente mediante Room, por lo que la aplicación puede utilizarse sin conexión a Internet.
 
-## Versiones
+## Funcionalidades principales
 
-### Versión estable
+- Consultar el listado local de mercancía.
+- Registrar y visualizar el detalle de cada mercancía.
+- Buscar por categoría, código, sitio o posición.
+- Filtrar por categoría, sitio y posición.
+- Editar y eliminar registros.
+- Seleccionar y eliminar varios registros.
+- Validar y normalizar los datos introducidos.
+- Evitar combinaciones duplicadas de categoría y código.
+- Mostrar estados vacíos y búsquedas sin resultados.
+- Exportar todos los registros a un archivo CSV.
+- Compartir una exportación CSV con otras aplicaciones.
+- Importar mercancía desde archivos CSV.
+- Validar la importación e informar filas inválidas o duplicadas.
+- Crear copias de seguridad CSV versionadas.
+- Restaurar copias de seguridad con validación previa y confirmación.
+- Conservar los datos existentes cuando una restauración falla.
+- Funcionar completamente sin conexión a Internet.
 
-**v1.0.0 — Gestión local de mercancía**
+## Gestión de archivos CSV
 
-La primera versión estable incluye:
+AlmacenTracker diferencia dos formatos:
 
-- listado local de mercancía;
-- registro y consulta de detalle;
-- búsqueda por categoría, código y ubicación;
-- filtros por categoría, sitio y posición;
-- edición y eliminación individual;
-- selección y eliminación múltiple;
-- validación y normalización de datos;
-- prevención de combinaciones duplicadas;
-- estados vacíos y sin resultados;
-- persistencia mediante Room y SQLite;
-- funcionamiento completo sin conexión a Internet.
+- **CSV de intercambio:** permite exportar, compartir e importar mercancía.
+- **CSV de copia de seguridad:** conserva los datos y sus fechas para poder restaurar el estado de la aplicación.
 
-### Versión en desarrollo
-
-**v1.1.0 — Intercambio y copia de datos mediante CSV**
-
-Funcionalidades previstas:
-
-- exportar la mercancía a archivos CSV;
-- guardar archivos mediante el selector de documentos de Android;
-- compartir exportaciones con otras aplicaciones;
-- importar mercancía desde archivos CSV;
-- validar filas antes de incorporarlas;
-- informar registros importados, omitidos y erróneos;
-- crear copias de seguridad locales;
-- restaurar copias de seguridad con confirmación previa.
-
-Las funcionalidades de v1.1.0 se implementarán progresivamente en ramas de historia de usuario y no se consideran disponibles hasta su integración y publicación.
+La aplicación utiliza el selector de documentos de Android para leer y guardar archivos, sin solicitar acceso general al almacenamiento.
 
 ## Tecnologías
 
 - Android
 - Java
 - Android Views
+- Material Components
 - ViewModel y LiveData
 - Room
 - SQLite
-- Material Components
 - JUnit
 - AndroidX Test
 - Espresso
+- Gradle
 - GitHub Actions
+
+## Arquitectura
+
+El proyecto aplica una arquitectura hexagonal pragmática, separando:
+
+- dominio;
+- puertos de entrada;
+- casos de uso;
+- puertos de salida;
+- interfaz Android;
+- persistencia Room;
+- adaptadores de archivos CSV;
+- configuración de dependencias.
+
+Room continúa siendo la única fuente de verdad de la aplicación.
 
 ## Requisitos
 
-- Android 8.0 o superior
-- No requiere conexión a Internet para gestionar la mercancía
+- Android 8.0 o superior.
+- No requiere conexión a Internet para gestionar, importar, exportar, respaldar o restaurar mercancía.
+
+## Versión
+
+**AlmacenTracker v1.1.0**
 
 ## Autor
 
