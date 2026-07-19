@@ -5,10 +5,12 @@ public final class DataManagementUiState {
     public enum Status {
         IDLE,
         SELECTING_DESTINATION,
+        SELECTING_BACKUP_DESTINATION,
         SELECTING_SOURCE,
         EXPORTING,
         PREPARING_SHARE,
         IMPORTING,
+        CREATING_BACKUP,
         EMPTY_DATABASE,
         ERROR
     }
@@ -93,5 +95,20 @@ public final class DataManagementUiState {
 
     public String getMessage() {
         return message;
+    }
+
+    public static DataManagementUiState
+    selectingBackupDestination() {
+        return new DataManagementUiState(
+                Status.SELECTING_BACKUP_DESTINATION,
+                null
+        );
+    }
+
+    public static DataManagementUiState creatingBackup() {
+        return new DataManagementUiState(
+                Status.CREATING_BACKUP,
+                null
+        );
     }
 }

@@ -43,6 +43,15 @@ public final class DataManagementActivity
                     this::handleDestinationResult
             );
 
+    private final ActivityResultLauncher<String>
+            createBackupDocumentLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.CreateDocument(
+                            "text/csv"
+                    ),
+                    this::handleBackupDestinationResult
+            );
+
     private final ActivityResultLauncher<String[]>
             openCsvDocumentLauncher =
             registerForActivityResult(
@@ -106,6 +115,11 @@ public final class DataManagementActivity
 
         binding.importCsvButton.setOnClickListener(
                 ignored -> viewModel.requestImportSource()
+        );
+
+        binding.createBackupButton.setOnClickListener(
+                ignored ->
+                        viewModel.requestBackupDestination()
         );
     }
 
@@ -190,6 +204,55 @@ public final class DataManagementActivity
                     if (result != null) {
                         showImportResult(result);
                     }
+                }
+        );
+
+        viewModel.getBackupDestinationRequest().observe(
+                this,
+                event -> {
+                    String suggestedFileName =
+                            event.getContentIfNotHandled();
+
+                    if (suggestedFileName != null) {
+                        createBackupDocumentLauncher.launch(
+                                suggestedFileName
+                        );
+                    }
+                }
+        );
+
+        viewModel.getBackupSuccess().observe(
+                this,
+                event -> {
+                    Integer backedUpCount =
+                            event.getContentIfNotHandled();
+
+                    if (backedUpCount == null) {
+                        return;
+                    }
+
+                    int messageResource =
+                            backedUpCount == 0
+                                    ? R.string
+                                      .create_backup_empty_success
+                                    : 0;
+
+                    String message =
+                            messageResource != 0
+                                    ? getString(messageResource)
+                                    : getResources()
+                                    .getQuantityString(
+                                            R.plurals
+                                            .create_backup_success,
+                                            backedUpCount,
+                                            backedUpCount
+                                    );
+
+                    Toast.makeText(
+                            this,
+                            message,
+                            Toast.LENGTH_LONG
+                    ).show();
                 }
         );
     }
@@ -291,11 +354,18 @@ public final class DataManagementActivity
                         .PREPARING_SHARE
                         || state.getStatus()
                         == DataManagementUiState.Status
-                        .IMPORTING;
+                        .IMPORTING
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .SELECTING_BACKUP_DESTINATION
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .CREATING_BACKUP;
 
         binding.exportCsvButton.setEnabled(!busy);
         binding.shareCsvButton.setEnabled(!busy);
         binding.importCsvButton.setEnabled(!busy);
+        binding.createBackupButton.setEnabled(!busy);
 
         binding.exportProgress.setVisibility(
                 state.getStatus()
@@ -307,6 +377,9 @@ public final class DataManagementActivity
                         || state.getStatus()
                         == DataManagementUiState.Status
                         .IMPORTING
+                        || state.getStatus()
+                        == DataManagementUiState.Status
+                        .CREATING_BACKUP
                         ? View.VISIBLE
                         : View.GONE
         );
@@ -366,6 +439,19 @@ public final class DataManagementActivity
             case IMPORTING:
                 binding.exportStatusText.setText(
                         R.string.import_csv_in_progress
+                );
+                break;
+
+            case SELECTING_BACKUP_DESTINATION:
+                binding.exportStatusText.setText(
+                        R.string
+                                .create_backup_selecting_destination
+                );
+                break;
+
+            case CREATING_BACKUP:
+                binding.exportStatusText.setText(
+                        R.string.create_backup_in_progress
                 );
                 break;
         }
@@ -492,5 +578,15 @@ public final class DataManagementActivity
                             )
                     );
         }
+    }
+
+    private void handleBackupDestinationResult(
+            Uri destinationUri
+    ) {
+        viewModel.onBackupDestinationSelected(
+                destinationUri == null
+                        ? null
+                        : destinationUri.toString()
+        );
     }
 }

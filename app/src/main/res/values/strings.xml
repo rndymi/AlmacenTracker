@@ -321,4 +321,38 @@
     <string name="close_action">
         Cerrar
     </string>
+
+
+    <string name="create_backup_title">
+        Crear copia de seguridad
+    </string>
+
+    <string name="create_backup_description">
+        Guarda todos los registros y sus fechas en un archivo CSV restaurable.
+    </string>
+
+    <string name="create_backup_action">
+        Crear copia
+    </string>
+
+    <string name="create_backup_selecting_destination">
+        Selecciona dónde guardar la copia de seguridad.
+    </string>
+
+    <string name="create_backup_in_progress">
+        Creando copia de seguridad...
+    </string>
+
+    <string name="create_backup_empty_success">
+        Copia de seguridad creada sin registros.
+    </string>
+
+    <plurals name="create_backup_success">
+        <item quantity="one">
+            Se guardó %1$d registro en la copia de seguridad.
+        </item>
+        <item quantity="other">
+            Se guardaron %1$d registros en la copia de seguridad.
+        </item>
+    </plurals>
 </resources>

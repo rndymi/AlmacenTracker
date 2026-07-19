@@ -6,9 +6,11 @@ import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
 import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
+import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.result.CreateWarehouseBackupResult;
 import com.rndymi.almacentracker.application.result.ExportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.ShareWarehouseItemsResult;
@@ -69,10 +71,24 @@ public final class DataManagementViewModel
     private static final String IMPORT_UNKNOWN_ERROR_MESSAGE =
             "No se pudo importar la mercancía.";
 
+    private static final String BACKUP_INVALID_DATA_MESSAGE =
+            "La mercancía contiene fechas no válidas para crear la copia.";
+
+    private static final String BACKUP_SERIALIZATION_ERROR_MESSAGE =
+            "No se pudo generar el archivo de copia de seguridad.";
+
+    private static final String BACKUP_WRITE_ERROR_MESSAGE =
+            "No se pudo escribir la copia de seguridad.";
+
+    private static final String BACKUP_UNKNOWN_ERROR_MESSAGE =
+            "No se pudo crear la copia de seguridad.";
+
     private final ExportWarehouseItemsUseCase exportUseCase;
     private final ShareWarehouseItemsUseCase shareUseCase;
     private final ImportWarehouseItemsUseCase importUseCase;
+    private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
     private final Supplier<String> exportFileNameSupplier;
+    private final Supplier<String> backupFileNameSupplier;
 
     private final MutableLiveData<DataManagementUiState>
             uiState = new MutableLiveData<>(
@@ -95,6 +111,14 @@ public final class DataManagementViewModel
             UiEvent<ImportWarehouseItemsResult>>
             importCompleted = new MutableLiveData<>();
 
+    private final MutableLiveData<UiEvent<String>>
+            backupDestinationRequest =
+            new MutableLiveData<>();
+
+    private final MutableLiveData<UiEvent<Integer>>
+            backupSuccess =
+            new MutableLiveData<>();
+
     private boolean selectorRequested;
     private boolean operationInProgress;
 
@@ -102,7 +126,10 @@ public final class DataManagementViewModel
             ExportWarehouseItemsUseCase exportUseCase,
             ShareWarehouseItemsUseCase shareUseCase,
             ImportWarehouseItemsUseCase importUseCase,
-            Supplier<String> exportFileNameSupplier
+            CreateWarehouseBackupUseCase
+                    createWarehouseBackupUseCase,
+            Supplier<String> exportFileNameSupplier,
+            Supplier<String> backupFileNameSupplier
     ) {
         this.exportUseCase =
                 Objects.requireNonNull(exportUseCase);
@@ -113,9 +140,19 @@ public final class DataManagementViewModel
         this.importUseCase =
                 Objects.requireNonNull(importUseCase);
 
+        this.createWarehouseBackupUseCase =
+                Objects.requireNonNull(
+                        createWarehouseBackupUseCase
+                );
+
         this.exportFileNameSupplier =
                 Objects.requireNonNull(
                         exportFileNameSupplier
+                );
+
+        this.backupFileNameSupplier =
+                Objects.requireNonNull(
+                        backupFileNameSupplier
                 );
     }
 
@@ -145,6 +182,16 @@ public final class DataManagementViewModel
     public LiveData<UiEvent<ImportWarehouseItemsResult>>
     getImportCompleted() {
         return importCompleted;
+    }
+
+    public LiveData<UiEvent<String>>
+    getBackupDestinationRequest() {
+        return backupDestinationRequest;
+    }
+
+    public LiveData<UiEvent<Integer>>
+    getBackupSuccess() {
+        return backupSuccess;
     }
 
     public void requestExportDestination() {
@@ -477,6 +524,113 @@ public final class DataManagementViewModel
                 postError(
                         IMPORT_UNKNOWN_ERROR_MESSAGE
                 );
+                break;
+        }
+    }
+
+    public void requestBackupDestination() {
+        if (isBusy()) {
+            return;
+        }
+
+        final String suggestedFileName;
+
+        try {
+            suggestedFileName =
+                    backupFileNameSupplier.get();
+        } catch (RuntimeException exception) {
+            uiState.setValue(
+                    DataManagementUiState.error(
+                            BACKUP_UNKNOWN_ERROR_MESSAGE
+                    )
+            );
+            return;
+        }
+
+        selectorRequested = true;
+
+        uiState.setValue(
+                DataManagementUiState
+                        .selectingBackupDestination()
+        );
+
+        backupDestinationRequest.setValue(
+                new UiEvent<>(suggestedFileName)
+        );
+    }
+
+    public void onBackupDestinationSelected(
+            String destinationReference
+    ) {
+        if (!selectorRequested || operationInProgress) {
+            return;
+        }
+
+        selectorRequested = false;
+
+        if (destinationReference == null
+                || destinationReference.trim().isEmpty()) {
+            uiState.setValue(
+                    DataManagementUiState.idle()
+            );
+            return;
+        }
+
+        operationInProgress = true;
+
+        uiState.setValue(
+                DataManagementUiState.creatingBackup()
+        );
+
+        createWarehouseBackupUseCase.createBackup(
+                destinationReference,
+                this::handleBackupResult
+        );
+    }
+
+    private void handleBackupResult(
+            CreateWarehouseBackupResult result
+    ) {
+        operationInProgress = false;
+
+        switch (result.getStatus()) {
+            case SUCCESS:
+                uiState.postValue(
+                        DataManagementUiState.idle()
+                );
+
+                backupSuccess.postValue(
+                        new UiEvent<>(
+                                result.getBackedUpCount()
+                        )
+                );
+                break;
+
+            case INVALID_DESTINATION:
+                postError(INVALID_DESTINATION_MESSAGE);
+                break;
+
+            case READ_ERROR:
+                postError(READ_ERROR_MESSAGE);
+                break;
+
+            case INVALID_DATA:
+                postError(BACKUP_INVALID_DATA_MESSAGE);
+                break;
+
+            case SERIALIZATION_ERROR:
+                postError(
+                        BACKUP_SERIALIZATION_ERROR_MESSAGE
+                );
+                break;
+
+            case WRITE_ERROR:
+                postError(BACKUP_WRITE_ERROR_MESSAGE);
+                break;
+
+            case UNKNOWN_ERROR:
+            default:
+                postError(BACKUP_UNKNOWN_ERROR_MESSAGE);
                 break;
         }
     }
