@@ -292,4 +292,33 @@
         Duplicadas: %2$d
         Inválidas: %3$d
     </string>
+
+
+    <string name="import_csv_success_title">
+        Importación completada
+    </string>
+
+    <string name="import_csv_result_title">
+        Resultado de importación
+    </string>
+
+    <string name="import_csv_detailed_summary">
+        Procesadas: %1$d\nImportadas: %2$d\nDuplicadas: %3$d\nInválidas: %4$d
+    </string>
+
+    <string name="import_csv_issues_title">
+        Incidencias
+    </string>
+
+    <string name="import_csv_issue_format">
+        Fila %1$d · %2$s
+    </string>
+
+    <string name="import_csv_visible_issues_limit">
+        Se muestran %1$d de %2$d incidencias.
+    </string>
+
+    <string name="close_action">
+        Cerrar
+    </string>
 </resources>

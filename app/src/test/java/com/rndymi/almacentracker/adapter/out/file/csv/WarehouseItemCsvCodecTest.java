@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.rndymi.almacentracker.application.result.ImportIssueType;
+import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -186,4 +188,94 @@ public final class WarehouseItemCsvCodecTest {
                 ).getBytes(StandardCharsets.UTF_8)
         );
     }
+
+    @Test
+    public void decodeTracksFirstDataRowAsRowTwo()
+            throws Exception {
+        WarehouseItemCsvReadResult result =
+                codec.decode(
+                        (
+                                "category,code,site,position,observations\n"
+                                        + "MR,1050,A1,,"
+                        ).getBytes(StandardCharsets.UTF_8)
+                );
+
+        assertEquals(1, result.getRows().size());
+        assertEquals(
+                2,
+                result.getRows().get(0).getRowNumber()
+        );
+    }
+
+    @Test
+    public void decodePreservesRowNumberAfterEmptyLine()
+            throws Exception {
+        WarehouseItemCsvReadResult result =
+                codec.decode(
+                        (
+                                "category,code,site,position,observations\n"
+                                        + "\n"
+                                        + "MR,1050,A1,,"
+                        ).getBytes(StandardCharsets.UTF_8)
+                );
+
+        assertEquals(1, result.getRows().size());
+        assertEquals(
+                3,
+                result.getRows().get(0).getRowNumber()
+        );
+    }
+
+    @Test
+    public void decodeKeepsStartRowForMultilineRecord()
+            throws Exception {
+        WarehouseItemCsvReadResult result =
+                codec.decode(
+                        (
+                                "category,code,site,position,observations\n"
+                                        + "MR,1050,A1,,\"Primera línea\n"
+                                        + "Segunda línea\"\n"
+                                        + "MD,2000,B1,,"
+                        ).getBytes(StandardCharsets.UTF_8)
+                );
+
+        assertEquals(2, result.getRows().size());
+
+        assertEquals(
+                2,
+                result.getRows().get(0).getRowNumber()
+        );
+
+        assertEquals(
+                4,
+                result.getRows().get(1).getRowNumber()
+        );
+    }
+
+    @Test
+    public void decodeCreatesIssueForInvalidColumnCount()
+            throws Exception {
+        WarehouseItemCsvReadResult result =
+                codec.decode(
+                        (
+                                "category,code,site,position,observations\n"
+                                        + "MR,1050,A1\n"
+                                        + "MD,2000,B1,,"
+                        ).getBytes(StandardCharsets.UTF_8)
+                );
+
+        assertEquals(2, result.getTotalRows());
+        assertEquals(1, result.getRows().size());
+        assertEquals(1, result.getParsingIssues().size());
+
+        ImportWarehouseItemIssue issue =
+                result.getParsingIssues().get(0);
+
+        assertEquals(2, issue.getRowNumber());
+        assertEquals(
+                ImportIssueType.INVALID_COLUMN_COUNT,
+                issue.getType()
+        );
+    }
+
 }
