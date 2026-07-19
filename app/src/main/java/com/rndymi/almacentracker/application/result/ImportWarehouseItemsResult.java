@@ -1,5 +1,12 @@
 package com.rndymi.almacentracker.application.result;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 public final class ImportWarehouseItemsResult {
 
     public enum Status {
@@ -16,54 +23,91 @@ public final class ImportWarehouseItemsResult {
     private final Status status;
     private final int totalRows;
     private final int importedCount;
-    private final int duplicateCount;
-    private final int invalidCount;
+    private final List<ImportWarehouseItemIssue> issues;
 
     private ImportWarehouseItemsResult(
             Status status,
             int totalRows,
             int importedCount,
-            int duplicateCount,
-            int invalidCount
+            List<ImportWarehouseItemIssue> issues
     ) {
-        this.status = status;
+        this.status = Objects.requireNonNull(status);
+
+        if (totalRows < 0 || importedCount < 0) {
+            throw new IllegalArgumentException(
+                    "Import counters cannot be negative"
+            );
+        }
+
+        if (importedCount > totalRows) {
+            throw new IllegalArgumentException(
+                    "Imported count cannot exceed total rows"
+            );
+        }
+
+        Objects.requireNonNull(issues);
+
+        List<ImportWarehouseItemIssue> sortedIssues =
+                new ArrayList<>(issues);
+
+        sortedIssues.sort(
+                (first, second) -> {
+                    int rowComparison = Integer.compare(
+                            first.getRowNumber(),
+                            second.getRowNumber()
+                    );
+
+                    if (rowComparison != 0) {
+                        return rowComparison;
+                    }
+
+                    return first.getType().compareTo(
+                            second.getType()
+                    );
+                }
+        );
+
         this.totalRows = totalRows;
         this.importedCount = importedCount;
-        this.duplicateCount = duplicateCount;
-        this.invalidCount = invalidCount;
+        this.issues = Collections.unmodifiableList(
+                sortedIssues
+        );
     }
 
-    public static ImportWarehouseItemsResult success(
+    public static ImportWarehouseItemsResult completed(
             int totalRows,
             int importedCount,
-            int duplicateCount,
-            int invalidCount
+            List<ImportWarehouseItemIssue> issues
     ) {
-        Status status =
-                duplicateCount == 0 && invalidCount == 0
-                        ? Status.SUCCESS
-                        : Status.PARTIAL_SUCCESS;
+        Objects.requireNonNull(issues);
+
+        Status status;
+
+        if (importedCount == 0) {
+            status = Status.NO_VALID_ROWS;
+        } else if (issues.isEmpty()) {
+            status = Status.SUCCESS;
+        } else {
+            status = Status.PARTIAL_SUCCESS;
+        }
 
         return new ImportWarehouseItemsResult(
                 status,
                 totalRows,
                 importedCount,
-                duplicateCount,
-                invalidCount
+                issues
         );
     }
 
-    public static ImportWarehouseItemsResult noValidRows(
+    public static ImportWarehouseItemsResult persistenceError(
             int totalRows,
-            int duplicateCount,
-            int invalidCount
+            List<ImportWarehouseItemIssue> issues
     ) {
         return new ImportWarehouseItemsResult(
-                Status.NO_VALID_ROWS,
+                Status.PERSISTENCE_ERROR,
                 totalRows,
                 0,
-                duplicateCount,
-                invalidCount
+                issues
         );
     }
 
@@ -74,8 +118,7 @@ public final class ImportWarehouseItemsResult {
                 status,
                 0,
                 0,
-                0,
-                0
+                Collections.emptyList()
         );
     }
 
@@ -91,11 +134,43 @@ public final class ImportWarehouseItemsResult {
         return importedCount;
     }
 
+    public List<ImportWarehouseItemIssue> getIssues() {
+        return issues;
+    }
+
+    public int getIssueCount() {
+        return issues.size();
+    }
+
     public int getDuplicateCount() {
-        return duplicateCount;
+        Set<Integer> duplicateRows = new HashSet<>();
+
+        for (ImportWarehouseItemIssue issue : issues) {
+            if (issue.isDuplicate()) {
+                duplicateRows.add(
+                        issue.getRowNumber()
+                );
+            }
+        }
+
+        return duplicateRows.size();
     }
 
     public int getInvalidCount() {
-        return invalidCount;
+        Set<Integer> invalidRows = new HashSet<>();
+
+        for (ImportWarehouseItemIssue issue : issues) {
+            if (issue.isInvalid()) {
+                invalidRows.add(
+                        issue.getRowNumber()
+                );
+            }
+        }
+
+        return invalidRows.size();
+    }
+
+    public boolean hasIssues() {
+        return !issues.isEmpty();
     }
 }

@@ -6,15 +6,18 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
+import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.LongSupplier;
@@ -54,8 +57,8 @@ public final class ImportWarehouseItemsService
                 || sourceReference.trim().isEmpty()) {
             callback.onResult(
                     ImportWarehouseItemsResult.of(
-                            ImportWarehouseItemsResult.Status
-                                    .INVALID_SOURCE
+                            ImportWarehouseItemsResult
+                                    .Status.INVALID_SOURCE
                     )
             );
             return;
@@ -92,8 +95,7 @@ public final class ImportWarehouseItemsService
                         callback.onResult(
                                 ImportWarehouseItemsResult.of(
                                         ImportWarehouseItemsResult
-                                                .Status
-                                                .READ_ERROR
+                                                .Status.READ_ERROR
                                 )
                         );
                     }
@@ -105,8 +107,7 @@ public final class ImportWarehouseItemsService
                         callback.onResult(
                                 ImportWarehouseItemsResult.of(
                                         ImportWarehouseItemsResult
-                                                .Status
-                                                .UNKNOWN_ERROR
+                                                .Status.UNKNOWN_ERROR
                                 )
                         );
                     }
@@ -136,11 +137,13 @@ public final class ImportWarehouseItemsService
                             Throwable throwable
                     ) {
                         callback.onResult(
-                                ImportWarehouseItemsResult.of(
-                                        ImportWarehouseItemsResult
-                                                .Status
-                                                .PERSISTENCE_ERROR
-                                )
+                                ImportWarehouseItemsResult
+                                        .persistenceError(
+                                                csvResult
+                                                        .getTotalRows(),
+                                                csvResult
+                                                        .getParsingIssues()
+                                        )
                         );
                     }
                 }
@@ -155,15 +158,16 @@ public final class ImportWarehouseItemsService
         Set<String> existingIdentities =
                 buildExistingIdentities(existingItems);
 
-        Set<String> acceptedFileIdentities =
-                new HashSet<>();
+        Map<String, Integer> acceptedFileRows =
+                new HashMap<>();
 
         List<WarehouseItem> acceptedItems =
                 new ArrayList<>();
 
-        int duplicateCount = 0;
-        int invalidCount =
-                csvResult.getInvalidRowCount();
+        List<ImportWarehouseItemIssue> issues =
+                new ArrayList<>(
+                        csvResult.getParsingIssues()
+                );
 
         long importTimestamp =
                 currentTimeSupplier.getAsLong();
@@ -174,8 +178,15 @@ public final class ImportWarehouseItemsService
             NormalizedRow normalized =
                     normalize(row);
 
-            if (!normalized.isValid()) {
-                invalidCount++;
+            List<ImportWarehouseItemIssue>
+                    validationIssues =
+                    validateRequiredFields(
+                            row.getRowNumber(),
+                            normalized
+                    );
+
+            if (!validationIssues.isEmpty()) {
+                issues.addAll(validationIssues);
                 continue;
             }
 
@@ -185,13 +196,38 @@ public final class ImportWarehouseItemsService
                             normalized.code
                     );
 
-            if (existingIdentities.contains(identity)
-                    || !acceptedFileIdentities.add(
-                    identity
-            )) {
-                duplicateCount++;
+            if (existingIdentities.contains(identity)) {
+                issues.add(
+                        ImportWarehouseItemIssue
+                                .duplicateExisting(
+                                        row.getRowNumber(),
+                                        normalized.category,
+                                        normalized.code
+                                )
+                );
                 continue;
             }
+
+            Integer originalRow =
+                    acceptedFileRows.get(identity);
+
+            if (originalRow != null) {
+                issues.add(
+                        ImportWarehouseItemIssue
+                                .duplicateInFile(
+                                        row.getRowNumber(),
+                                        normalized.category,
+                                        normalized.code,
+                                        originalRow
+                                )
+                );
+                continue;
+            }
+
+            acceptedFileRows.put(
+                    identity,
+                    row.getRowNumber()
+            );
 
             acceptedItems.add(
                     new WarehouseItem(
@@ -207,12 +243,14 @@ public final class ImportWarehouseItemsService
             );
         }
 
+        sortIssues(issues);
+
         if (acceptedItems.isEmpty()) {
             callback.onResult(
-                    ImportWarehouseItemsResult.noValidRows(
+                    ImportWarehouseItemsResult.completed(
                             csvResult.getTotalRows(),
-                            duplicateCount,
-                            invalidCount
+                            0,
+                            issues
                     )
             );
             return;
@@ -221,8 +259,7 @@ public final class ImportWarehouseItemsService
         persistBatch(
                 acceptedItems,
                 csvResult.getTotalRows(),
-                duplicateCount,
-                invalidCount,
+                issues,
                 callback
         );
     }
@@ -230,8 +267,7 @@ public final class ImportWarehouseItemsService
     private void persistBatch(
             List<WarehouseItem> acceptedItems,
             int totalRows,
-            int duplicateCount,
-            int invalidCount,
+            List<ImportWarehouseItemIssue> issues,
             Callback callback
     ) {
         repository.insertAll(
@@ -242,12 +278,12 @@ public final class ImportWarehouseItemsService
                             int insertedCount
                     ) {
                         callback.onResult(
-                                ImportWarehouseItemsResult.success(
-                                        totalRows,
-                                        insertedCount,
-                                        duplicateCount,
-                                        invalidCount
-                                )
+                                ImportWarehouseItemsResult
+                                        .completed(
+                                                totalRows,
+                                                insertedCount,
+                                                issues
+                                        )
                         );
                     }
 
@@ -256,11 +292,11 @@ public final class ImportWarehouseItemsService
                             Throwable throwable
                     ) {
                         callback.onResult(
-                                ImportWarehouseItemsResult.of(
-                                        ImportWarehouseItemsResult
-                                                .Status
-                                                .PERSISTENCE_ERROR
-                                )
+                                ImportWarehouseItemsResult
+                                        .persistenceError(
+                                                totalRows,
+                                                issues
+                                        )
                         );
                     }
 
@@ -269,15 +305,57 @@ public final class ImportWarehouseItemsService
                             Throwable throwable
                     ) {
                         callback.onResult(
-                                ImportWarehouseItemsResult.of(
-                                        ImportWarehouseItemsResult
-                                                .Status
-                                                .PERSISTENCE_ERROR
-                                )
+                                ImportWarehouseItemsResult
+                                        .persistenceError(
+                                                totalRows,
+                                                issues
+                                        )
                         );
                     }
                 }
         );
+    }
+
+    private List<ImportWarehouseItemIssue>
+    validateRequiredFields(
+            int rowNumber,
+            NormalizedRow normalized
+    ) {
+        List<ImportWarehouseItemIssue> issues =
+                new ArrayList<>();
+
+        if (normalized.category.isEmpty()) {
+            issues.add(
+                    ImportWarehouseItemIssue
+                            .missingCategory(
+                                    rowNumber,
+                                    normalized.code
+                            )
+            );
+        }
+
+        if (normalized.code.isEmpty()) {
+            issues.add(
+                    ImportWarehouseItemIssue
+                            .missingCode(
+                                    rowNumber,
+                                    normalized.category
+                            )
+            );
+        }
+
+        if (normalized.site.isEmpty()) {
+            issues.add(
+                    ImportWarehouseItemIssue
+                            .missingSite(
+                                    rowNumber,
+                                    normalized.category,
+                                    normalized.code
+                            )
+            );
+        }
+
+        return issues;
     }
 
     private Set<String> buildExistingIdentities(
@@ -345,6 +423,27 @@ public final class ImportWarehouseItemsService
         return category + '\u0000' + code;
     }
 
+    private void sortIssues(
+            List<ImportWarehouseItemIssue> issues
+    ) {
+        issues.sort(
+                (first, second) -> {
+                    int rowComparison = Integer.compare(
+                            first.getRowNumber(),
+                            second.getRowNumber()
+                    );
+
+                    if (rowComparison != 0) {
+                        return rowComparison;
+                    }
+
+                    return first.getType().compareTo(
+                            second.getType()
+                    );
+                }
+        );
+    }
+
     private static final class NormalizedRow {
 
         private final String category;
@@ -365,12 +464,6 @@ public final class ImportWarehouseItemsService
             this.site = site;
             this.position = position;
             this.observations = observations;
-        }
-
-        private boolean isValid() {
-            return !category.isEmpty()
-                    && !code.isEmpty()
-                    && !site.isEmpty();
         }
     }
 }
