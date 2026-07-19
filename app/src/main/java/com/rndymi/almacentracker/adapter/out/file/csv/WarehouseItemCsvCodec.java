@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.adapter.out.file.csv;
 
+import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
@@ -63,12 +64,12 @@ public final class WarehouseItemCsvCodec {
     ) throws WarehouseItemCsvFormatException {
         Objects.requireNonNull(csvBytes);
 
-        String csv = new String(
-                csvBytes,
-                StandardCharsets.UTF_8
+        return decode(
+                new String(
+                        csvBytes,
+                        StandardCharsets.UTF_8
+                )
         );
-
-        return decode(csv);
     }
 
     WarehouseItemCsvReadResult decode(
@@ -79,56 +80,74 @@ public final class WarehouseItemCsvCodec {
         String normalizedCsv = removeUtf8Bom(csv);
 
         if (normalizedCsv.isEmpty()) {
-            return new WarehouseItemCsvReadResult(
-                    Collections.emptyList(),
-                    0,
-                    0
-            );
+            return emptyReadResult();
         }
 
-        List<List<String>> records =
+        List<ParsedCsvRecord> records =
                 parseRecords(normalizedCsv);
 
         if (records.isEmpty()) {
-            return new WarehouseItemCsvReadResult(
-                    Collections.emptyList(),
-                    0,
-                    0
-            );
+            return emptyReadResult();
         }
 
-        validateHeader(records.get(0));
+        validateHeader(
+                records.get(0).columns
+        );
 
         List<WarehouseItemCsvRow> rows =
                 new ArrayList<>();
 
+        List<ImportWarehouseItemIssue> issues =
+                new ArrayList<>();
+
         int totalRows = 0;
-        int invalidRows = 0;
 
         for (int index = 1;
              index < records.size();
              index++) {
 
-            List<String> record = records.get(index);
+            ParsedCsvRecord record =
+                    records.get(index);
 
-            if (isCompletelyEmpty(record)) {
+            if (isCompletelyEmpty(record.columns)) {
                 continue;
             }
 
             totalRows++;
 
-            if (record.size() != EXPECTED_COLUMN_COUNT) {
-                invalidRows++;
+            if (record.columns.size()
+                    != EXPECTED_COLUMN_COUNT) {
+
+                issues.add(
+                        ImportWarehouseItemIssue
+                                .invalidColumnCount(
+                                        record.rowNumber,
+                                        record.columns.size(),
+                                        EXPECTED_COLUMN_COUNT
+                                )
+                );
+
                 continue;
             }
 
             rows.add(
                     new WarehouseItemCsvRow(
-                            unprotectFormula(record.get(0)),
-                            unprotectFormula(record.get(1)),
-                            unprotectFormula(record.get(2)),
-                            unprotectFormula(record.get(3)),
-                            unprotectFormula(record.get(4))
+                            record.rowNumber,
+                            unprotectFormula(
+                                    record.columns.get(0)
+                            ),
+                            unprotectFormula(
+                                    record.columns.get(1)
+                            ),
+                            unprotectFormula(
+                                    record.columns.get(2)
+                            ),
+                            unprotectFormula(
+                                    record.columns.get(3)
+                            ),
+                            unprotectFormula(
+                                    record.columns.get(4)
+                            )
                     )
             );
         }
@@ -136,14 +155,22 @@ public final class WarehouseItemCsvCodec {
         return new WarehouseItemCsvReadResult(
                 rows,
                 totalRows,
-                invalidRows
+                issues
         );
     }
 
-    private List<List<String>> parseRecords(
+    private WarehouseItemCsvReadResult emptyReadResult() {
+        return new WarehouseItemCsvReadResult(
+                Collections.emptyList(),
+                0,
+                Collections.emptyList()
+        );
+    }
+
+    private List<ParsedCsvRecord> parseRecords(
             String csv
     ) throws WarehouseItemCsvFormatException {
-        List<List<String>> records =
+        List<ParsedCsvRecord> records =
                 new ArrayList<>();
 
         List<String> currentRecord =
@@ -154,6 +181,9 @@ public final class WarehouseItemCsvCodec {
 
         boolean insideQuotes = false;
         boolean quoteClosed = false;
+
+        int currentLine = 1;
+        int recordStartLine = 1;
 
         for (int index = 0;
              index < csv.length();
@@ -171,10 +201,30 @@ public final class WarehouseItemCsvCodec {
                         insideQuotes = false;
                         quoteClosed = true;
                     }
-                } else {
-                    currentField.append(current);
+
+                    continue;
                 }
 
+                if (current == '\r') {
+                    currentField.append(current);
+
+                    if (index + 1 < csv.length()
+                            && csv.charAt(index + 1) == '\n') {
+                        currentField.append('\n');
+                        index++;
+                    }
+
+                    currentLine++;
+                    continue;
+                }
+
+                if (current == '\n') {
+                    currentField.append(current);
+                    currentLine++;
+                    continue;
+                }
+
+                currentField.append(current);
                 continue;
             }
 
@@ -184,16 +234,23 @@ public final class WarehouseItemCsvCodec {
                             currentRecord,
                             currentField
                     );
+
                     quoteClosed = false;
                     continue;
                 }
 
-                if (current == '\r' || current == '\n') {
+                if (current == '\r'
+                        || current == '\n') {
                     finishField(
                             currentRecord,
                             currentField
                     );
-                    finishRecord(records, currentRecord);
+
+                    finishRecord(
+                            records,
+                            currentRecord,
+                            recordStartLine
+                    );
 
                     quoteClosed = false;
 
@@ -203,6 +260,8 @@ public final class WarehouseItemCsvCodec {
                         index++;
                     }
 
+                    currentLine++;
+                    recordStartLine = currentLine;
                     continue;
                 }
 
@@ -230,12 +289,18 @@ public final class WarehouseItemCsvCodec {
                 continue;
             }
 
-            if (current == '\r' || current == '\n') {
+            if (current == '\r'
+                    || current == '\n') {
                 finishField(
                         currentRecord,
                         currentField
                 );
-                finishRecord(records, currentRecord);
+
+                finishRecord(
+                        records,
+                        currentRecord,
+                        recordStartLine
+                );
 
                 if (current == '\r'
                         && index + 1 < csv.length()
@@ -243,6 +308,8 @@ public final class WarehouseItemCsvCodec {
                     index++;
                 }
 
+                currentLine++;
+                recordStartLine = currentLine;
                 continue;
             }
 
@@ -262,7 +329,12 @@ public final class WarehouseItemCsvCodec {
                     currentRecord,
                     currentField
             );
-            finishRecord(records, currentRecord);
+
+            finishRecord(
+                    records,
+                    currentRecord,
+                    recordStartLine
+            );
         }
 
         return records;
@@ -282,17 +354,25 @@ public final class WarehouseItemCsvCodec {
             List<String> currentRecord,
             StringBuilder currentField
     ) {
-        currentRecord.add(currentField.toString());
+        currentRecord.add(
+                currentField.toString()
+        );
+
         currentField.setLength(0);
     }
 
     private void finishRecord(
-            List<List<String>> records,
-            List<String> currentRecord
+            List<ParsedCsvRecord> records,
+            List<String> currentRecord,
+            int rowNumber
     ) {
         records.add(
-                new ArrayList<>(currentRecord)
+                new ParsedCsvRecord(
+                        rowNumber,
+                        currentRecord
+                )
         );
+
         currentRecord.clear();
     }
 
@@ -314,30 +394,6 @@ public final class WarehouseItemCsvCodec {
     ) {
         if (!value.isEmpty()
                 && value.charAt(0) == '\uFEFF') {
-            return value.substring(1);
-        }
-
-        return value;
-    }
-
-    private String unprotectFormula(
-            String value
-    ) {
-        if (value == null || value.length() < 2) {
-            return value == null ? "" : value;
-        }
-
-        if (value.charAt(0) != '\'') {
-            return value;
-        }
-
-        char protectedCharacter = value.charAt(1);
-
-        if (protectedCharacter == '\''
-                || protectedCharacter == '='
-                || protectedCharacter == '+'
-                || protectedCharacter == '-'
-                || protectedCharacter == '@') {
             return value.substring(1);
         }
 
@@ -368,6 +424,27 @@ public final class WarehouseItemCsvCodec {
         csv.append(LINE_SEPARATOR);
     }
 
+    private String escape(
+            String value
+    ) {
+        String safeValue =
+                value == null ? "" : value;
+
+        boolean requiresQuotes =
+                safeValue.indexOf(',') >= 0
+                        || safeValue.indexOf('"') >= 0
+                        || safeValue.indexOf('\r') >= 0
+                        || safeValue.indexOf('\n') >= 0;
+
+        if (!requiresQuotes) {
+            return safeValue;
+        }
+
+        return '"'
+                + safeValue.replace("\"", "\"\"")
+                + '"';
+    }
+
     private String protectFormula(
             String value
     ) {
@@ -375,10 +452,13 @@ public final class WarehouseItemCsvCodec {
             return "";
         }
 
+        if (value.charAt(0) == '\'') {
+            return "'" + value;
+        }
+
         char firstCharacter = value.charAt(0);
 
-        if (firstCharacter == '\''
-                || firstCharacter == '='
+        if (firstCharacter == '='
                 || firstCharacter == '+'
                 || firstCharacter == '-'
                 || firstCharacter == '@') {
@@ -388,21 +468,46 @@ public final class WarehouseItemCsvCodec {
         return value;
     }
 
-    private String escape(
+    private String unprotectFormula(
             String value
     ) {
-        boolean requiresQuotes =
-                value.indexOf(',') >= 0
-                        || value.indexOf('"') >= 0
-                        || value.indexOf('\r') >= 0
-                        || value.indexOf('\n') >= 0;
-
-        if (!requiresQuotes) {
-            return value;
+        if (value == null || value.isEmpty()) {
+            return "";
         }
 
-        return '"'
-                + value.replace("\"", "\"\"")
-                + '"';
+        if (value.startsWith("''")) {
+            return value.substring(1);
+        }
+
+        if (value.length() >= 2
+                && value.charAt(0) == '\''
+                && isFormulaPrefix(value.charAt(1))) {
+            return value.substring(1);
+        }
+
+        return value;
+    }
+
+    private boolean isFormulaPrefix(
+            char value
+    ) {
+        return value == '='
+                || value == '+'
+                || value == '-'
+                || value == '@';
+    }
+
+    private static final class ParsedCsvRecord {
+
+        private final int rowNumber;
+        private final List<String> columns;
+
+        private ParsedCsvRecord(
+                int rowNumber,
+                List<String> columns
+        ) {
+            this.rowNumber = rowNumber;
+            this.columns = new ArrayList<>(columns);
+        }
     }
 }
