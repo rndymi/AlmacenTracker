@@ -17,6 +17,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallbac
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
+import com.rndymi.almacentracker.application.result.ImportIssueType;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
@@ -27,6 +28,7 @@ import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -52,28 +54,32 @@ public final class ImportWarehouseItemsServiceTest {
                 new WarehouseItemCsvReadResult(
                         Arrays.asList(
                                 row(
+                                        2,
                                         " mr ",
                                         " 1050 ",
                                         " A2 "
                                 ),
                                 row(
+                                        3,
                                         " md ",
                                         " 1050 ",
                                         " b1 "
                                 ),
                                 row(
+                                        4,
                                         "MD",
                                         "1050",
                                         "B2"
                                 ),
                                 row(
+                                        5,
                                         "",
                                         "3000",
                                         "C1"
                                 )
                         ),
                         4,
-                        0
+                        Collections.emptyList()
                 );
 
         ImportWarehouseItemsService service =
@@ -118,12 +124,253 @@ public final class ImportWarehouseItemsServiceTest {
         assertNull(inserted.getPosition());
     }
 
+
+    @Test
+    public void importReportsEveryMissingRequiredFieldWithoutInflatingInvalidRows() {
+        FakeRepository repository = new FakeRepository();
+
+        WarehouseItemCsvReadResult csvResult =
+                new WarehouseItemCsvReadResult(
+                        Collections.singletonList(
+                                row(
+                                        2,
+                                        "",
+                                        "",
+                                        ""
+                                )
+                        ),
+                        1,
+                        Collections.emptyList()
+                );
+
+        ImportWarehouseItemsService service =
+                new ImportWarehouseItemsService(
+                        new SuccessfulReader(csvResult),
+                        repository,
+                        () -> 1000L
+                );
+
+        AtomicReference<ImportWarehouseItemsResult>
+                resultReference =
+                new AtomicReference<>();
+
+        service.importWarehouseItems(
+                "content://test/import.csv",
+                resultReference::set
+        );
+
+        ImportWarehouseItemsResult result =
+                resultReference.get();
+
+        assertEquals(
+                ImportWarehouseItemsResult.Status.NO_VALID_ROWS,
+                result.getStatus()
+        );
+
+        assertEquals(3, result.getIssueCount());
+        assertEquals(1, result.getInvalidCount());
+        assertEquals(0, result.getDuplicateCount());
+
+        assertEquals(
+                ImportIssueType.MISSING_CATEGORY,
+                result.getIssues().get(0).getType()
+        );
+
+        assertEquals(
+                ImportIssueType.MISSING_CODE,
+                result.getIssues().get(1).getType()
+        );
+
+        assertEquals(
+                ImportIssueType.MISSING_SITE,
+                result.getIssues().get(2).getType()
+        );
+    }
+
+    @Test
+    public void importDistinguishesExistingAndInternalDuplicates() {
+        FakeRepository repository = new FakeRepository();
+
+        repository.existingItems =
+                Collections.singletonList(
+                        item(
+                                1L,
+                                "MR",
+                                "1050",
+                                "A1"
+                        )
+                );
+
+        WarehouseItemCsvReadResult csvResult =
+                new WarehouseItemCsvReadResult(
+                        Arrays.asList(
+                                row(2, "MR", "1050", "A2"),
+                                row(3, "MD", "2000", "B1"),
+                                row(4, " md ", " 2000 ", "B2")
+                        ),
+                        3,
+                        Collections.emptyList()
+                );
+
+        ImportWarehouseItemsService service =
+                new ImportWarehouseItemsService(
+                        new SuccessfulReader(csvResult),
+                        repository,
+                        () -> 1000L
+                );
+
+        AtomicReference<ImportWarehouseItemsResult>
+                resultReference =
+                new AtomicReference<>();
+
+        service.importWarehouseItems(
+                "content://test/import.csv",
+                resultReference::set
+        );
+
+        ImportWarehouseItemsResult result =
+                resultReference.get();
+
+        assertEquals(
+                ImportWarehouseItemsResult.Status.PARTIAL_SUCCESS,
+                result.getStatus()
+        );
+
+        assertEquals(1, result.getImportedCount());
+        assertEquals(2, result.getDuplicateCount());
+        assertEquals(0, result.getInvalidCount());
+
+        assertEquals(
+                ImportIssueType.DUPLICATE_EXISTING,
+                result.getIssues().get(0).getType()
+        );
+
+        assertEquals(
+                ImportIssueType.DUPLICATE_IN_FILE,
+                result.getIssues().get(1).getType()
+        );
+
+        assertEquals(
+                Integer.valueOf(3),
+                result.getIssues()
+                        .get(1)
+                        .getRelatedRowNumber()
+        );
+    }
+
+    @Test
+    public void invalidRowIsNotAlsoClassifiedAsDuplicate() {
+        FakeRepository repository = new FakeRepository();
+
+        repository.existingItems =
+                Collections.singletonList(
+                        item(
+                                1L,
+                                "MR",
+                                "1050",
+                                "A1"
+                        )
+                );
+
+        WarehouseItemCsvReadResult csvResult =
+                new WarehouseItemCsvReadResult(
+                        Collections.singletonList(
+                                row(
+                                        2,
+                                        "MR",
+                                        "1050",
+                                        ""
+                                )
+                        ),
+                        1,
+                        Collections.emptyList()
+                );
+
+        ImportWarehouseItemsService service =
+                new ImportWarehouseItemsService(
+                        new SuccessfulReader(csvResult),
+                        repository,
+                        () -> 1000L
+                );
+
+        AtomicReference<ImportWarehouseItemsResult>
+                resultReference =
+                new AtomicReference<>();
+
+        service.importWarehouseItems(
+                "content://test/import.csv",
+                resultReference::set
+        );
+
+        ImportWarehouseItemsResult result =
+                resultReference.get();
+
+        assertEquals(1, result.getInvalidCount());
+        assertEquals(0, result.getDuplicateCount());
+        assertEquals(1, result.getIssues().size());
+
+        assertEquals(
+                ImportIssueType.MISSING_SITE,
+                result.getIssues().get(0).getType()
+        );
+    }
+
+    @Test
+    public void persistenceFailureReportsZeroImportedRows() {
+        FakeRepository repository = new FakeRepository();
+        repository.insertError =
+                new IllegalStateException("Insert failed");
+
+        WarehouseItemCsvReadResult csvResult =
+                new WarehouseItemCsvReadResult(
+                        Collections.singletonList(
+                                row(
+                                        2,
+                                        "MR",
+                                        "1050",
+                                        "A1"
+                                )
+                        ),
+                        1,
+                        Collections.emptyList()
+                );
+
+        ImportWarehouseItemsService service =
+                new ImportWarehouseItemsService(
+                        new SuccessfulReader(csvResult),
+                        repository,
+                        () -> 1000L
+                );
+
+        AtomicReference<ImportWarehouseItemsResult>
+                resultReference =
+                new AtomicReference<>();
+
+        service.importWarehouseItems(
+                "content://test/import.csv",
+                resultReference::set
+        );
+
+        ImportWarehouseItemsResult result =
+                resultReference.get();
+
+        assertEquals(
+                ImportWarehouseItemsResult.Status
+                        .PERSISTENCE_ERROR,
+                result.getStatus()
+        );
+
+        assertEquals(0, result.getImportedCount());
+    }
+
     private static WarehouseItemCsvRow row(
+            int rowNumber,
             String category,
             String code,
             String site
     ) {
         return new WarehouseItemCsvRow(
+                rowNumber,
                 category,
                 code,
                 site,
@@ -179,6 +426,8 @@ public final class ImportWarehouseItemsServiceTest {
         private List<WarehouseItem> insertedItems =
                 Collections.emptyList();
 
+        private Throwable insertError;
+
         @Override
         public void findAll(
                 WarehouseItemsFindCallback callback
@@ -191,8 +440,17 @@ public final class ImportWarehouseItemsServiceTest {
                 List<WarehouseItem> warehouseItems,
                 WarehouseItemsInsertCallback callback
         ) {
-            insertedItems = warehouseItems;
-            callback.onSuccess(warehouseItems.size());
+            if (insertError != null) {
+                callback.onError(insertError);
+                return;
+            }
+
+            insertedItems =
+                    new ArrayList<>(warehouseItems);
+
+            callback.onSuccess(
+                    insertedItems.size()
+            );
         }
 
         @Override
