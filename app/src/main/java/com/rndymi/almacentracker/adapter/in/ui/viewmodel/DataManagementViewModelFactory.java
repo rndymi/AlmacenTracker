@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModelProvider;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.RestoreWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.ValidateWarehouseBackupUseCase;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -19,6 +21,8 @@ public final class DataManagementViewModelFactory
     private final ShareWarehouseItemsUseCase shareUseCase;
     private final ImportWarehouseItemsUseCase importUseCase;
     private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
+    private final ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase;
+    private final RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase;
     private final Supplier<String> exportFileNameSupplier;
     private final Supplier<String> backupFileNameSupplier;
 
@@ -26,8 +30,9 @@ public final class DataManagementViewModelFactory
             ExportWarehouseItemsUseCase exportUseCase,
             ShareWarehouseItemsUseCase shareUseCase,
             ImportWarehouseItemsUseCase importUseCase,
-            CreateWarehouseBackupUseCase
-                    createWarehouseBackupUseCase,
+            CreateWarehouseBackupUseCase createWarehouseBackupUseCase,
+            ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase,
+            RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase,
             Supplier<String> exportFileNameSupplier,
             Supplier<String> backupFileNameSupplier
     ) {
@@ -43,6 +48,16 @@ public final class DataManagementViewModelFactory
         this.createWarehouseBackupUseCase =
                 Objects.requireNonNull(
                         createWarehouseBackupUseCase
+                );
+
+        this.validateWarehouseBackupUseCase =
+                Objects.requireNonNull(
+                        validateWarehouseBackupUseCase
+                );
+
+        this.restoreWarehouseBackupUseCase =
+                Objects.requireNonNull(
+                        restoreWarehouseBackupUseCase
                 );
 
         this.exportFileNameSupplier =
@@ -76,6 +91,8 @@ public final class DataManagementViewModelFactory
                         shareUseCase,
                         importUseCase,
                         createWarehouseBackupUseCase,
+                        validateWarehouseBackupUseCase,
+                        restoreWarehouseBackupUseCase,
                         exportFileNameSupplier,
                         backupFileNameSupplier
                 )

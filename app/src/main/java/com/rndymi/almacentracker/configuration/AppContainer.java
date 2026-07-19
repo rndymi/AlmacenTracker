@@ -11,6 +11,7 @@ import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewMo
 import com.rndymi.almacentracker.adapter.out.file.backup.csv.AndroidWarehouseBackupDocumentExporter;
 import com.rndymi.almacentracker.adapter.out.file.backup.csv.WarehouseBackupCsvCodec;
 import com.rndymi.almacentracker.adapter.out.file.backup.csv.WarehouseBackupCsvMapper;
+import com.rndymi.almacentracker.adapter.out.file.backup.csv.AndroidWarehouseBackupDocumentReader;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentExporter;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvShareFileGateway;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentReader;
@@ -29,9 +30,11 @@ import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCa
 import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
 import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.RestoreWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
+import com.rndymi.almacentracker.application.port.in.ValidateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.service.CreateWarehouseBackupService;
 import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
@@ -43,9 +46,11 @@ import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailServi
 import com.rndymi.almacentracker.application.service.ImportWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemFilterOptionsService;
 import com.rndymi.almacentracker.application.service.ObserveWarehouseItemsService;
+import com.rndymi.almacentracker.application.service.RestoreWarehouseBackupService;
 import com.rndymi.almacentracker.application.service.SearchWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.ShareWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.UpdateWarehouseItemService;
+import com.rndymi.almacentracker.application.service.ValidateWarehouseBackupService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -73,6 +78,8 @@ public final class AppContainer {
     private final ShareWarehouseItemsUseCase shareWarehouseItemsUseCase;
     private final ImportWarehouseItemsUseCase importWarehouseItemsUseCase;
     private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
+    private final ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase;
+    private final RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -223,6 +230,24 @@ public final class AppContainer {
                         warehouseItemRepository,
                         backupDocumentExporter
                 );
+
+        AndroidWarehouseBackupDocumentReader
+                backupDocumentReader =
+                new AndroidWarehouseBackupDocumentReader(
+                        applicationContext.getContentResolver(),
+                        backupCsvCodec,
+                        fileExecutor
+                );
+
+        validateWarehouseBackupUseCase =
+                new ValidateWarehouseBackupService(
+                        backupDocumentReader
+                );
+
+        restoreWarehouseBackupUseCase =
+                new RestoreWarehouseBackupService(
+                        warehouseItemRepository
+                );
     }
 
     public WarehouseItemDetailViewModelFactory
@@ -265,10 +290,10 @@ public final class AppContainer {
                 shareWarehouseItemsUseCase,
                 importWarehouseItemsUseCase,
                 createWarehouseBackupUseCase,
+                validateWarehouseBackupUseCase,
+                restoreWarehouseBackupUseCase,
                 () -> "almacentracker-export-"
-                        + LocalDate.now().format(
-                        DateTimeFormatter.ISO_LOCAL_DATE
-                )
+                        + LocalDate.now()
                         + ".csv",
                 () -> "almacentracker-backup-"
                         + LocalDateTime.now().format(
