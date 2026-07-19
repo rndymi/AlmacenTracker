@@ -8,6 +8,9 @@ import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModel
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
+import com.rndymi.almacentracker.adapter.out.file.backup.csv.AndroidWarehouseBackupDocumentExporter;
+import com.rndymi.almacentracker.adapter.out.file.backup.csv.WarehouseBackupCsvCodec;
+import com.rndymi.almacentracker.adapter.out.file.backup.csv.WarehouseBackupCsvMapper;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentExporter;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvShareFileGateway;
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentReader;
@@ -18,6 +21,7 @@ import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseIt
 import com.rndymi.almacentracker.adapter.out.persistence.room.repository.RoomWarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
@@ -29,9 +33,10 @@ import com.rndymi.almacentracker.application.port.in.SearchWarehouseItemsUseCase
 import com.rndymi.almacentracker.application.port.in.ShareWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.application.service.CreateWarehouseBackupService;
+import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
 import com.rndymi.almacentracker.application.service.DeleteWarehouseItemService;
 import com.rndymi.almacentracker.application.service.DeleteWarehouseItemsService;
-import com.rndymi.almacentracker.application.service.CreateWarehouseItemService;
 import com.rndymi.almacentracker.application.service.ExportWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.FilterWarehouseItemsService;
 import com.rndymi.almacentracker.application.service.GetWarehouseItemDetailService;
@@ -54,44 +59,20 @@ public final class AppContainer {
     private final ExecutorService databaseExecutor;
     private final ExecutorService fileExecutor;
 
-    private final WarehouseItemRepository
-            warehouseItemRepository;
-
-    private final ObserveWarehouseItemsUseCase
-            observeWarehouseItemsUseCase;
-
-    private final SearchWarehouseItemsUseCase
-            searchWarehouseItemsUseCase;
-
-    private final FilterWarehouseItemsUseCase
-            filterWarehouseItemsUseCase;
-
-    private final ObserveWarehouseItemFilterOptionsUseCase
-            observeFilterOptionsUseCase;
-
-    private final CreateWarehouseItemUseCase
-            createWarehouseItemUseCase;
-
-    private final UpdateWarehouseItemUseCase
-            updateWarehouseItemUseCase;
-
-    private final DeleteWarehouseItemUseCase
-            deleteWarehouseItemUseCase;
-
-    private final DeleteWarehouseItemsUseCase
-            deleteWarehouseItemsUseCase;
-
-    private final GetWarehouseItemDetailUseCase
-            getWarehouseItemDetailUseCase;
-
-    private final ExportWarehouseItemsUseCase
-            exportWarehouseItemsUseCase;
-
-    private final ShareWarehouseItemsUseCase
-            shareWarehouseItemsUseCase;
-
-    private final ImportWarehouseItemsUseCase
-            importWarehouseItemsUseCase;
+    private final WarehouseItemRepository warehouseItemRepository;
+    private final ObserveWarehouseItemsUseCase observeWarehouseItemsUseCase;
+    private final SearchWarehouseItemsUseCase searchWarehouseItemsUseCase;
+    private final FilterWarehouseItemsUseCase filterWarehouseItemsUseCase;
+    private final ObserveWarehouseItemFilterOptionsUseCase observeFilterOptionsUseCase;
+    private final CreateWarehouseItemUseCase createWarehouseItemUseCase;
+    private final UpdateWarehouseItemUseCase updateWarehouseItemUseCase;
+    private final DeleteWarehouseItemUseCase deleteWarehouseItemUseCase;
+    private final DeleteWarehouseItemsUseCase deleteWarehouseItemsUseCase;
+    private final GetWarehouseItemDetailUseCase getWarehouseItemDetailUseCase;
+    private final ExportWarehouseItemsUseCase exportWarehouseItemsUseCase;
+    private final ShareWarehouseItemsUseCase shareWarehouseItemsUseCase;
+    private final ImportWarehouseItemsUseCase importWarehouseItemsUseCase;
+    private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -220,6 +201,28 @@ public final class AppContainer {
                         )
                                 + ".csv"
                 );
+
+        WarehouseBackupCsvMapper backupCsvMapper =
+                new WarehouseBackupCsvMapper();
+
+        WarehouseBackupCsvCodec backupCsvCodec =
+                new WarehouseBackupCsvCodec(
+                        backupCsvMapper
+                );
+
+        AndroidWarehouseBackupDocumentExporter
+                backupDocumentExporter =
+                new AndroidWarehouseBackupDocumentExporter(
+                        applicationContext.getContentResolver(),
+                        backupCsvCodec,
+                        fileExecutor
+                );
+
+        createWarehouseBackupUseCase =
+                new CreateWarehouseBackupService(
+                        warehouseItemRepository,
+                        backupDocumentExporter
+                );
     }
 
     public WarehouseItemDetailViewModelFactory
@@ -261,9 +264,17 @@ public final class AppContainer {
                 exportWarehouseItemsUseCase,
                 shareWarehouseItemsUseCase,
                 importWarehouseItemsUseCase,
+                createWarehouseBackupUseCase,
                 () -> "almacentracker-export-"
                         + LocalDate.now().format(
                         DateTimeFormatter.ISO_LOCAL_DATE
+                )
+                        + ".csv",
+                () -> "almacentracker-backup-"
+                        + LocalDateTime.now().format(
+                        DateTimeFormatter.ofPattern(
+                                "yyyy-MM-dd-HHmmss"
+                        )
                 )
                         + ".csv"
         );
