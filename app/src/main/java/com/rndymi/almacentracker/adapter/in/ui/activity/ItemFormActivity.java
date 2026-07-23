@@ -10,7 +10,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.rndymi.almacentracker.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemFormMode;
 import com.rndymi.almacentracker.adapter.in.ui.state.WarehouseItemFormUiState;

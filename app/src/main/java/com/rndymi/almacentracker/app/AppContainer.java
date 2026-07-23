@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.configuration;
+package com.rndymi.almacentracker.app;
 
 import android.content.Context;
 

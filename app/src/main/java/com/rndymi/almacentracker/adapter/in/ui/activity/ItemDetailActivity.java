@@ -13,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.rndymi.almacentracker.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.adapter.in.ui.formatter.WarehouseItemDateFormatter;
 import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;

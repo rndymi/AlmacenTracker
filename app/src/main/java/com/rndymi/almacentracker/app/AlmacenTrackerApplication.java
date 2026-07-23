@@ -1,8 +1,6 @@
-package com.rndymi.almacentracker;
+package com.rndymi.almacentracker.app;
 
 import android.app.Application;
-
-import com.rndymi.almacentracker.configuration.AppContainer;
 
 public final class AlmacenTrackerApplication extends Application {
     private AppContainer appContainer;
