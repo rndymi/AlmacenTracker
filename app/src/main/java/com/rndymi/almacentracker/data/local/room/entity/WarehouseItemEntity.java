@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room.entity;
+package com.rndymi.almacentracker.data.local.room.entity;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;

@@ -1,10 +1,10 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room.database;
+package com.rndymi.almacentracker.data.local.room.database;
 
 import androidx.room.Database;
 import androidx.room.RoomDatabase;
 
-import com.rndymi.almacentracker.adapter.out.persistence.room.dao.WarehouseItemDao;
-import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
+import com.rndymi.almacentracker.data.local.room.dao.WarehouseItemDao;
+import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 
 @Database(
         entities = {

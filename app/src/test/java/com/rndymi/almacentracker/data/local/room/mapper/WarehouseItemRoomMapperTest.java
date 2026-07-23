@@ -1,18 +1,18 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room.mapper;
+package com.rndymi.almacentracker.data.local.room.mapper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
+import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
 
-public class WarehouseItemPersistenceMapperTest {
-    private final WarehouseItemPersistenceMapper mapper =
-            new WarehouseItemPersistenceMapper();
+public class WarehouseItemRoomMapperTest {
+    private final WarehouseItemRoomMapper mapper =
+            new WarehouseItemRoomMapper();
 
     @Test
     public void mapsExistingPosition() {

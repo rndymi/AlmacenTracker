@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room.repository;
+package com.rndymi.almacentracker.data.repository;
 
 import android.database.sqlite.SQLiteConstraintException;
 
@@ -6,9 +6,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.Transformations;
 
-import com.rndymi.almacentracker.adapter.out.persistence.room.dao.WarehouseItemDao;
-import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
-import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
+import com.rndymi.almacentracker.data.local.room.dao.WarehouseItemDao;
+import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
+import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
@@ -41,12 +41,12 @@ public final class RoomWarehouseItemRepository
     private static final int POSITION_MODE_EXACT_VALUE = 2;
 
     private final WarehouseItemDao warehouseItemDao;
-    private final WarehouseItemPersistenceMapper mapper;
+    private final WarehouseItemRoomMapper mapper;
     private final Executor executor;
 
     public RoomWarehouseItemRepository(
             WarehouseItemDao warehouseItemDao,
-            WarehouseItemPersistenceMapper mapper,
+            WarehouseItemRoomMapper mapper,
             Executor executor
     ) {
         this.warehouseItemDao = Objects.requireNonNull(

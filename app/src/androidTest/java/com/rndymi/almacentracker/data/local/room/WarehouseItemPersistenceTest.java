@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room;
+package com.rndymi.almacentracker.data.local.room;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -14,9 +14,9 @@ import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.rndymi.almacentracker.adapter.out.persistence.room.dao.WarehouseItemDao;
-import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
-import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
+import com.rndymi.almacentracker.data.local.room.dao.WarehouseItemDao;
+import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
+import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 
 import org.junit.After;
 import org.junit.Before;

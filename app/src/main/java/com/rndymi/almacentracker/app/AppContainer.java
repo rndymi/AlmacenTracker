@@ -17,9 +17,9 @@ import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvShareFileGateway
 import com.rndymi.almacentracker.adapter.out.file.csv.AndroidCsvDocumentReader;
 import com.rndymi.almacentracker.adapter.out.file.csv.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.adapter.out.file.csv.WarehouseItemCsvMapper;
-import com.rndymi.almacentracker.adapter.out.persistence.room.database.AlmacenTrackerDatabase;
-import com.rndymi.almacentracker.adapter.out.persistence.room.mapper.WarehouseItemPersistenceMapper;
-import com.rndymi.almacentracker.adapter.out.persistence.room.repository.RoomWarehouseItemRepository;
+import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
+import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
+import com.rndymi.almacentracker.data.repository.RoomWarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
 import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
@@ -97,8 +97,8 @@ public final class AppContainer {
         fileExecutor =
                 Executors.newSingleThreadExecutor();
 
-        WarehouseItemPersistenceMapper mapper =
-                new WarehouseItemPersistenceMapper();
+        WarehouseItemRoomMapper mapper =
+                new WarehouseItemRoomMapper();
 
         warehouseItemRepository =
                 new RoomWarehouseItemRepository(

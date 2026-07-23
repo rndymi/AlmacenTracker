@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room.dao;
+package com.rndymi.almacentracker.data.local.room.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
@@ -8,7 +8,7 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
 
-import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
+import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 
 import java.util.List;
 

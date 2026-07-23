@@ -1,13 +1,13 @@
-package com.rndymi.almacentracker.adapter.out.persistence.room.mapper;
+package com.rndymi.almacentracker.data.local.room.mapper;
 
-import com.rndymi.almacentracker.adapter.out.persistence.room.entity.WarehouseItemEntity;
+import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class WarehouseItemPersistenceMapper {
+public final class WarehouseItemRoomMapper {
     public WarehouseItem toDomain(WarehouseItemEntity entity) {
         if (entity == null) {
             throw new IllegalArgumentException(
