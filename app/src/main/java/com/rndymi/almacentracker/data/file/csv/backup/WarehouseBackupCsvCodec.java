@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.file.backup.csv;
+package com.rndymi.almacentracker.data.file.csv.backup;
 
 import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
 import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;

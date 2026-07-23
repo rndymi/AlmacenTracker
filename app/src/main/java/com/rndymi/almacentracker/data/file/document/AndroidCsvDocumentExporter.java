@@ -1,10 +1,11 @@
-package com.rndymi.almacentracker.adapter.out.file.backup.csv;
+package com.rndymi.almacentracker.data.file.document;
 
 import android.content.ContentResolver;
 import android.net.Uri;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvExportCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvExporter;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExportCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExporter;
+import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.io.IOException;
@@ -13,30 +14,28 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
-public final class AndroidWarehouseBackupDocumentExporter
-        implements WarehouseBackupCsvExporter {
+public final class AndroidCsvDocumentExporter
+        implements WarehouseItemCsvExporter {
 
     private final ContentResolver contentResolver;
-    private final WarehouseBackupCsvCodec codec;
+    private final WarehouseItemCsvCodec codec;
     private final Executor executor;
 
-    public AndroidWarehouseBackupDocumentExporter(
+    public AndroidCsvDocumentExporter(
             ContentResolver contentResolver,
-            WarehouseBackupCsvCodec codec,
+            WarehouseItemCsvCodec codec,
             Executor executor
     ) {
-        this.contentResolver =
-                Objects.requireNonNull(contentResolver);
-
+        this.contentResolver = Objects.requireNonNull(contentResolver);
         this.codec = Objects.requireNonNull(codec);
         this.executor = Objects.requireNonNull(executor);
     }
 
     @Override
-    public void exportBackup(
+    public void export(
             String destinationReference,
             List<WarehouseItem> warehouseItems,
-            WarehouseBackupCsvExportCallback callback
+            WarehouseItemCsvExportCallback callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);
@@ -50,9 +49,7 @@ public final class AndroidWarehouseBackupDocumentExporter
         final Uri destinationUri;
 
         try {
-            destinationUri = Uri.parse(
-                    destinationReference
-            );
+            destinationUri = Uri.parse(destinationReference);
         } catch (RuntimeException exception) {
             callback.onInvalidDestination();
             return;
@@ -63,27 +60,22 @@ public final class AndroidWarehouseBackupDocumentExporter
             return;
         }
 
-        executor.execute(
-                () -> writeBackup(
-                        destinationUri,
-                        warehouseItems,
-                        callback
-                )
-        );
+        executor.execute(() -> writeDocument(
+                destinationUri,
+                warehouseItems,
+                callback
+        ));
     }
 
-    private void writeBackup(
+    private void writeDocument(
             Uri destinationUri,
             List<WarehouseItem> warehouseItems,
-            WarehouseBackupCsvExportCallback callback
+            WarehouseItemCsvExportCallback callback
     ) {
         final byte[] content;
 
         try {
             content = codec.encode(warehouseItems);
-        } catch (IllegalArgumentException exception) {
-            callback.onInvalidData(exception);
-            return;
         } catch (RuntimeException exception) {
             callback.onSerializationError(exception);
             return;
@@ -94,7 +86,6 @@ public final class AndroidWarehouseBackupDocumentExporter
                              destinationUri,
                              "wt"
                      )) {
-
             if (outputStream == null) {
                 callback.onWriteError(
                         new IOException(
@@ -106,9 +97,7 @@ public final class AndroidWarehouseBackupDocumentExporter
 
             outputStream.write(content);
             outputStream.flush();
-
             callback.onSuccess();
-
         } catch (IOException | SecurityException exception) {
             callback.onWriteError(exception);
         } catch (RuntimeException exception) {

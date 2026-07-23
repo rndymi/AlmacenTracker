@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.file.csv;
+package com.rndymi.almacentracker.data.file.csv.exchange;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

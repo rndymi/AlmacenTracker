@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.file.csv;
+package com.rndymi.almacentracker.data.file.document;
 
 import android.content.ContentResolver;
 import android.net.Uri;
@@ -6,6 +6,8 @@ import android.net.Uri;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
+import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
+import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvFormatException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;

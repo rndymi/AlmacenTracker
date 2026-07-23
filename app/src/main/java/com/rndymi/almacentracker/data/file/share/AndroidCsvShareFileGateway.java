@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.file.csv;
+package com.rndymi.almacentracker.data.file.share;
 
 import android.content.Context;
 import android.net.Uri;
@@ -8,6 +8,7 @@ import androidx.core.content.FileProvider;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileGateway;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.io.File;

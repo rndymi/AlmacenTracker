@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.adapter.out.file.csv;
+package com.rndymi.almacentracker.data.file.csv.exchange;
 
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
