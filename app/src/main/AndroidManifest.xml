@@ -28,7 +28,7 @@
             android:name=".feature.inventory.detail.ItemDetailActivity"
             android:exported="false" />
         <activity
-            android:name=".adapter.in.ui.activity.DataManagementActivity"
+            android:name=".feature.data_management.common.DataManagementActivity"
             android:exported="false" />
 
         <provider
