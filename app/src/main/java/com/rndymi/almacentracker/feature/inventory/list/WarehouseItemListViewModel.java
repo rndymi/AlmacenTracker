@@ -4,17 +4,15 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
-import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.PositionFilter;
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
+import com.rndymi.almacentracker.data.repository.PositionFilter;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -37,8 +35,7 @@ public final class WarehouseItemListViewModel
     private final MediatorLiveData<WarehouseItemSelectionUiState>
             selectionUiState = new MediatorLiveData<>();
 
-    private final FilterWarehouseItemsUseCase
-            filterWarehouseItemsUseCase;
+    private final WarehouseItemRepository repository;
 
     private final LiveData<WarehouseItemsResult>
             allItemsSource;
@@ -46,8 +43,7 @@ public final class WarehouseItemListViewModel
     private final LiveData<WarehouseItemFilterOptionsResult>
             filterOptionsSource;
 
-    private final DeleteWarehouseItemsUseCase
-            deleteWarehouseItemsUseCase;
+    private final WarehouseItemDeleteService deleteService;
 
     private final Set<Long> selectedWarehouseItemIds =
             new LinkedHashSet<>();
@@ -67,30 +63,16 @@ public final class WarehouseItemListViewModel
     private WarehouseItemsResult latestFilteredResult;
 
     public WarehouseItemListViewModel(
-            ObserveWarehouseItemsUseCase observeWarehouseItemsUseCase,
-            FilterWarehouseItemsUseCase filterWarehouseItemsUseCase,
-            ObserveWarehouseItemFilterOptionsUseCase
-                    observeFilterOptionsUseCase,
-            DeleteWarehouseItemsUseCase
-                    deleteWarehouseItemsUseCase
+            WarehouseItemRepository repository,
+            WarehouseItemDeleteService deleteService
     ) {
-        Objects.requireNonNull(observeWarehouseItemsUseCase);
+        this.repository = Objects.requireNonNull(repository);
 
-        this.filterWarehouseItemsUseCase =
-                Objects.requireNonNull(
-                        filterWarehouseItemsUseCase
-                );
-
-        this.deleteWarehouseItemsUseCase =
-                Objects.requireNonNull(
-                        deleteWarehouseItemsUseCase
-                );
+        this.deleteService = Objects.requireNonNull(deleteService);
 
         selectionUiState.setValue(
                 WarehouseItemSelectionUiState.empty()
         );
-
-        Objects.requireNonNull(observeFilterOptionsUseCase);
 
         uiState.setValue(
                 WarehouseItemListUiState.loading(
@@ -99,13 +81,9 @@ public final class WarehouseItemListViewModel
                 )
         );
 
-        allItemsSource =
-                observeWarehouseItemsUseCase
-                        .observeWarehouseItems();
+        allItemsSource = repository.observeAll();
 
-        filterOptionsSource =
-                observeFilterOptionsUseCase
-                        .observeFilterOptions();
+        filterOptionsSource = repository.observeFilterOptions();
 
         uiState.addSource(
                 allItemsSource,
@@ -188,8 +166,7 @@ public final class WarehouseItemListViewModel
     private void refreshFilteredSource() {
         detachFilteredSource();
 
-        filteredItemsSource =
-                filterWarehouseItemsUseCase.filter(criteria);
+        filteredItemsSource = repository.filter(criteria);
 
         uiState.addSource(
                 filteredItemsSource,
@@ -435,15 +412,15 @@ public final class WarehouseItemListViewModel
                 )
         );
 
-        deleteWarehouseItemsUseCase
-                .deleteWarehouseItems(
+        deleteService
+                .delete(
                         selectedIdsCopy,
                         this::handleDeleteSelectionResult
                 );
     }
 
     private void handleDeleteSelectionResult(
-            DeleteWarehouseItemsResult result
+            WarehouseItemDeleteResult result
     ) {
         deletingSelection = false;
 
@@ -462,7 +439,7 @@ public final class WarehouseItemListViewModel
                 break;
 
             case EMPTY_SELECTION:
-            case INVALID_IDS:
+            case INVALID_ID:
             case PERSISTENCE_ERROR:
                 selectionUiState.postValue(
                         WarehouseItemSelectionUiState.result(

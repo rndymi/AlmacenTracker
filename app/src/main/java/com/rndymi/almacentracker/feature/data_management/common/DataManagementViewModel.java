@@ -5,19 +5,19 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
-import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupUseCase;
-import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupUseCase;
-import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupUseCase;
+import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupService;
+import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupService;
+import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupService;
 import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupResult;
 import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsResult;
 import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsResult;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupResult;
 import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsResult;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
-import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.WarehouseBackupValidationResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.ArrayList;
@@ -114,13 +114,12 @@ public final class DataManagementViewModel
     private static final String RESTORE_UNKNOWN_ERROR_MESSAGE =
             "No se pudo restaurar la copia de seguridad.";
 
-    private final ExportWarehouseItemsUseCase exportUseCase;
-    private final ShareWarehouseItemsUseCase shareUseCase;
-    private final ImportWarehouseItemsUseCase importUseCase;
-    private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
-    private final ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase;
-
-    private final RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase;
+    private final ExportWarehouseItemsService exportService;
+    private final ShareWarehouseItemsService shareService;
+    private final ImportWarehouseItemsService importService;
+    private final CreateWarehouseBackupService createBackupService;
+    private final ValidateWarehouseBackupService validateBackupService;
+    private final RestoreWarehouseBackupService restoreBackupService;
     private final Supplier<String> exportFileNameSupplier;
     private final Supplier<String> backupFileNameSupplier;
 
@@ -167,27 +166,27 @@ public final class DataManagementViewModel
     private boolean operationInProgress;
 
     public DataManagementViewModel(
-            ExportWarehouseItemsUseCase exportUseCase,
-            ShareWarehouseItemsUseCase shareUseCase,
-            ImportWarehouseItemsUseCase importUseCase,
-            CreateWarehouseBackupUseCase createWarehouseBackupUseCase,
-            ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase,
-            RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase,
+            ExportWarehouseItemsService exportService,
+            ShareWarehouseItemsService shareService,
+            ImportWarehouseItemsService importService,
+            CreateWarehouseBackupService createBackupService,
+            ValidateWarehouseBackupService validateBackupService,
+            RestoreWarehouseBackupService restoreBackupService,
             Supplier<String> exportFileNameSupplier,
             Supplier<String> backupFileNameSupplier
     ) {
-        this.exportUseCase =
-                Objects.requireNonNull(exportUseCase);
+        this.exportService =
+                Objects.requireNonNull(exportService);
 
-        this.shareUseCase =
-                Objects.requireNonNull(shareUseCase);
+        this.shareService =
+                Objects.requireNonNull(shareService);
 
-        this.importUseCase =
-                Objects.requireNonNull(importUseCase);
+        this.importService =
+                Objects.requireNonNull(importService);
 
-        this.createWarehouseBackupUseCase =
+        this.createBackupService =
                 Objects.requireNonNull(
-                        createWarehouseBackupUseCase
+                        createBackupService
                 );
 
         this.exportFileNameSupplier =
@@ -200,14 +199,14 @@ public final class DataManagementViewModel
                         backupFileNameSupplier
                 );
 
-        this.validateWarehouseBackupUseCase =
+        this.validateBackupService =
                 Objects.requireNonNull(
-                        validateWarehouseBackupUseCase
+                        validateBackupService
                 );
 
-        this.restoreWarehouseBackupUseCase =
+        this.restoreBackupService =
                 Objects.requireNonNull(
-                        restoreWarehouseBackupUseCase
+                        restoreBackupService
                 );
     }
 
@@ -334,7 +333,7 @@ public final class DataManagementViewModel
                 DataManagementUiState.importing()
         );
 
-        importUseCase.importWarehouseItems(
+        importService.importWarehouseItems(
                 sourceReference,
                 this::handleImportResult
         );
@@ -363,7 +362,7 @@ public final class DataManagementViewModel
                 DataManagementUiState.exporting()
         );
 
-        exportUseCase.exportWarehouseItems(
+        exportService.exportWarehouseItems(
                 destinationReference,
                 this::handleExportResult
         );
@@ -380,7 +379,7 @@ public final class DataManagementViewModel
                 DataManagementUiState.preparingShare()
         );
 
-        shareUseCase.prepareWarehouseItemsForSharing(
+        shareService.prepareWarehouseItemsForSharing(
                 this::handleShareResult
         );
     }
@@ -647,7 +646,7 @@ public final class DataManagementViewModel
                 DataManagementUiState.creatingBackup()
         );
 
-        createWarehouseBackupUseCase.createBackup(
+        createBackupService.createBackup(
                 destinationReference,
                 this::handleBackupResult
         );
@@ -741,7 +740,7 @@ public final class DataManagementViewModel
                 DataManagementUiState.validatingBackup()
         );
 
-        validateWarehouseBackupUseCase.validateBackup(
+        validateBackupService.validateBackup(
                 sourceReference,
                 this::handleBackupValidationResult
         );
@@ -872,7 +871,7 @@ public final class DataManagementViewModel
                 DataManagementUiState.restoringBackup()
         );
 
-        restoreWarehouseBackupUseCase.restoreBackup(
+        restoreBackupService.restoreBackup(
                 snapshot,
                 this::handleBackupRestoreResult
         );

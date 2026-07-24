@@ -12,12 +12,13 @@ import android.net.Uri;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExportCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
-import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvExporter.ExportCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader.ReadCallback;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway.ShareFileCallback;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvExporter;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvCodec;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvMapper;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
@@ -245,7 +246,7 @@ public final class AndroidDocumentInstrumentedTest {
         gateway.createShareableFile(
                 Collections.singletonList(warehouseItem),
                 "instrumented-share.csv",
-                new WarehouseItemCsvShareFileCallback() {
+                new ShareFileCallback() {
                     @Override
                     public void onSuccess(
                             ShareableCsvFile shareableFile
@@ -301,7 +302,7 @@ public final class AndroidDocumentInstrumentedTest {
         exporter.export(
                 destination.toString(),
                 Collections.singletonList(warehouseItem),
-                new WarehouseItemCsvExportCallback() {
+                new ExportCallback() {
                     @Override
                     public void onSuccess() {
                     }
@@ -347,7 +348,7 @@ public final class AndroidDocumentInstrumentedTest {
 
         reader.read(
                 source.toString(),
-                new WarehouseItemCsvReadCallback() {
+                new ReadCallback() {
                     @Override
                     public void onSuccess(
                             WarehouseItemCsvReadResult readResult
@@ -400,8 +401,7 @@ public final class AndroidDocumentInstrumentedTest {
         ).exportBackup(
                 destination.toString(),
                 warehouseItems,
-                new com.rndymi.almacentracker.application.port.out
-                        .WarehouseBackupCsvExportCallback() {
+                new WarehouseBackupCsvExporter.ExportCallback() {
                     @Override
                     public void onSuccess() {
                         success.set(true);

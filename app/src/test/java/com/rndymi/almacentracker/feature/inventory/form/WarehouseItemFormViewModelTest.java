@@ -10,16 +10,10 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
-import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
-import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemCommand;
-import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.UpdateWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,17 +58,17 @@ public final class WarehouseItemFormViewModelTest {
         fillForm(viewModel);
         viewModel.save();
 
-        CreateWarehouseItemCommand command =
-                dependencies.createUseCase.lastCommand;
+        WarehouseItemFormData formData =
+                dependencies.saveService.lastFormData;
 
-        assertNotNull(command);
-        assertEquals(" mr ", command.getCategory());
-        assertEquals(" 1050 ", command.getCode());
-        assertEquals(" a1 ", command.getSite());
-        assertEquals(" Nivel 2 ", command.getPosition());
+        assertNotNull(formData);
+        assertEquals(" mr ", formData.getCategory());
+        assertEquals(" 1050 ", formData.getCode());
+        assertEquals(" a1 ", formData.getSite());
+        assertEquals(" Nivel 2 ", formData.getPosition());
         assertEquals(
                 " Observación ",
-                command.getObservations()
+                formData.getObservations()
         );
     }
 
@@ -86,8 +80,8 @@ public final class WarehouseItemFormViewModelTest {
                 dependencies.createViewModel(0L);
 
         viewModel.save();
-        dependencies.createUseCase.complete(
-                CreateWarehouseItemResult.validationError(
+        dependencies.saveService.complete(
+                WarehouseItemSaveResult.validationError(
                         true,
                         true,
                         true
@@ -112,8 +106,8 @@ public final class WarehouseItemFormViewModelTest {
 
         fillForm(viewModel);
         viewModel.save();
-        dependencies.createUseCase.complete(
-                CreateWarehouseItemResult.duplicate()
+        dependencies.saveService.complete(
+                WarehouseItemSaveResult.duplicate()
         );
 
         WarehouseItemFormUiState state =
@@ -140,11 +134,11 @@ public final class WarehouseItemFormViewModelTest {
 
         assertEquals(
                 1,
-                dependencies.createUseCase.callCount
+                dependencies.saveService.createCallCount
         );
 
-        dependencies.createUseCase.complete(
-                CreateWarehouseItemResult.persistenceError(
+        dependencies.saveService.complete(
+                WarehouseItemSaveResult.persistenceError(
                         new IllegalStateException("write")
                 )
         );
@@ -152,7 +146,7 @@ public final class WarehouseItemFormViewModelTest {
 
         assertEquals(
                 2,
-                dependencies.createUseCase.callCount
+                dependencies.saveService.createCallCount
         );
     }
 
@@ -165,8 +159,8 @@ public final class WarehouseItemFormViewModelTest {
 
         fillForm(viewModel);
         viewModel.save();
-        dependencies.createUseCase.complete(
-                CreateWarehouseItemResult.success(17L)
+        dependencies.saveService.complete(
+                WarehouseItemSaveResult.success(17L)
         );
 
         UiEvent<Long> event =
@@ -221,14 +215,14 @@ public final class WarehouseItemFormViewModelTest {
         viewModel.onSiteChanged("B2");
         viewModel.save();
 
-        UpdateWarehouseItemCommand command =
-                dependencies.updateUseCase.lastCommand;
+        WarehouseItemFormData formData =
+                dependencies.saveService.lastFormData;
 
-        assertNotNull(command);
-        assertEquals(8L, command.getWarehouseItemId());
-        assertEquals("MR", command.getCategory());
-        assertEquals("1050", command.getCode());
-        assertEquals("B2", command.getSite());
+        assertNotNull(formData);
+        assertEquals(8L, dependencies.saveService.lastUpdatedId);
+        assertEquals("MR", formData.getCategory());
+        assertEquals("1050", formData.getCode());
+        assertEquals("B2", formData.getSite());
     }
 
     @Test
@@ -296,28 +290,29 @@ public final class WarehouseItemFormViewModelTest {
 
     private static final class TestDependencies {
 
-        private final RecordingCreateUseCase
-                createUseCase =
-                new RecordingCreateUseCase();
-        private final RecordingUpdateUseCase
-                updateUseCase =
-                new RecordingUpdateUseCase();
+        private final RecordingSaveService saveService =
+                new RecordingSaveService();
         private final MutableLiveData<WarehouseItemDetailResult>
                 detailResult = new MutableLiveData<>();
 
         private WarehouseItemFormViewModel createViewModel(
                 long warehouseItemId
         ) {
-            GetWarehouseItemDetailUseCase detailUseCase =
-                    ignored -> detailResult;
+            WarehouseItemRepositoryStub repository =
+                    new WarehouseItemRepositoryStub() {
+                        @Override
+                        public LiveData<WarehouseItemDetailResult>
+                        observeById(long ignored) {
+                            return detailResult;
+                        }
+                    };
 
             WarehouseItemFormViewModel viewModel =
                     new WarehouseItemFormViewModel(
-                    createUseCase,
-                    updateUseCase,
-                    detailUseCase,
-                    warehouseItemId
-            );
+                            saveService,
+                            repository,
+                            warehouseItemId
+                    );
 
             viewModel.getUiState().observeForever(
                     ignored -> {
@@ -328,41 +323,46 @@ public final class WarehouseItemFormViewModelTest {
         }
     }
 
-    private static final class RecordingCreateUseCase
-            implements CreateWarehouseItemUseCase {
+    private static final class RecordingSaveService
+            extends WarehouseItemSaveService {
 
-        private int callCount;
-        private CreateWarehouseItemCommand lastCommand;
-        private Consumer<CreateWarehouseItemResult> callback;
+        private int createCallCount;
+        private long lastUpdatedId;
+        private WarehouseItemFormData lastFormData;
+        private Consumer<WarehouseItemSaveResult> callback;
+
+        private RecordingSaveService() {
+            super(
+                    new WarehouseItemRepositoryStub(),
+                    () -> 0L
+            );
+        }
 
         @Override
-        public void createWarehouseItem(
-                CreateWarehouseItemCommand command,
-                Consumer<CreateWarehouseItemResult> callback
+        public void create(
+                WarehouseItemFormData formData,
+                Consumer<WarehouseItemSaveResult> callback
         ) {
-            callCount++;
-            lastCommand = command;
+            createCallCount++;
+            lastFormData = formData;
+            this.callback = callback;
+        }
+
+        @Override
+        public void update(
+                long warehouseItemId,
+                WarehouseItemFormData formData,
+                Consumer<WarehouseItemSaveResult> callback
+        ) {
+            lastUpdatedId = warehouseItemId;
+            lastFormData = formData;
             this.callback = callback;
         }
 
         private void complete(
-                CreateWarehouseItemResult result
+                WarehouseItemSaveResult result
         ) {
             callback.accept(result);
-        }
-    }
-
-    private static final class RecordingUpdateUseCase
-            implements UpdateWarehouseItemUseCase {
-
-        private UpdateWarehouseItemCommand lastCommand;
-
-        @Override
-        public void updateWarehouseItem(
-                UpdateWarehouseItemCommand command,
-                Consumer<UpdateWarehouseItemResult> callback
-        ) {
-            lastCommand = command;
         }
     }
 }

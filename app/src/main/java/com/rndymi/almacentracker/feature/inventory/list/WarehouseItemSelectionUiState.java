@@ -1,7 +1,7 @@
 package com.rndymi.almacentracker.feature.inventory.list;
 
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -12,12 +12,12 @@ public final class WarehouseItemSelectionUiState {
 
     private final Set<Long> selectedIds;
     private final boolean deleting;
-    private final UiEvent<DeleteWarehouseItemsResult> resultEvent;
+    private final UiEvent<WarehouseItemDeleteResult> resultEvent;
 
     private WarehouseItemSelectionUiState(
             Set<Long> selectedIds,
             boolean deleting,
-            UiEvent<DeleteWarehouseItemsResult> resultEvent
+            UiEvent<WarehouseItemDeleteResult> resultEvent
     ) {
         Objects.requireNonNull(selectedIds);
 
@@ -72,7 +72,7 @@ public final class WarehouseItemSelectionUiState {
 
     public static WarehouseItemSelectionUiState result(
             Set<Long> selectedIds,
-            DeleteWarehouseItemsResult result
+            WarehouseItemDeleteResult result
     ) {
         Objects.requireNonNull(result);
 
@@ -99,7 +99,7 @@ public final class WarehouseItemSelectionUiState {
         return deleting;
     }
 
-    public UiEvent<DeleteWarehouseItemsResult> getResultEvent() {
+    public UiEvent<WarehouseItemDeleteResult> getResultEvent() {
         return resultEvent;
     }
 

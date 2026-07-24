@@ -7,13 +7,14 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -130,16 +131,16 @@ public final class WarehouseItemSelectionViewModelTest {
         viewModel.deleteSelectedItems();
         viewModel.deleteSelectedItems();
 
-        assertEquals(1, dependencies.deleteUseCase.callCount);
+        assertEquals(1, dependencies.deleteService.callCount);
         assertEquals(
                 new LinkedHashSet<>(
                         Arrays.asList(1L, 2L)
                 ),
-                dependencies.deleteUseCase.requestedIds
+                dependencies.deleteService.requestedIds
         );
 
-        dependencies.deleteUseCase.complete(
-                DeleteWarehouseItemsResult.success(2)
+        dependencies.deleteService.complete(
+                WarehouseItemDeleteResult.success(2)
         );
 
         assertFalse(viewModel.hasSelection());
@@ -160,8 +161,8 @@ public final class WarehouseItemSelectionViewModelTest {
 
         viewModel.startSelection(1L);
         viewModel.deleteSelectedItems();
-        dependencies.deleteUseCase.complete(
-                DeleteWarehouseItemsResult.persistenceError(
+        dependencies.deleteService.complete(
+                WarehouseItemDeleteResult.persistenceError(
                         1,
                         new IllegalStateException("delete")
                 )
@@ -186,18 +187,40 @@ public final class WarehouseItemSelectionViewModelTest {
                 filteredItems = new MutableLiveData<>();
         private final MutableLiveData<WarehouseItemFilterOptionsResult>
                 filterOptions = new MutableLiveData<>();
-        private final RecordingDeleteUseCase
-                deleteUseCase =
-                new RecordingDeleteUseCase();
+        private final RecordingDeleteService
+                deleteService =
+                new RecordingDeleteService();
 
         private WarehouseItemListViewModel
         createContentViewModel() {
+            WarehouseItemRepositoryStub repository =
+                    new WarehouseItemRepositoryStub() {
+                        @Override
+                        public MutableLiveData<WarehouseItemsResult>
+                        observeAll() {
+                            return allItems;
+                        }
+
+                        @Override
+                        public MutableLiveData<WarehouseItemsResult>
+                        filter(
+                                WarehouseItemFilterCriteria ignored
+                        ) {
+                            return filteredItems;
+                        }
+
+                        @Override
+                        public MutableLiveData
+                        <WarehouseItemFilterOptionsResult>
+                        observeFilterOptions() {
+                            return filterOptions;
+                        }
+                    };
+
             WarehouseItemListViewModel viewModel =
                     new WarehouseItemListViewModel(
-                            () -> allItems,
-                            this::filter,
-                            () -> filterOptions,
-                            deleteUseCase
+                            repository,
+                            deleteService
                     );
 
             viewModel.getUiState().observeForever(
@@ -224,12 +247,6 @@ public final class WarehouseItemSelectionViewModelTest {
             return viewModel;
         }
 
-        private MutableLiveData<WarehouseItemsResult> filter(
-                WarehouseItemFilterCriteria ignored
-        ) {
-            return filteredItems;
-        }
-
         private WarehouseItem item(long id, String code) {
             return new WarehouseItem(
                     id,
@@ -244,17 +261,21 @@ public final class WarehouseItemSelectionViewModelTest {
         }
     }
 
-    private static final class RecordingDeleteUseCase
-            implements DeleteWarehouseItemsUseCase {
+    private static final class RecordingDeleteService
+            extends WarehouseItemDeleteService {
 
         private int callCount;
         private Set<Long> requestedIds;
-        private Consumer<DeleteWarehouseItemsResult> callback;
+        private Consumer<WarehouseItemDeleteResult> callback;
+
+        private RecordingDeleteService() {
+            super(new WarehouseItemRepositoryStub());
+        }
 
         @Override
-        public void deleteWarehouseItems(
+        public void delete(
                 Set<Long> warehouseItemIds,
-                Consumer<DeleteWarehouseItemsResult> callback
+                Consumer<WarehouseItemDeleteResult> callback
         ) {
             callCount++;
             requestedIds =
@@ -263,7 +284,7 @@ public final class WarehouseItemSelectionViewModelTest {
         }
 
         private void complete(
-                DeleteWarehouseItemsResult result
+                WarehouseItemDeleteResult result
         ) {
             callback.accept(result);
         }

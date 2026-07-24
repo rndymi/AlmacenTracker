@@ -3,9 +3,9 @@ package com.rndymi.almacentracker.data.file.document;
 import android.content.ContentResolver;
 import android.net.Uri;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader.ReadCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvFormatException;
 
@@ -44,7 +44,7 @@ public final class AndroidCsvDocumentReader
     @Override
     public void read(
             String sourceReference,
-            WarehouseItemCsvReadCallback callback
+            ReadCallback callback
     ) {
         Objects.requireNonNull(callback);
 
@@ -58,7 +58,7 @@ public final class AndroidCsvDocumentReader
 
     private void readInternal(
             String sourceReference,
-            WarehouseItemCsvReadCallback callback
+            ReadCallback callback
     ) {
         final Uri sourceUri;
 

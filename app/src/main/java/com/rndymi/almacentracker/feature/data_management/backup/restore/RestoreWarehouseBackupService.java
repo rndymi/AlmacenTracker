@@ -1,16 +1,16 @@
 package com.rndymi.almacentracker.feature.data_management.backup.restore;
 
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
-public final class RestoreWarehouseBackupService
-        implements RestoreWarehouseBackupUseCase {
+public class RestoreWarehouseBackupService {
 
     private final WarehouseItemRepository repository;
 
@@ -20,15 +20,14 @@ public final class RestoreWarehouseBackupService
         this.repository = Objects.requireNonNull(repository);
     }
 
-    @Override
     public void restoreBackup(
             List<WarehouseItem> warehouseItems,
-            Callback callback
+            Consumer<RestoreWarehouseBackupResult> callback
     ) {
         Objects.requireNonNull(callback);
 
         if (warehouseItems == null) {
-            callback.onResult(
+            callback.accept(
                     RestoreWarehouseBackupResult.failure(
                             RestoreWarehouseBackupResult
                                     .Status.INVALID_BACKUP,
@@ -54,7 +53,7 @@ public final class RestoreWarehouseBackupService
                     ) {
                         if (replacedCount
                                 != snapshot.size()) {
-                            callback.onResult(
+                            callback.accept(
                                     RestoreWarehouseBackupResult
                                             .failure(
                                                     RestoreWarehouseBackupResult
@@ -68,7 +67,7 @@ public final class RestoreWarehouseBackupService
                             return;
                         }
 
-                        callback.onResult(
+                        callback.accept(
                                 RestoreWarehouseBackupResult
                                         .success(
                                                 replacedCount
@@ -80,7 +79,7 @@ public final class RestoreWarehouseBackupService
                     public void onDuplicate(
                             Throwable cause
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 RestoreWarehouseBackupResult.failure(
                                         RestoreWarehouseBackupResult
                                                 .Status.DUPLICATE_DATA,
@@ -93,7 +92,7 @@ public final class RestoreWarehouseBackupService
                     public void onError(
                             Throwable cause
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 RestoreWarehouseBackupResult.failure(
                                         RestoreWarehouseBackupResult
                                                 .Status

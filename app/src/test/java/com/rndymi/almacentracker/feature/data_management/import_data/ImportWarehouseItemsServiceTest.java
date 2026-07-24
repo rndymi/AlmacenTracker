@@ -3,13 +3,13 @@ package com.rndymi.almacentracker.feature.data_management.import_data;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader.ReadCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
-import com.rndymi.almacentracker.application.result.ImportIssueType;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue.ImportIssueType;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReadResult;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvRow;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
@@ -397,7 +397,7 @@ public final class ImportWarehouseItemsServiceTest {
         @Override
         public void read(
                 String sourceReference,
-                WarehouseItemCsvReadCallback callback
+                ReadCallback callback
         ) {
             callback.onSuccess(result);
         }

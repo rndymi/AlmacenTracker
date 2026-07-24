@@ -4,49 +4,27 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
-import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 
 import java.util.Objects;
 
 public final class WarehouseItemFormViewModelFactory
         implements ViewModelProvider.Factory {
 
-    private final CreateWarehouseItemUseCase
-            createWarehouseItemUseCase;
+    private final WarehouseItemSaveService saveService;
 
-    private final UpdateWarehouseItemUseCase
-            updateWarehouseItemUseCase;
-
-    private final GetWarehouseItemDetailUseCase
-            getWarehouseItemDetailUseCase;
+    private final WarehouseItemRepository repository;
 
     private final long warehouseItemId;
 
     public WarehouseItemFormViewModelFactory(
-            CreateWarehouseItemUseCase
-                    createWarehouseItemUseCase,
-            UpdateWarehouseItemUseCase
-                    updateWarehouseItemUseCase,
-            GetWarehouseItemDetailUseCase
-                    getWarehouseItemDetailUseCase,
+            WarehouseItemSaveService saveService,
+            WarehouseItemRepository repository,
             long warehouseItemId
     ) {
-        this.createWarehouseItemUseCase =
-                Objects.requireNonNull(
-                        createWarehouseItemUseCase
-                );
+        this.saveService = Objects.requireNonNull(saveService);
 
-        this.updateWarehouseItemUseCase =
-                Objects.requireNonNull(
-                        updateWarehouseItemUseCase
-                );
-
-        this.getWarehouseItemDetailUseCase =
-                Objects.requireNonNull(
-                        getWarehouseItemDetailUseCase
-                );
+        this.repository = Objects.requireNonNull(repository);
 
         this.warehouseItemId = warehouseItemId;
     }
@@ -67,9 +45,8 @@ public final class WarehouseItemFormViewModelFactory
 
         return modelClass.cast(
                 new WarehouseItemFormViewModel(
-                        createWarehouseItemUseCase,
-                        updateWarehouseItemUseCase,
-                        getWarehouseItemDetailUseCase,
+                        saveService,
+                        repository,
                         warehouseItemId
                 )
         );

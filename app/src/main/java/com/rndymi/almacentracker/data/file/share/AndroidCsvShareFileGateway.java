@@ -5,9 +5,9 @@ import android.net.Uri;
 
 import androidx.core.content.FileProvider;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileGateway;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway.ShareFileCallback;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -79,7 +79,7 @@ public final class AndroidCsvShareFileGateway
     public void createShareableFile(
             List<WarehouseItem> warehouseItems,
             String suggestedFileName,
-            WarehouseItemCsvShareFileCallback callback
+            ShareFileCallback callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);
@@ -107,7 +107,7 @@ public final class AndroidCsvShareFileGateway
     private void createFile(
             List<WarehouseItem> warehouseItems,
             String fileName,
-            WarehouseItemCsvShareFileCallback callback
+            ShareFileCallback callback
     ) {
         final byte[] content;
 

@@ -4,38 +4,28 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 
 import java.util.Objects;
 
 public final class WarehouseItemDetailViewModelFactory
         implements ViewModelProvider.Factory {
 
-    private final GetWarehouseItemDetailUseCase
-            getWarehouseItemDetailUseCase;
+    private final WarehouseItemRepository repository;
 
-    private final DeleteWarehouseItemUseCase
-            deleteWarehouseItemUseCase;
+    private final WarehouseItemDeleteService deleteService;
 
     private final long warehouseItemId;
 
     public WarehouseItemDetailViewModelFactory(
-            GetWarehouseItemDetailUseCase
-                    getWarehouseItemDetailUseCase,
-            DeleteWarehouseItemUseCase
-                    deleteWarehouseItemUseCase,
+            WarehouseItemRepository repository,
+            WarehouseItemDeleteService deleteService,
             long warehouseItemId
     ) {
-        this.getWarehouseItemDetailUseCase =
-                Objects.requireNonNull(
-                        getWarehouseItemDetailUseCase
-                );
+        this.repository = Objects.requireNonNull(repository);
 
-        this.deleteWarehouseItemUseCase =
-                Objects.requireNonNull(
-                        deleteWarehouseItemUseCase
-                );
+        this.deleteService = Objects.requireNonNull(deleteService);
 
         this.warehouseItemId = warehouseItemId;
     }
@@ -56,8 +46,8 @@ public final class WarehouseItemDetailViewModelFactory
 
         return modelClass.cast(
                 new WarehouseItemDetailViewModel(
-                        getWarehouseItemDetailUseCase,
-                        deleteWarehouseItemUseCase,
+                        repository,
+                        deleteService,
                         warehouseItemId
                 )
         );

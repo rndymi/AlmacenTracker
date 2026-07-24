@@ -109,7 +109,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:saveEnabled="false" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -127,7 +128,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:saveEnabled="false" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -145,7 +147,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:saveEnabled="false" />
 
             </com.google.android.material.textfield.TextInputLayout>
 

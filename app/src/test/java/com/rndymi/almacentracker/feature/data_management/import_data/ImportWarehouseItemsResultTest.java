@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.result.ImportIssueType;
-import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue.ImportIssueType;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue;
 
 import org.junit.Test;
 

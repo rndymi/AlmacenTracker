@@ -6,14 +6,8 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
-import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
-import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
-import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemCommand;
-import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.UpdateWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.Objects;
@@ -45,14 +39,9 @@ public final class WarehouseItemFormViewModel
     private static final String INVALID_ID_ERROR =
             "No se pudo identificar la mercancía.";
 
-    private final CreateWarehouseItemUseCase
-            createWarehouseItemUseCase;
+    private final WarehouseItemSaveService saveService;
 
-    private final UpdateWarehouseItemUseCase
-            updateWarehouseItemUseCase;
-
-    private final GetWarehouseItemDetailUseCase
-            getWarehouseItemDetailUseCase;
+    private final WarehouseItemRepository repository;
 
     private final long warehouseItemId;
 
@@ -75,26 +64,13 @@ public final class WarehouseItemFormViewModel
     private boolean saveInProgress;
 
     public WarehouseItemFormViewModel(
-            CreateWarehouseItemUseCase createWarehouseItemUseCase,
-            UpdateWarehouseItemUseCase updateWarehouseItemUseCase,
-            GetWarehouseItemDetailUseCase
-                    getWarehouseItemDetailUseCase,
+            WarehouseItemSaveService saveService,
+            WarehouseItemRepository repository,
             long warehouseItemId
     ) {
-        this.createWarehouseItemUseCase =
-                Objects.requireNonNull(
-                        createWarehouseItemUseCase
-                );
+        this.saveService = Objects.requireNonNull(saveService);
 
-        this.updateWarehouseItemUseCase =
-                Objects.requireNonNull(
-                        updateWarehouseItemUseCase
-                );
-
-        this.getWarehouseItemDetailUseCase =
-                Objects.requireNonNull(
-                        getWarehouseItemDetailUseCase
-                );
+        this.repository = Objects.requireNonNull(repository);
 
         this.warehouseItemId = warehouseItemId;
 
@@ -123,10 +99,7 @@ public final class WarehouseItemFormViewModel
         );
 
         detailSource =
-                getWarehouseItemDetailUseCase
-                        .observeWarehouseItemDetail(
-                                warehouseItemId
-                        );
+                repository.observeById(warehouseItemId);
 
         uiState.addSource(
                 detailSource,
@@ -307,35 +280,29 @@ public final class WarehouseItemFormViewModel
     }
 
     private void create(WarehouseItemFormUiState current) {
-        CreateWarehouseItemCommand command =
-                new CreateWarehouseItemCommand(
-                        current.getCategory(),
-                        current.getCode(),
-                        current.getSite(),
-                        current.getPosition(),
-                        current.getObservations()
-                );
-
-        createWarehouseItemUseCase.createWarehouseItem(
-                command,
-                this::handleCreateResult
+        saveService.create(
+                formDataFrom(current),
+                this::handleSaveResult
         );
     }
 
     private void update(WarehouseItemFormUiState current) {
-        UpdateWarehouseItemCommand command =
-                new UpdateWarehouseItemCommand(
-                        current.getWarehouseItemId(),
-                        current.getCategory(),
-                        current.getCode(),
-                        current.getSite(),
-                        current.getPosition(),
-                        current.getObservations()
-                );
+        saveService.update(
+                current.getWarehouseItemId(),
+                formDataFrom(current),
+                this::handleSaveResult
+        );
+    }
 
-        updateWarehouseItemUseCase.updateWarehouseItem(
-                command,
-                this::handleUpdateResult
+    private WarehouseItemFormData formDataFrom(
+            WarehouseItemFormUiState state
+    ) {
+        return new WarehouseItemFormData(
+                state.getCategory(),
+                state.getCode(),
+                state.getSite(),
+                state.getPosition(),
+                state.getObservations()
         );
     }
 
@@ -374,8 +341,8 @@ public final class WarehouseItemFormViewModel
         );
     }
 
-    private void handleCreateResult(
-            CreateWarehouseItemResult result
+    private void handleSaveResult(
+            WarehouseItemSaveResult result
     ) {
         saveInProgress = false;
 
@@ -385,11 +352,18 @@ public final class WarehouseItemFormViewModel
                         withSaving(requireState(), false)
                 );
 
-                creationSuccess.postValue(
-                        new UiEvent<>(
-                                result.getCreatedItemId()
-                        )
-                );
+                if (requireState().getMode()
+                        == WarehouseItemFormMode.CREATE) {
+                    creationSuccess.postValue(
+                            new UiEvent<>(
+                                    result.getWarehouseItemId()
+                            )
+                    );
+                } else {
+                    updateSuccess.postValue(
+                            new UiEvent<>(true)
+                    );
+                }
                 break;
 
             case VALIDATION_ERROR:
@@ -402,52 +376,29 @@ public final class WarehouseItemFormViewModel
 
             case DUPLICATE:
                 publishGeneralError(
-                        CREATE_DUPLICATE_ERROR
-                );
-                break;
-
-            case PERSISTENCE_ERROR:
-                publishGeneralError(CREATE_ERROR);
-                break;
-        }
-    }
-
-    private void handleUpdateResult(
-            UpdateWarehouseItemResult result
-    ) {
-        saveInProgress = false;
-
-        switch (result.getStatus()) {
-            case SUCCESS:
-                publish(
-                        withSaving(requireState(), false)
-                );
-
-                updateSuccess.postValue(
-                        new UiEvent<>(true)
-                );
-                break;
-
-            case VALIDATION_ERROR:
-                publishValidationErrors(
-                        result.isCategoryRequired(),
-                        result.isCodeRequired(),
-                        result.isSiteRequired()
-                );
-                break;
-
-            case DUPLICATE:
-                publishGeneralError(
-                        UPDATE_DUPLICATE_ERROR
+                        requireState().getMode()
+                                == WarehouseItemFormMode.CREATE
+                                ? CREATE_DUPLICATE_ERROR
+                                : UPDATE_DUPLICATE_ERROR
                 );
                 break;
 
             case NOT_FOUND:
-                publish(notFoundState());
+                if (requireState().getMode()
+                        == WarehouseItemFormMode.EDIT) {
+                    publish(notFoundState());
+                } else {
+                    publishGeneralError(CREATE_ERROR);
+                }
                 break;
 
             case PERSISTENCE_ERROR:
-                publishGeneralError(UPDATE_ERROR);
+                publishGeneralError(
+                        requireState().getMode()
+                                == WarehouseItemFormMode.CREATE
+                                ? CREATE_ERROR
+                                : UPDATE_ERROR
+                );
                 break;
         }
     }

@@ -17,9 +17,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
-import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsResult;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
 import com.rndymi.almacentracker.databinding.ActivityDataManagementBinding;
 
 import java.util.List;

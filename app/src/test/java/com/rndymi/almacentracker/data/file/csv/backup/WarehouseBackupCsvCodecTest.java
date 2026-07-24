@@ -6,8 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
-import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvRow;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupReadResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Before;

@@ -1,6 +1,6 @@
 package com.rndymi.almacentracker.feature.data_management.import_data;
 
-import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue;
 
 import java.util.ArrayList;
 import java.util.Collections;

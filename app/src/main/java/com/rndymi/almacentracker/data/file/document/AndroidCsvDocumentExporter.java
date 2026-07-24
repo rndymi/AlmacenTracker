@@ -3,8 +3,8 @@ package com.rndymi.almacentracker.data.file.document;
 import android.content.ContentResolver;
 import android.net.Uri;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExportCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExporter;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvExporter.ExportCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvExporter;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -35,7 +35,7 @@ public final class AndroidCsvDocumentExporter
     public void export(
             String destinationReference,
             List<WarehouseItem> warehouseItems,
-            WarehouseItemCsvExportCallback callback
+            ExportCallback callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);
@@ -70,7 +70,7 @@ public final class AndroidCsvDocumentExporter
     private void writeDocument(
             Uri destinationUri,
             List<WarehouseItem> warehouseItems,
-            WarehouseItemCsvExportCallback callback
+            ExportCallback callback
     ) {
         final byte[] content;
 

@@ -3,9 +3,9 @@ package com.rndymi.almacentracker.feature.inventory.list;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
-import com.rndymi.almacentracker.application.port.in.PositionFilter;
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.data.repository.PositionFilter;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;

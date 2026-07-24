@@ -6,11 +6,11 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 
 import java.util.Objects;
 
@@ -24,8 +24,7 @@ public final class WarehouseItemDetailViewModel
             "No se pudo eliminar la mercancía.";
 
     private final long warehouseItemId;
-    private final DeleteWarehouseItemUseCase
-            deleteWarehouseItemUseCase;
+    private final WarehouseItemDeleteService deleteService;
 
     private final MediatorLiveData<WarehouseItemDetailUiState>
             uiState = new MediatorLiveData<>();
@@ -38,15 +37,12 @@ public final class WarehouseItemDetailViewModel
     private boolean deletionCompleted;
 
     public WarehouseItemDetailViewModel(
-            GetWarehouseItemDetailUseCase getDetailUseCase,
-            DeleteWarehouseItemUseCase deleteWarehouseItemUseCase,
+            WarehouseItemRepository repository,
+            WarehouseItemDeleteService deleteService,
             long warehouseItemId
     ) {
-        Objects.requireNonNull(getDetailUseCase);
-        this.deleteWarehouseItemUseCase =
-                Objects.requireNonNull(
-                        deleteWarehouseItemUseCase
-                );
+        Objects.requireNonNull(repository);
+        this.deleteService = Objects.requireNonNull(deleteService);
 
         this.warehouseItemId = warehouseItemId;
 
@@ -62,10 +58,7 @@ public final class WarehouseItemDetailViewModel
         );
 
         LiveData<WarehouseItemDetailResult> source =
-                getDetailUseCase
-                        .observeWarehouseItemDetail(
-                                warehouseItemId
-                        );
+                repository.observeById(warehouseItemId);
 
         uiState.addSource(
                 source,
@@ -97,7 +90,7 @@ public final class WarehouseItemDetailViewModel
                 )
         );
 
-        deleteWarehouseItemUseCase.deleteWarehouseItem(
+        deleteService.delete(
                 warehouseItemId,
                 this::handleDeleteResult
         );
@@ -157,7 +150,7 @@ public final class WarehouseItemDetailViewModel
     }
 
     private void handleDeleteResult(
-            DeleteWarehouseItemResult result
+            WarehouseItemDeleteResult result
     ) {
         deletionInProgress = false;
 

@@ -3,9 +3,9 @@ package com.rndymi.almacentracker.data.file.document;
 import android.content.ContentResolver;
 import android.net.Uri;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvReadCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvReader;
-import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvReader.ReadCallback;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvReader;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupReadResult;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvCodec;
 
 import java.io.ByteArrayOutputStream;
@@ -38,7 +38,7 @@ public final class AndroidWarehouseBackupDocumentReader
     @Override
     public void readBackup(
             String sourceReference,
-            WarehouseBackupCsvReadCallback callback
+            ReadCallback callback
     ) {
         Objects.requireNonNull(callback);
 

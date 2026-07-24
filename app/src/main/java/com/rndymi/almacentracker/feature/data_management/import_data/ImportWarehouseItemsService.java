@@ -1,12 +1,12 @@
 package com.rndymi.almacentracker.feature.data_management.import_data;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader.ReadCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReader;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReadResult;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvRow;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.rule.WarehouseItemIdentity;
 import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
@@ -19,10 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
-public final class ImportWarehouseItemsService
-        implements ImportWarehouseItemsUseCase {
+public class ImportWarehouseItemsService {
 
     private static final WarehouseItemNormalizer NORMALIZER =
             new WarehouseItemNormalizer();
@@ -50,16 +50,15 @@ public final class ImportWarehouseItemsService
                 );
     }
 
-    @Override
     public void importWarehouseItems(
             String sourceReference,
-            Callback callback
+            Consumer<ImportWarehouseItemsResult> callback
     ) {
         Objects.requireNonNull(callback);
 
         if (sourceReference == null
                 || sourceReference.trim().isEmpty()) {
-            callback.onResult(
+            callback.accept(
                     ImportWarehouseItemsResult.of(
                             ImportWarehouseItemsResult
                                     .Status.INVALID_SOURCE
@@ -70,7 +69,7 @@ public final class ImportWarehouseItemsService
 
         csvReader.read(
                 sourceReference,
-                new WarehouseItemCsvReadCallback() {
+                new ReadCallback() {
                     @Override
                     public void onSuccess(
                             WarehouseItemCsvReadResult result
@@ -83,7 +82,7 @@ public final class ImportWarehouseItemsService
 
                     @Override
                     public void onInvalidFormat() {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult.of(
                                         ImportWarehouseItemsResult
                                                 .Status
@@ -96,7 +95,7 @@ public final class ImportWarehouseItemsService
                     public void onReadError(
                             Throwable throwable
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult.of(
                                         ImportWarehouseItemsResult
                                                 .Status.READ_ERROR
@@ -108,7 +107,7 @@ public final class ImportWarehouseItemsService
                     public void onUnknownError(
                             Throwable throwable
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult.of(
                                         ImportWarehouseItemsResult
                                                 .Status.UNKNOWN_ERROR
@@ -121,7 +120,7 @@ public final class ImportWarehouseItemsService
 
     private void classifyAgainstExistingItems(
             WarehouseItemCsvReadResult csvResult,
-            Callback callback
+            Consumer<ImportWarehouseItemsResult> callback
     ) {
         repository.findAll(
                 new RepositoryCallback<List<WarehouseItem>>() {
@@ -140,7 +139,7 @@ public final class ImportWarehouseItemsService
                     public void onError(
                             Throwable throwable
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult
                                         .persistenceError(
                                                 csvResult
@@ -157,7 +156,7 @@ public final class ImportWarehouseItemsService
     private void prepareImportBatch(
             WarehouseItemCsvReadResult csvResult,
             List<WarehouseItem> existingItems,
-            Callback callback
+            Consumer<ImportWarehouseItemsResult> callback
     ) {
         Set<WarehouseItemIdentity> existingIdentities =
                 buildExistingIdentities(existingItems);
@@ -250,7 +249,7 @@ public final class ImportWarehouseItemsService
         sortIssues(issues);
 
         if (acceptedItems.isEmpty()) {
-            callback.onResult(
+            callback.accept(
                     ImportWarehouseItemsResult.completed(
                             csvResult.getTotalRows(),
                             0,
@@ -272,7 +271,7 @@ public final class ImportWarehouseItemsService
             List<WarehouseItem> acceptedItems,
             int totalRows,
             List<ImportWarehouseItemIssue> issues,
-            Callback callback
+            Consumer<ImportWarehouseItemsResult> callback
     ) {
         repository.insertAll(
                 acceptedItems,
@@ -281,7 +280,7 @@ public final class ImportWarehouseItemsService
                     public void onSuccess(
                             Integer insertedCount
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult
                                         .completed(
                                                 totalRows,
@@ -295,7 +294,7 @@ public final class ImportWarehouseItemsService
                     public void onDuplicate(
                             Throwable throwable
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult
                                         .persistenceError(
                                                 totalRows,
@@ -308,7 +307,7 @@ public final class ImportWarehouseItemsService
                     public void onError(
                             Throwable throwable
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ImportWarehouseItemsResult
                                         .persistenceError(
                                                 totalRows,

@@ -4,7 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
 
 import org.junit.Test;
 
@@ -68,7 +68,7 @@ public final class WarehouseItemSelectionUiStateTest {
         WarehouseItemSelectionUiState state =
                 WarehouseItemSelectionUiState.result(
                         Collections.emptySet(),
-                        DeleteWarehouseItemsResult.success(2)
+                        WarehouseItemDeleteResult.success(2)
                 );
 
         assertFalse(state.isSelectionMode());

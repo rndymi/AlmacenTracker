@@ -19,12 +19,15 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.widget.EditText;
+import android.widget.ListAdapter;
 
 import androidx.lifecycle.ViewModelProvider;
 import androidx.room.Room;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.data.local.room.dao.WarehouseItemDao;
@@ -268,6 +271,51 @@ public final class ActivityNavigationInstrumentedTest {
         }
     }
 
+    @Test
+    public void filterOptionsRemainAvailableAfterRecreation()
+            throws InterruptedException {
+
+        insertWarehouseItem();
+        Context context =
+                ApplicationProvider.getApplicationContext();
+
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(
+                             new Intent(
+                                     context,
+                                     MainActivity.class
+                             )
+                     )) {
+            awaitFilterOptions(scenario);
+
+            scenario.onActivity(activity -> {
+                MaterialAutoCompleteTextView dropdown =
+                        activity.findViewById(
+                                R.id.categoryFilterDropdown
+                        );
+
+                assertFalse(dropdown.isSaveEnabled());
+                assertDropdownContains(dropdown, "MR");
+
+                dropdown.requestFocus();
+                dropdown.showDropDown();
+            });
+
+            scenario.recreate();
+            awaitFilterOptions(scenario);
+
+            scenario.onActivity(activity -> {
+                MaterialAutoCompleteTextView dropdown =
+                        activity.findViewById(
+                                R.id.categoryFilterDropdown
+                        );
+
+                assertFalse(dropdown.isSaveEnabled());
+                assertDropdownContains(dropdown, "MR");
+            });
+        }
+    }
+
     private void assertIntent(
             Intent intent,
             Class<? extends Activity> destination,
@@ -343,6 +391,68 @@ public final class ActivityNavigationInstrumentedTest {
         throw new AssertionError(
                 "Inventory content was not rendered"
         );
+    }
+
+    private void awaitFilterOptions(
+            ActivityScenario<MainActivity> scenario
+    ) throws InterruptedException {
+
+        AtomicReference<Boolean> optionsAvailable =
+                new AtomicReference<>(false);
+
+        for (int attempt = 0; attempt < 30; attempt++) {
+            scenario.onActivity(activity -> {
+                MaterialAutoCompleteTextView dropdown =
+                        activity.findViewById(
+                                R.id.categoryFilterDropdown
+                        );
+
+                optionsAvailable.set(
+                        dropdownContains(dropdown, "MR")
+                );
+            });
+
+            if (optionsAvailable.get()) {
+                return;
+            }
+
+            Thread.sleep(100L);
+        }
+
+        throw new AssertionError(
+                "Category filter options were not rendered"
+        );
+    }
+
+    private void assertDropdownContains(
+            MaterialAutoCompleteTextView dropdown,
+            String expectedOption
+    ) {
+        assertTrue(
+                "Missing dropdown option: " + expectedOption,
+                dropdownContains(dropdown, expectedOption)
+        );
+    }
+
+    private boolean dropdownContains(
+            MaterialAutoCompleteTextView dropdown,
+            String expectedOption
+    ) {
+        ListAdapter adapter = dropdown.getAdapter();
+
+        if (adapter == null) {
+            return false;
+        }
+
+        for (int index = 0; index < adapter.getCount(); index++) {
+            if (expectedOption.equals(
+                    String.valueOf(adapter.getItem(index))
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private long insertWarehouseItem() {

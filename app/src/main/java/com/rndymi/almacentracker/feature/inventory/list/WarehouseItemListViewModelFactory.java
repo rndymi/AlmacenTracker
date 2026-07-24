@@ -4,46 +4,24 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
-import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 
 import java.util.Objects;
 
 public final class WarehouseItemListViewModelFactory
         implements ViewModelProvider.Factory {
 
-    private final ObserveWarehouseItemsUseCase observeUseCase;
-    private final FilterWarehouseItemsUseCase filterUseCase;
-    private final ObserveWarehouseItemFilterOptionsUseCase
-            observeFilterOptionsUseCase;
-    private final DeleteWarehouseItemsUseCase
-            deleteWarehouseItemsUseCase;
+    private final WarehouseItemRepository repository;
+    private final WarehouseItemDeleteService deleteService;
 
     public WarehouseItemListViewModelFactory(
-            ObserveWarehouseItemsUseCase observeUseCase,
-            FilterWarehouseItemsUseCase filterUseCase,
-            ObserveWarehouseItemFilterOptionsUseCase
-                    observeFilterOptionsUseCase,
-            DeleteWarehouseItemsUseCase
-                    deleteWarehouseItemsUseCase
+            WarehouseItemRepository repository,
+            WarehouseItemDeleteService deleteService
     ) {
-        this.observeUseCase =
-                Objects.requireNonNull(observeUseCase);
+        this.repository = Objects.requireNonNull(repository);
 
-        this.filterUseCase =
-                Objects.requireNonNull(filterUseCase);
-
-        this.observeFilterOptionsUseCase =
-                Objects.requireNonNull(
-                        observeFilterOptionsUseCase
-                );
-
-        this.deleteWarehouseItemsUseCase =
-                Objects.requireNonNull(
-                        deleteWarehouseItemsUseCase
-                );
+        this.deleteService = Objects.requireNonNull(deleteService);
     }
 
     @NonNull
@@ -56,10 +34,8 @@ public final class WarehouseItemListViewModelFactory
         )) {
             return modelClass.cast(
                     new WarehouseItemListViewModel(
-                            observeUseCase,
-                            filterUseCase,
-                            observeFilterOptionsUseCase,
-                            deleteWarehouseItemsUseCase
+                            repository,
+                            deleteService
                     )
             );
         }

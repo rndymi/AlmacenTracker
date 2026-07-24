@@ -20,9 +20,9 @@ import com.rndymi.almacentracker.feature.data_management.common.DataManagementAc
 import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
-import com.rndymi.almacentracker.application.port.in.PositionFilter;
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.data.repository.PositionFilter;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.databinding.ActivityMainBinding;
 import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
 import com.rndymi.almacentracker.feature.inventory.form.ItemFormActivity;
@@ -764,7 +764,7 @@ public final class MainActivity extends AppCompatActivity {
             return;
         }
 
-        DeleteWarehouseItemsResult result =
+        WarehouseItemDeleteResult result =
                 state.getResultEvent()
                         .getContentIfNotHandled();
 
@@ -805,7 +805,7 @@ public final class MainActivity extends AppCompatActivity {
             case EMPTY_SELECTION:
                 break;
 
-            case INVALID_IDS:
+            case INVALID_ID:
                 showMessage(
                         getString(
                                 R.string

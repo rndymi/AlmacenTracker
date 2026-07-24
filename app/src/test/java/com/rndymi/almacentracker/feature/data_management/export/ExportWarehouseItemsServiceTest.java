@@ -5,9 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExportCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExporter;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvExporter.ExportCallback;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvExporter;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -234,7 +234,7 @@ public final class ExportWarehouseItemsServiceTest {
         public void export(
                 String destinationReference,
                 List<WarehouseItem> warehouseItems,
-                WarehouseItemCsvExportCallback callback
+                ExportCallback callback
         ) {
             exportCalled = true;
             receivedDestination = destinationReference;

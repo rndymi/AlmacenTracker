@@ -9,15 +9,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.lang.reflect.Proxy;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,11 +43,11 @@ public final class WarehouseItemDetailViewModelThreadingTest {
         CountDownLatch successEmitted =
                 new CountDownLatch(1);
 
-        GetWarehouseItemDetailUseCase detailUseCase =
-                warehouseItemId -> detailResult;
+        WarehouseItemRepository repository =
+                repositoryObserving(detailResult);
 
-        DeleteWarehouseItemUseCase deleteUseCase =
-                new BackgroundDeleteUseCase(
+        WarehouseItemDeleteService deleteService =
+                new BackgroundDeleteService(
                         backgroundFailure,
                         callbackFinished
                 );
@@ -73,8 +74,8 @@ public final class WarehouseItemDetailViewModelThreadingTest {
                 .runOnMainSync(() -> {
                     WarehouseItemDetailViewModel createdViewModel =
                             new WarehouseItemDetailViewModel(
-                                    detailUseCase,
-                                    deleteUseCase,
+                                    repository,
+                                    deleteService,
                                     7L
                             );
 
@@ -133,29 +134,49 @@ public final class WarehouseItemDetailViewModelThreadingTest {
         );
     }
 
-    private static final class BackgroundDeleteUseCase
-            implements DeleteWarehouseItemUseCase {
+    private static WarehouseItemRepository repositoryObserving(
+            MutableLiveData<WarehouseItemDetailResult> detailResult
+    ) {
+        return (WarehouseItemRepository) Proxy.newProxyInstance(
+                WarehouseItemRepository.class.getClassLoader(),
+                new Class<?>[]{WarehouseItemRepository.class},
+                (proxy, method, arguments) -> {
+                    if ("observeById".equals(method.getName())) {
+                        return detailResult;
+                    }
+
+                    throw new AssertionError(
+                            "Unexpected repository operation: "
+                                    + method.getName()
+                    );
+                }
+        );
+    }
+
+    private static final class BackgroundDeleteService
+            extends WarehouseItemDeleteService {
 
         private final AtomicReference<Throwable> backgroundFailure;
         private final CountDownLatch callbackFinished;
 
-        private BackgroundDeleteUseCase(
+        private BackgroundDeleteService(
                 AtomicReference<Throwable> backgroundFailure,
                 CountDownLatch callbackFinished
         ) {
+            super(repositoryObserving(new MutableLiveData<>()));
             this.backgroundFailure = backgroundFailure;
             this.callbackFinished = callbackFinished;
         }
 
         @Override
-        public void deleteWarehouseItem(
+        public void delete(
                 long warehouseItemId,
-                Consumer<DeleteWarehouseItemResult> callback
+                Consumer<WarehouseItemDeleteResult> callback
         ) {
             Thread callbackThread = new Thread(() -> {
                 try {
                     callback.accept(
-                            DeleteWarehouseItemResult.success()
+                            WarehouseItemDeleteResult.success(1)
                     );
                 } catch (Throwable throwable) {
                     backgroundFailure.set(throwable);

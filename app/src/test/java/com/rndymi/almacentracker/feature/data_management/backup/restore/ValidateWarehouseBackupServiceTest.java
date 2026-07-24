@@ -5,11 +5,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvReadCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvReader;
-import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
-import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
-import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvReader.ReadCallback;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvReader;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvRow;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.WarehouseBackupValidationResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Before;
@@ -230,7 +230,7 @@ public final class ValidateWarehouseBackupServiceTest {
         @Override
         public void readBackup(
                 String sourceReference,
-                WarehouseBackupCsvReadCallback callback
+                ReadCallback callback
         ) {
             calls++;
             callback.onResult(result);

@@ -1,7 +1,7 @@
 package com.rndymi.almacentracker.data.file.csv.backup;
 
-import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
-import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvRow;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupReadResult;
 import com.rndymi.almacentracker.core.csv.CsvFormulaProtector;
 import com.rndymi.almacentracker.core.csv.CsvRecordCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;

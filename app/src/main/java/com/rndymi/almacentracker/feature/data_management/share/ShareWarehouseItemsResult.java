@@ -1,6 +1,6 @@
 package com.rndymi.almacentracker.feature.data_management.share;
 
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
 
 import java.util.Objects;
 

@@ -5,7 +5,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 

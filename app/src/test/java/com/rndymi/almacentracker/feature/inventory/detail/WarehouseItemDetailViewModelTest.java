@@ -10,12 +10,12 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.in.GetWarehouseItemDetailUseCase;
-import com.rndymi.almacentracker.application.result.DeleteWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 import com.rndymi.almacentracker.testutil.LiveDataTestUtil;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,16 +32,16 @@ public final class WarehouseItemDetailViewModelTest {
     public void constructor_exposesInvalidId_whenIdIsNotValid()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         0L
                 );
 
@@ -55,30 +55,30 @@ public final class WarehouseItemDetailViewModelTest {
                 state.getStatus()
         );
 
-        assertEquals(0, detailUseCase.calls);
+        assertEquals(0, detailRepository.calls);
     }
 
     @Test
     public void result_exposesContent_whenItemExists()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItem warehouseItem =
                 createWarehouseItem(3L);
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         3L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         warehouseItem
                 )
@@ -106,20 +106,20 @@ public final class WarehouseItemDetailViewModelTest {
     public void delete_entersDeletingAndUsesCurrentId()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         7L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(7L)
                 )
@@ -137,27 +137,27 @@ public final class WarehouseItemDetailViewModelTest {
                 );
 
         assertTrue(state.isDeleting());
-        assertEquals(1, deleteUseCase.calls);
-        assertEquals(7L, deleteUseCase.deletedId);
+        assertEquals(1, deleteService.calls);
+        assertEquals(7L, deleteService.deletedId);
     }
 
     @Test
     public void delete_ignoresSecondCallWhileDeleting()
             throws InterruptedException {
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         7L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(7L)
                 )
@@ -170,27 +170,27 @@ public final class WarehouseItemDetailViewModelTest {
         viewModel.deleteWarehouseItem();
         viewModel.deleteWarehouseItem();
 
-        assertEquals(1, deleteUseCase.calls);
+        assertEquals(1, deleteService.calls);
     }
 
     @Test
     public void delete_emitsSuccessOnlyOnce()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         5L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(5L)
                 )
@@ -202,8 +202,8 @@ public final class WarehouseItemDetailViewModelTest {
 
         viewModel.deleteWarehouseItem();
 
-        deleteUseCase.callback.accept(
-                DeleteWarehouseItemResult.success()
+        deleteService.callback.accept(
+                WarehouseItemDeleteResult.success(1)
         );
 
         UiEvent<Boolean> event =
@@ -226,20 +226,20 @@ public final class WarehouseItemDetailViewModelTest {
     public void delete_exposesNotFound_whenNoRowWasDeleted()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         8L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(8L)
                 )
@@ -251,8 +251,8 @@ public final class WarehouseItemDetailViewModelTest {
 
         viewModel.deleteWarehouseItem();
 
-        deleteUseCase.callback.accept(
-                DeleteWarehouseItemResult.notFound()
+        deleteService.callback.accept(
+                WarehouseItemDeleteResult.notFound(1)
         );
 
         WarehouseItemDetailUiState state =
@@ -270,20 +270,20 @@ public final class WarehouseItemDetailViewModelTest {
     public void delete_exposesErrorAndAllowsRetry()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         10L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(10L)
                 )
@@ -295,8 +295,9 @@ public final class WarehouseItemDetailViewModelTest {
 
         viewModel.deleteWarehouseItem();
 
-        deleteUseCase.callback.accept(
-                DeleteWarehouseItemResult.persistenceError(
+        deleteService.callback.accept(
+                WarehouseItemDeleteResult.persistenceError(
+                        1,
                         new IllegalStateException("Failure")
                 )
         );
@@ -320,27 +321,27 @@ public final class WarehouseItemDetailViewModelTest {
 
         viewModel.deleteWarehouseItem();
 
-        assertEquals(2, deleteUseCase.calls);
+        assertEquals(2, deleteService.calls);
     }
 
     @Test
     public void detailNotFound_isIgnoredDuringSuccessfulDeletion()
             throws InterruptedException {
 
-        FakeGetWarehouseItemDetailUseCase detailUseCase =
-                new FakeGetWarehouseItemDetailUseCase();
+        RecordingDetailRepository detailRepository =
+                new RecordingDetailRepository();
 
-        FakeDeleteWarehouseItemUseCase deleteUseCase =
-                new FakeDeleteWarehouseItemUseCase();
+        RecordingDeleteService deleteService =
+                new RecordingDeleteService();
 
         WarehouseItemDetailViewModel viewModel =
                 new WarehouseItemDetailViewModel(
-                        detailUseCase,
-                        deleteUseCase,
+                        detailRepository,
+                        deleteService,
                         12L
                 );
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.found(
                         createWarehouseItem(12L)
                 )
@@ -352,7 +353,7 @@ public final class WarehouseItemDetailViewModelTest {
 
         viewModel.deleteWarehouseItem();
 
-        detailUseCase.result.setValue(
+        detailRepository.result.setValue(
                 WarehouseItemDetailResult.notFound()
         );
 
@@ -368,8 +369,8 @@ public final class WarehouseItemDetailViewModelTest {
 
         assertTrue(state.isDeleting());
 
-        deleteUseCase.callback.accept(
-                DeleteWarehouseItemResult.success()
+        deleteService.callback.accept(
+                WarehouseItemDeleteResult.success(1)
         );
 
         UiEvent<Boolean> event =
@@ -397,8 +398,8 @@ public final class WarehouseItemDetailViewModelTest {
     }
 
     private static final class
-    FakeGetWarehouseItemDetailUseCase
-            implements GetWarehouseItemDetailUseCase {
+    RecordingDetailRepository
+            extends WarehouseItemRepositoryStub {
 
         private final MutableLiveData<WarehouseItemDetailResult>
                 result = new MutableLiveData<>();
@@ -407,26 +408,30 @@ public final class WarehouseItemDetailViewModelTest {
 
         @Override
         public LiveData<WarehouseItemDetailResult>
-        observeWarehouseItemDetail(long warehouseItemId) {
+        observeById(long warehouseItemId) {
             calls++;
             return result;
         }
     }
 
     private static final class
-    FakeDeleteWarehouseItemUseCase
-            implements DeleteWarehouseItemUseCase {
+    RecordingDeleteService
+            extends WarehouseItemDeleteService {
 
         private int calls;
         private long deletedId;
 
-        private Consumer<DeleteWarehouseItemResult>
+        private Consumer<WarehouseItemDeleteResult>
                 callback;
 
+        private RecordingDeleteService() {
+            super(new WarehouseItemRepositoryStub());
+        }
+
         @Override
-        public void deleteWarehouseItem(
+        public void delete(
                 long warehouseItemId,
-                Consumer<DeleteWarehouseItemResult> callback
+                Consumer<WarehouseItemDeleteResult> callback
         ) {
             calls++;
             deletedId = warehouseItemId;

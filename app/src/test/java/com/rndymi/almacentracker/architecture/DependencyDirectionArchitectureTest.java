@@ -34,7 +34,8 @@ public final class DependencyDirectionArchitectureTest {
                     "adapter" + ".in.ui",
                     "adapter" + ".out.file",
                     "adapter" + ".out.persistence",
-                    "configura" + "tion"
+                    "configura" + "tion",
+                    "applica" + "tion"
             );
 
     private static final List<String>
@@ -75,58 +76,13 @@ public final class DependencyDirectionArchitectureTest {
     }
 
     @Test
-    public void coreContainsOnlySharedTypes()
+    public void coreDependsOnlyOnJavaCoreAndDomain()
             throws IOException {
 
         Path coreDirectory = findSourceDirectory("core");
-        Path productionPackage = findExistingPath(
-                "src/main/java/com/rndymi/almacentracker",
-                "app/src/main/java/com/rndymi/almacentracker"
-        );
 
         try (Stream<Path> files = javaFiles(coreDirectory)) {
-            List<Path> coreTypes = files.toList();
-
-            assertTrue(
-                    "Core must contain explicit shared types",
-                    !coreTypes.isEmpty()
-            );
-
-            for (Path coreType : coreTypes) {
-                assertCoreImportsAreAllowed(coreType);
-
-                String typeName = coreType
-                        .getFileName()
-                        .toString()
-                        .replaceFirst("\\.java$", "");
-                Pattern typeReference = Pattern.compile(
-                        "\\b"
-                                + Pattern.quote(typeName)
-                                + "\\b"
-                );
-                long consumers;
-
-                try (Stream<Path> productionFiles =
-                             javaFiles(productionPackage)) {
-                    consumers = productionFiles
-                            .filter(path ->
-                                    !path.equals(coreType)
-                            )
-                            .filter(path ->
-                                    typeReference.matcher(
-                                            readFile(path)
-                                    ).find()
-                            )
-                            .count();
-                }
-
-                assertTrue(
-                        "Core type must be shared by more than "
-                                + "one production component: "
-                                + typeName,
-                        consumers > 1
-                );
-            }
+            files.forEach(this::assertCoreImportsAreAllowed);
         }
     }
 
@@ -182,29 +138,7 @@ public final class DependencyDirectionArchitectureTest {
     }
 
     @Test
-    public void applicationDoesNotDependOnFeaturesOrData()
-            throws IOException {
-
-        String applicationSource = readJavaSource(
-                findSourceDirectory("application")
-        );
-
-        assertFalse(
-                "Application must not import feature classes",
-                applicationSource.contains(
-                        "import " + PROJECT_PACKAGE + "feature."
-                )
-        );
-        assertFalse(
-                "Application must not import data classes",
-                applicationSource.contains(
-                        "import " + PROJECT_PACKAGE + "data."
-                )
-        );
-    }
-
-    @Test
-    public void featuresDoNotAccessInfrastructureDirectly()
+    public void featuresUseOnlyDataRepositoryContracts()
             throws IOException {
 
         String featureSource = readJavaSource(
@@ -221,9 +155,13 @@ public final class DependencyDirectionArchitectureTest {
         }
 
         assertFalse(
-                "Feature code must not import data classes",
+                "Feature code must not import Room or file "
+                        + "infrastructure",
                 featureSource.contains(
-                        "import " + PROJECT_PACKAGE + "data."
+                        "import " + PROJECT_PACKAGE + "data.local."
+                )
+                        || featureSource.contains(
+                        "import " + PROJECT_PACKAGE + "data.file."
                 )
         );
     }
@@ -302,9 +240,6 @@ public final class DependencyDirectionArchitectureTest {
         assertFalse(
                 "Feature services belong in composition modules",
                 appContainer.contains(
-                        "application.service."
-                )
-                        || appContainer.contains(
                         "feature.data_management."
                                 + "export.ExportWarehouseItemsService"
                 )
@@ -437,6 +372,9 @@ public final class DependencyDirectionArchitectureTest {
                 || importedType.startsWith("javax.")
                 || importedType.startsWith(
                         PROJECT_PACKAGE + "core."
+                )
+                || importedType.startsWith(
+                        PROJECT_PACKAGE + "domain."
                 );
     }
 

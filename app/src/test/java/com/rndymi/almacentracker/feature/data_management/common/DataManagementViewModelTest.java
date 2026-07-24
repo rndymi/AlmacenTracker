@@ -8,19 +8,22 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
-import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupUseCase;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupUseCase;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupUseCase;
+import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupResult;
+import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupService;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupService;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupService;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupResult;
 import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsResult;
-import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsResult;
+import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsService;
 import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsResult;
-import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
-import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
+import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsService;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.WarehouseBackupValidationResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.testutil.LiveDataTestUtil;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,6 +31,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class DataManagementViewModelTest {
 
@@ -35,30 +39,30 @@ public final class DataManagementViewModelTest {
     public final InstantTaskExecutorRule executorRule =
             new InstantTaskExecutorRule();
 
-    private FakeValidateBackupUseCase validateUseCase;
-    private FakeRestoreBackupUseCase restoreUseCase;
-    private FakeExportUseCase exportUseCase;
-    private FakeShareUseCase shareUseCase;
-    private FakeImportUseCase importUseCase;
-    private FakeCreateBackupUseCase createBackupUseCase;
+    private RecordingValidateBackupService validateService;
+    private RecordingRestoreBackupService restoreService;
+    private RecordingExportService exportService;
+    private RecordingShareService shareService;
+    private RecordingImportService importService;
+    private RecordingCreateBackupService createBackupService;
     private DataManagementViewModel viewModel;
 
     @Before
     public void setUp() {
-        validateUseCase = new FakeValidateBackupUseCase();
-        restoreUseCase = new FakeRestoreBackupUseCase();
-        exportUseCase = new FakeExportUseCase();
-        shareUseCase = new FakeShareUseCase();
-        importUseCase = new FakeImportUseCase();
-        createBackupUseCase = new FakeCreateBackupUseCase();
+        validateService = new RecordingValidateBackupService();
+        restoreService = new RecordingRestoreBackupService();
+        exportService = new RecordingExportService();
+        shareService = new RecordingShareService();
+        importService = new RecordingImportService();
+        createBackupService = new RecordingCreateBackupService();
 
         viewModel = new DataManagementViewModel(
-                exportUseCase,
-                shareUseCase,
-                importUseCase,
-                createBackupUseCase,
-                validateUseCase,
-                restoreUseCase,
+                exportService,
+                shareService,
+                importService,
+                createBackupService,
+                validateService,
+                restoreService,
                 () -> "warehouse.csv",
                 () -> "warehouse-backup.csv"
         );
@@ -87,7 +91,7 @@ public final class DataManagementViewModelTest {
     }
 
     @Test
-    public void selectExportDestinationDelegatesToUseCase()
+    public void selectExportDestinationDelegatesToService()
             throws InterruptedException {
         viewModel.requestExportDestination();
         viewModel.onDestinationSelected(
@@ -98,10 +102,10 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.EXPORTING,
                 state().getStatus()
         );
-        assertEquals(1, exportUseCase.calls);
+        assertEquals(1, exportService.calls);
         assertEquals(
                 "content://warehouse.csv",
-                exportUseCase.destinationReference
+                exportService.destinationReference
         );
     }
 
@@ -115,7 +119,7 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.IDLE,
                 state().getStatus()
         );
-        assertEquals(0, exportUseCase.calls);
+        assertEquals(0, exportService.calls);
     }
 
     @Test
@@ -126,7 +130,7 @@ public final class DataManagementViewModelTest {
                 "content://warehouse.csv"
         );
 
-        exportUseCase.callback.onResult(
+        exportService.callback.accept(
                 ExportWarehouseItemsResult.success(3)
         );
 
@@ -161,7 +165,7 @@ public final class DataManagementViewModelTest {
                 state().getStatus()
         );
         assertNull(viewModel.getSourceRequest().getValue());
-        assertEquals(0, importUseCase.calls);
+        assertEquals(0, importService.calls);
     }
 
     @Test
@@ -176,7 +180,7 @@ public final class DataManagementViewModelTest {
                 );
 
         viewModel.shareWarehouseItems();
-        shareUseCase.callback.onResult(
+        shareService.callback.accept(
                 ShareWarehouseItemsResult.success(
                         shareableFile
                 )
@@ -205,7 +209,7 @@ public final class DataManagementViewModelTest {
     }
 
     @Test
-    public void importSelectionDelegatesToUseCase()
+    public void importSelectionDelegatesToService()
             throws InterruptedException {
         viewModel.requestImportSource();
         viewModel.onImportSourceSelected(
@@ -216,10 +220,10 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.IMPORTING,
                 state().getStatus()
         );
-        assertEquals(1, importUseCase.calls);
+        assertEquals(1, importService.calls);
         assertEquals(
                 "content://warehouse.csv",
-                importUseCase.sourceReference
+                importService.sourceReference
         );
     }
 
@@ -233,11 +237,11 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.IDLE,
                 state().getStatus()
         );
-        assertEquals(0, importUseCase.calls);
+        assertEquals(0, importService.calls);
     }
 
     @Test
-    public void backupSelectionDelegatesToUseCase()
+    public void backupSelectionDelegatesToService()
             throws InterruptedException {
         viewModel.requestBackupDestination();
         viewModel.onBackupDestinationSelected(
@@ -248,10 +252,10 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.CREATING_BACKUP,
                 state().getStatus()
         );
-        assertEquals(1, createBackupUseCase.calls);
+        assertEquals(1, createBackupService.calls);
         assertEquals(
                 "content://warehouse-backup.csv",
-                createBackupUseCase.destinationReference
+                createBackupService.destinationReference
         );
     }
 
@@ -282,7 +286,7 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.IDLE,
                 state().getStatus()
         );
-        assertEquals(0, createBackupUseCase.calls);
+        assertEquals(0, createBackupService.calls);
     }
 
     @Test
@@ -316,10 +320,10 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.VALIDATING_BACKUP,
                 state().getStatus()
         );
-        assertEquals(1, validateUseCase.calls);
+        assertEquals(1, validateService.calls);
         assertEquals(
                 "content://backup",
-                validateUseCase.sourceReference
+                validateService.sourceReference
         );
     }
 
@@ -333,7 +337,7 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.IDLE,
                 state().getStatus()
         );
-        assertEquals(0, validateUseCase.calls);
+        assertEquals(0, validateService.calls);
     }
 
     @Test
@@ -342,7 +346,7 @@ public final class DataManagementViewModelTest {
         WarehouseItem item = item();
 
         startValidation();
-        validateUseCase.callback.onResult(
+        validateService.callback.accept(
                 WarehouseBackupValidationResult.valid(
                         Collections.singletonList(item)
                 )
@@ -368,7 +372,7 @@ public final class DataManagementViewModelTest {
         WarehouseItem item = item();
 
         startValidation();
-        validateUseCase.callback.onResult(
+        validateService.callback.accept(
                 WarehouseBackupValidationResult.valid(
                         Collections.singletonList(item)
                 )
@@ -380,12 +384,12 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.RESTORING_BACKUP,
                 state().getStatus()
         );
-        assertEquals(1, restoreUseCase.calls);
-        assertEquals(1, restoreUseCase.items.size());
-        assertEquals(item, restoreUseCase.items.get(0));
+        assertEquals(1, restoreService.calls);
+        assertEquals(1, restoreService.items.size());
+        assertEquals(item, restoreService.items.get(0));
         assertNotSame(
-                validateUseCase.resultItems,
-                restoreUseCase.items
+                validateService.resultItems,
+                restoreService.items
         );
     }
 
@@ -393,7 +397,7 @@ public final class DataManagementViewModelTest {
     public void cancelBackupRestore_discardsConfirmation()
             throws InterruptedException {
         startValidation();
-        validateUseCase.callback.onResult(
+        validateService.callback.accept(
                 WarehouseBackupValidationResult.valid(
                         Collections.singletonList(item())
                 )
@@ -405,14 +409,14 @@ public final class DataManagementViewModelTest {
                 DataManagementUiState.Status.IDLE,
                 state().getStatus()
         );
-        assertEquals(0, restoreUseCase.calls);
+        assertEquals(0, restoreService.calls);
     }
 
     @Test
     public void invalidBackup_exposesErrorWithRowNumber()
             throws InterruptedException {
         startValidation();
-        validateUseCase.callback.onResult(
+        validateService.callback.accept(
                 WarehouseBackupValidationResult.failure(
                         WarehouseBackupValidationResult.Status.INVALID_DATA,
                         7,
@@ -434,14 +438,14 @@ public final class DataManagementViewModelTest {
     public void successfulRestore_returnsToIdleAndEmitsCount()
             throws InterruptedException {
         startValidation();
-        validateUseCase.callback.onResult(
+        validateService.callback.accept(
                 WarehouseBackupValidationResult.valid(
                         Collections.singletonList(item())
                 )
         );
         viewModel.confirmBackupRestore();
 
-        restoreUseCase.callback.onResult(
+        restoreService.callback.accept(
                 RestoreWarehouseBackupResult.success(1)
         );
 
@@ -462,14 +466,14 @@ public final class DataManagementViewModelTest {
     public void duplicateRestore_exposesError()
             throws InterruptedException {
         startValidation();
-        validateUseCase.callback.onResult(
+        validateService.callback.accept(
                 WarehouseBackupValidationResult.valid(
                         Collections.singletonList(item())
                 )
         );
         viewModel.confirmBackupRestore();
 
-        restoreUseCase.callback.onResult(
+        restoreService.callback.accept(
                 RestoreWarehouseBackupResult.failure(
                         RestoreWarehouseBackupResult.Status.DUPLICATE_DATA,
                         new IllegalStateException("Duplicate")
@@ -515,39 +519,52 @@ public final class DataManagementViewModelTest {
         );
     }
 
-    private static final class FakeValidateBackupUseCase
-            implements ValidateWarehouseBackupUseCase {
+    private static final class RecordingValidateBackupService
+            extends ValidateWarehouseBackupService {
 
         private int calls;
         private String sourceReference;
-        private Callback callback;
+        private Consumer<WarehouseBackupValidationResult> callback;
         private List<WarehouseItem> resultItems;
+
+        private RecordingValidateBackupService() {
+            super((sourceReference, callback) -> {
+            });
+        }
 
         @Override
         public void validateBackup(
                 String sourceReference,
-                Callback callback
+                Consumer<WarehouseBackupValidationResult> callback
         ) {
             calls++;
             this.sourceReference = sourceReference;
             this.callback = result -> {
                 resultItems = result.getWarehouseItems();
-                callback.onResult(result);
+                callback.accept(result);
             };
         }
     }
 
-    private static final class FakeExportUseCase
-            implements ExportWarehouseItemsUseCase {
+    private static final class RecordingExportService
+            extends ExportWarehouseItemsService {
 
         private int calls;
         private String destinationReference;
-        private Callback callback;
+        private Consumer<ExportWarehouseItemsResult> callback;
+
+        private RecordingExportService() {
+            super(
+                    new WarehouseItemRepositoryStub(),
+                    (destination, items, callback) -> {
+                    }
+            );
+        }
 
         @Override
         public void exportWarehouseItems(
                 String destinationReference,
-                Callback callback
+                Consumer<ExportWarehouseItemsResult> callback
         ) {
             calls++;
             this.destinationReference = destinationReference;
@@ -555,32 +572,50 @@ public final class DataManagementViewModelTest {
         }
     }
 
-    private static final class FakeShareUseCase
-            implements ShareWarehouseItemsUseCase {
+    private static final class RecordingShareService
+            extends ShareWarehouseItemsService {
 
         private int calls;
-        private Callback callback;
+        private Consumer<ShareWarehouseItemsResult> callback;
+
+        private RecordingShareService() {
+            super(
+                    new WarehouseItemRepositoryStub(),
+                    (items, fileName, callback) -> {
+                    },
+                    () -> "share.csv"
+            );
+        }
 
         @Override
         public void prepareWarehouseItemsForSharing(
-                Callback callback
+                Consumer<ShareWarehouseItemsResult> callback
         ) {
             calls++;
             this.callback = callback;
         }
     }
 
-    private static final class FakeImportUseCase
-            implements ImportWarehouseItemsUseCase {
+    private static final class RecordingImportService
+            extends ImportWarehouseItemsService {
 
         private int calls;
         private String sourceReference;
-        private Callback callback;
+        private Consumer<ImportWarehouseItemsResult> callback;
+
+        private RecordingImportService() {
+            super(
+                    (sourceReference, callback) -> {
+                    },
+                    new WarehouseItemRepositoryStub(),
+                    () -> 0L
+            );
+        }
 
         @Override
         public void importWarehouseItems(
                 String sourceReference,
-                Callback callback
+                Consumer<ImportWarehouseItemsResult> callback
         ) {
             calls++;
             this.sourceReference = sourceReference;
@@ -588,17 +623,25 @@ public final class DataManagementViewModelTest {
         }
     }
 
-    private static final class FakeCreateBackupUseCase
-            implements CreateWarehouseBackupUseCase {
+    private static final class RecordingCreateBackupService
+            extends CreateWarehouseBackupService {
 
         private int calls;
         private String destinationReference;
-        private Callback callback;
+        private Consumer<CreateWarehouseBackupResult> callback;
+
+        private RecordingCreateBackupService() {
+            super(
+                    new WarehouseItemRepositoryStub(),
+                    (destination, items, callback) -> {
+                    }
+            );
+        }
 
         @Override
         public void createBackup(
                 String destinationReference,
-                Callback callback
+                Consumer<CreateWarehouseBackupResult> callback
         ) {
             calls++;
             this.destinationReference = destinationReference;
@@ -606,17 +649,21 @@ public final class DataManagementViewModelTest {
         }
     }
 
-    private static final class FakeRestoreBackupUseCase
-            implements RestoreWarehouseBackupUseCase {
+    private static final class RecordingRestoreBackupService
+            extends RestoreWarehouseBackupService {
 
         private int calls;
         private List<WarehouseItem> items;
-        private Callback callback;
+        private Consumer<RestoreWarehouseBackupResult> callback;
+
+        private RecordingRestoreBackupService() {
+            super(new WarehouseItemRepositoryStub());
+        }
 
         @Override
         public void restoreBackup(
                 List<WarehouseItem> warehouseItems,
-                Callback callback
+                Consumer<RestoreWarehouseBackupResult> callback
         ) {
             calls++;
             items = warehouseItems;

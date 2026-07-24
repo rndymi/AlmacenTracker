@@ -4,12 +4,12 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupUseCase;
-import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupUseCase;
-import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsUseCase;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupUseCase;
+import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupService;
+import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupService;
+import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsService;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupService;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -17,47 +17,47 @@ import java.util.function.Supplier;
 public final class DataManagementViewModelFactory
         implements ViewModelProvider.Factory {
 
-    private final ExportWarehouseItemsUseCase exportUseCase;
-    private final ShareWarehouseItemsUseCase shareUseCase;
-    private final ImportWarehouseItemsUseCase importUseCase;
-    private final CreateWarehouseBackupUseCase createWarehouseBackupUseCase;
-    private final ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase;
-    private final RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase;
+    private final ExportWarehouseItemsService exportService;
+    private final ShareWarehouseItemsService shareService;
+    private final ImportWarehouseItemsService importService;
+    private final CreateWarehouseBackupService createBackupService;
+    private final ValidateWarehouseBackupService validateBackupService;
+    private final RestoreWarehouseBackupService restoreBackupService;
     private final Supplier<String> exportFileNameSupplier;
     private final Supplier<String> backupFileNameSupplier;
 
     public DataManagementViewModelFactory(
-            ExportWarehouseItemsUseCase exportUseCase,
-            ShareWarehouseItemsUseCase shareUseCase,
-            ImportWarehouseItemsUseCase importUseCase,
-            CreateWarehouseBackupUseCase createWarehouseBackupUseCase,
-            ValidateWarehouseBackupUseCase validateWarehouseBackupUseCase,
-            RestoreWarehouseBackupUseCase restoreWarehouseBackupUseCase,
+            ExportWarehouseItemsService exportService,
+            ShareWarehouseItemsService shareService,
+            ImportWarehouseItemsService importService,
+            CreateWarehouseBackupService createBackupService,
+            ValidateWarehouseBackupService validateBackupService,
+            RestoreWarehouseBackupService restoreBackupService,
             Supplier<String> exportFileNameSupplier,
             Supplier<String> backupFileNameSupplier
     ) {
-        this.exportUseCase =
-                Objects.requireNonNull(exportUseCase);
+        this.exportService =
+                Objects.requireNonNull(exportService);
 
-        this.shareUseCase =
-                Objects.requireNonNull(shareUseCase);
+        this.shareService =
+                Objects.requireNonNull(shareService);
 
-        this.importUseCase =
-                Objects.requireNonNull(importUseCase);
+        this.importService =
+                Objects.requireNonNull(importService);
 
-        this.createWarehouseBackupUseCase =
+        this.createBackupService =
                 Objects.requireNonNull(
-                        createWarehouseBackupUseCase
+                        createBackupService
                 );
 
-        this.validateWarehouseBackupUseCase =
+        this.validateBackupService =
                 Objects.requireNonNull(
-                        validateWarehouseBackupUseCase
+                        validateBackupService
                 );
 
-        this.restoreWarehouseBackupUseCase =
+        this.restoreBackupService =
                 Objects.requireNonNull(
-                        restoreWarehouseBackupUseCase
+                        restoreBackupService
                 );
 
         this.exportFileNameSupplier =
@@ -87,12 +87,12 @@ public final class DataManagementViewModelFactory
 
         return modelClass.cast(
                 new DataManagementViewModel(
-                        exportUseCase,
-                        shareUseCase,
-                        importUseCase,
-                        createWarehouseBackupUseCase,
-                        validateWarehouseBackupUseCase,
-                        restoreWarehouseBackupUseCase,
+                        exportService,
+                        shareService,
+                        importService,
+                        createBackupService,
+                        validateBackupService,
+                        restoreBackupService,
                         exportFileNameSupplier,
                         backupFileNameSupplier
                 )

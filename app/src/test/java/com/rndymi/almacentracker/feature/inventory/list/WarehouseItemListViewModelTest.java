@@ -7,16 +7,14 @@ import static org.junit.Assert.assertNull;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 
-import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.FilterWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemFilterOptionsUseCase;
-import com.rndymi.almacentracker.application.port.in.ObserveWarehouseItemsUseCase;
-import com.rndymi.almacentracker.application.port.in.PositionFilter;
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
+import com.rndymi.almacentracker.data.repository.PositionFilter;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -373,30 +371,40 @@ public class WarehouseItemListViewModelTest {
         private WarehouseItemFilterCriteria requestedCriteria;
 
         private WarehouseItemListViewModel createViewModel() {
-            ObserveWarehouseItemsUseCase observeUseCase =
-                    () -> allItems;
+            WarehouseItemRepositoryStub repository =
+                    new WarehouseItemRepositoryStub() {
+                        @Override
+                        public MutableLiveData<WarehouseItemsResult>
+                        observeAll() {
+                            return allItems;
+                        }
 
-            FilterWarehouseItemsUseCase filterUseCase =
-                    criteria -> {
-                        requestedCriteria = criteria;
-                        return filteredItems;
+                        @Override
+                        public MutableLiveData<WarehouseItemsResult>
+                        filter(
+                                WarehouseItemFilterCriteria criteria
+                        ) {
+                            requestedCriteria = criteria;
+                            return filteredItems;
+                        }
+
+                        @Override
+                        public MutableLiveData
+                        <WarehouseItemFilterOptionsResult>
+                        observeFilterOptions() {
+                            return filterOptions;
+                        }
                     };
 
-            ObserveWarehouseItemFilterOptionsUseCase
-                    optionsUseCase =
-                    () -> filterOptions;
-
-            DeleteWarehouseItemsUseCase deleteUseCase =
-                    (warehouseItemIds, callback) -> {
-                        throw new UnsupportedOperationException();
-                    };
+            WarehouseItemDeleteService deleteService =
+                    new WarehouseItemDeleteService(
+                            new WarehouseItemRepositoryStub()
+                    );
 
             WarehouseItemListViewModel viewModel =
                     new WarehouseItemListViewModel(
-                            observeUseCase,
-                            filterUseCase,
-                            optionsUseCase,
-                            deleteUseCase
+                            repository,
+                            deleteService
                     );
 
             viewModel.getUiState().observeForever(

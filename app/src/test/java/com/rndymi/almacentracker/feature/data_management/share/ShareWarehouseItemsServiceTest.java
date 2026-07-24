@@ -5,11 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileGateway;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway.ShareFileCallback;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
@@ -167,7 +167,7 @@ public class ShareWarehouseItemsServiceTest {
         public void createShareableFile(
                 List<WarehouseItem> warehouseItems,
                 String suggestedFileName,
-                WarehouseItemCsvShareFileCallback callback
+                ShareFileCallback callback
         ) {
             called = true;
 

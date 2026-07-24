@@ -1,9 +1,9 @@
 package com.rndymi.almacentracker.feature.data_management.backup.restore;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvReader;
-import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
-import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
-import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvReader;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvRow;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.feature.data_management.backup.restore.WarehouseBackupValidationResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.rule.WarehouseItemIdentity;
 import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
@@ -14,9 +14,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
-public final class ValidateWarehouseBackupService
-        implements ValidateWarehouseBackupUseCase {
+public class ValidateWarehouseBackupService {
 
     private static final WarehouseItemNormalizer NORMALIZER =
             new WarehouseItemNormalizer();
@@ -32,16 +32,15 @@ public final class ValidateWarehouseBackupService
                 Objects.requireNonNull(backupCsvReader);
     }
 
-    @Override
     public void validateBackup(
             String sourceReference,
-            Callback callback
+            Consumer<WarehouseBackupValidationResult> callback
     ) {
         Objects.requireNonNull(callback);
 
         if (sourceReference == null
                 || sourceReference.trim().isEmpty()) {
-            callback.onResult(
+            callback.accept(
                     WarehouseBackupValidationResult.failure(
                             WarehouseBackupValidationResult
                                     .Status.INVALID_SOURCE,
@@ -65,7 +64,7 @@ public final class ValidateWarehouseBackupService
 
     private void handleReadResult(
             WarehouseBackupReadResult readResult,
-            Callback callback
+            Consumer<WarehouseBackupValidationResult> callback
     ) {
         switch (readResult.getStatus()) {
             case SUCCESS:
@@ -76,7 +75,7 @@ public final class ValidateWarehouseBackupService
                 break;
 
             case INCOMPATIBLE_VERSION:
-                callback.onResult(
+                callback.accept(
                         WarehouseBackupValidationResult.failure(
                                 WarehouseBackupValidationResult
                                         .Status
@@ -89,7 +88,7 @@ public final class ValidateWarehouseBackupService
                 break;
 
             case INVALID_FORMAT:
-                callback.onResult(
+                callback.accept(
                         WarehouseBackupValidationResult.failure(
                                 WarehouseBackupValidationResult
                                         .Status.INVALID_FORMAT,
@@ -102,7 +101,7 @@ public final class ValidateWarehouseBackupService
 
             case READ_ERROR:
             default:
-                callback.onResult(
+                callback.accept(
                         WarehouseBackupValidationResult.failure(
                                 WarehouseBackupValidationResult
                                         .Status.READ_ERROR,
@@ -117,7 +116,7 @@ public final class ValidateWarehouseBackupService
 
     private void validateRows(
             List<WarehouseBackupCsvRow> rows,
-            Callback callback
+            Consumer<WarehouseBackupValidationResult> callback
     ) {
         try {
             List<WarehouseItem> warehouseItems =
@@ -137,7 +136,7 @@ public final class ValidateWarehouseBackupService
                         );
 
                 if (!functionalIdentities.add(identity)) {
-                    callback.onResult(
+                    callback.accept(
                             WarehouseBackupValidationResult.failure(
                                     WarehouseBackupValidationResult
                                             .Status.DUPLICATE_DATA,
@@ -165,13 +164,13 @@ public final class ValidateWarehouseBackupService
                 );
             }
 
-            callback.onResult(
+            callback.accept(
                     WarehouseBackupValidationResult.valid(
                             warehouseItems
                     )
             );
         } catch (InvalidBackupRowException exception) {
-            callback.onResult(
+            callback.accept(
                     WarehouseBackupValidationResult.failure(
                             WarehouseBackupValidationResult
                                     .Status.INVALID_DATA,
@@ -181,7 +180,7 @@ public final class ValidateWarehouseBackupService
                     )
             );
         } catch (RuntimeException exception) {
-            callback.onResult(
+            callback.accept(
                     WarehouseBackupValidationResult.failure(
                             WarehouseBackupValidationResult
                                     .Status.UNKNOWN_ERROR,

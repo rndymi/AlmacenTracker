@@ -1,8 +1,8 @@
 package com.rndymi.almacentracker.data.file.csv.exchange;
 
-import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
+import com.rndymi.almacentracker.core.csv.exchange.ImportWarehouseItemIssue;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvReadResult;
+import com.rndymi.almacentracker.core.csv.exchange.WarehouseItemCsvRow;
 import com.rndymi.almacentracker.core.csv.CsvFormulaProtector;
 import com.rndymi.almacentracker.core.csv.CsvRecordCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;

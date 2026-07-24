@@ -6,7 +6,7 @@ import androidx.room.Room;
 
 import com.rndymi.almacentracker.app.di.DataManagementModule;
 import com.rndymi.almacentracker.app.di.InventoryModule;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
 import com.rndymi.almacentracker.data.repository.RoomWarehouseItemRepository;

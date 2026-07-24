@@ -3,9 +3,9 @@ package com.rndymi.almacentracker.feature.data_management.backup.create;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvExportCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvExporter;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvExporter.ExportCallback;
+import com.rndymi.almacentracker.core.csv.backup.WarehouseBackupCsvExporter;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -206,7 +206,7 @@ public final class CreateWarehouseBackupServiceTest {
         public void exportBackup(
                 String destinationReference,
                 List<WarehouseItem> warehouseItems,
-                WarehouseBackupCsvExportCallback callback
+                ExportCallback callback
         ) {
             exportCalled = true;
             receivedItems = new ArrayList<>(warehouseItems);

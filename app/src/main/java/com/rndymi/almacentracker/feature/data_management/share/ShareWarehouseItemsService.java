@@ -1,18 +1,18 @@
 package com.rndymi.almacentracker.feature.data_management.share;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileGateway;
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.result.ShareableCsvFile;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway.ShareFileCallback;
+import com.rndymi.almacentracker.core.csv.share.WarehouseItemCsvShareFileGateway;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.core.csv.share.ShareableCsvFile;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public final class ShareWarehouseItemsService
-        implements ShareWarehouseItemsUseCase {
+public class ShareWarehouseItemsService {
 
     private final WarehouseItemRepository repository;
     private final WarehouseItemCsvShareFileGateway shareFileGateway;
@@ -30,9 +30,8 @@ public final class ShareWarehouseItemsService
                 Objects.requireNonNull(fileNameSupplier);
     }
 
-    @Override
     public void prepareWarehouseItemsForSharing(
-            Callback callback
+            Consumer<ShareWarehouseItemsResult> callback
     ) {
         Objects.requireNonNull(callback);
 
@@ -71,7 +70,7 @@ public final class ShareWarehouseItemsService
 
     private void createShareableFile(
             List<WarehouseItem> warehouseItems,
-            Callback callback
+            Consumer<ShareWarehouseItemsResult> callback
     ) {
         final String fileName;
 
@@ -88,13 +87,13 @@ public final class ShareWarehouseItemsService
         shareFileGateway.createShareableFile(
                 warehouseItems,
                 fileName,
-                new WarehouseItemCsvShareFileCallback() {
+                new ShareFileCallback() {
 
                     @Override
                     public void onSuccess(
                             ShareableCsvFile shareableFile
                     ) {
-                        callback.onResult(
+                        callback.accept(
                                 ShareWarehouseItemsResult.success(
                                         shareableFile
                                 )
@@ -149,10 +148,10 @@ public final class ShareWarehouseItemsService
     }
 
     private void emit(
-            Callback callback,
+            Consumer<ShareWarehouseItemsResult> callback,
             ShareWarehouseItemsResult.Status status
     ) {
-        callback.onResult(
+        callback.accept(
                 ShareWarehouseItemsResult.of(status)
         );
     }

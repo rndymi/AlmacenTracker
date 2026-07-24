@@ -2,7 +2,7 @@ package com.rndymi.almacentracker.app.di;
 
 import android.content.Context;
 
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvCodec;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvMapper;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;
@@ -13,18 +13,12 @@ import com.rndymi.almacentracker.data.file.document.AndroidWarehouseBackupDocume
 import com.rndymi.almacentracker.data.file.document.AndroidWarehouseBackupDocumentReader;
 import com.rndymi.almacentracker.data.file.share.AndroidCsvShareFileGateway;
 import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupService;
-import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupService;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupUseCase;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupService;
-import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.feature.data_management.common.DataManagementViewModelFactory;
 import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsService;
-import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsService;
-import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsService;
-import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsUseCase;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,18 +31,12 @@ public final class DataManagementModule {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
 
-    private final ExportWarehouseItemsUseCase
-            exportWarehouseItemsUseCase;
-    private final ShareWarehouseItemsUseCase
-            shareWarehouseItemsUseCase;
-    private final ImportWarehouseItemsUseCase
-            importWarehouseItemsUseCase;
-    private final CreateWarehouseBackupUseCase
-            createWarehouseBackupUseCase;
-    private final ValidateWarehouseBackupUseCase
-            validateWarehouseBackupUseCase;
-    private final RestoreWarehouseBackupUseCase
-            restoreWarehouseBackupUseCase;
+    private final ExportWarehouseItemsService exportService;
+    private final ShareWarehouseItemsService shareService;
+    private final ImportWarehouseItemsService importService;
+    private final CreateWarehouseBackupService createBackupService;
+    private final ValidateWarehouseBackupService validateBackupService;
+    private final RestoreWarehouseBackupService restoreBackupService;
 
     public DataManagementModule(
             Context context,
@@ -73,7 +61,7 @@ public final class DataManagementModule {
                         csvCodec,
                         executor
                 );
-        importWarehouseItemsUseCase =
+        importService =
                 new ImportWarehouseItemsService(
                         csvReader,
                         repository,
@@ -86,7 +74,7 @@ public final class DataManagementModule {
                         csvCodec,
                         executor
                 );
-        exportWarehouseItemsUseCase =
+        exportService =
                 new ExportWarehouseItemsService(
                         repository,
                         csvExporter
@@ -100,7 +88,7 @@ public final class DataManagementModule {
                         applicationContext.getPackageName()
                                 + ".fileprovider"
                 );
-        shareWarehouseItemsUseCase =
+        shareService =
                 new ShareWarehouseItemsService(
                         repository,
                         shareFileGateway,
@@ -120,7 +108,7 @@ public final class DataManagementModule {
                         backupCsvCodec,
                         executor
                 );
-        createWarehouseBackupUseCase =
+        createBackupService =
                 new CreateWarehouseBackupService(
                         repository,
                         backupDocumentExporter
@@ -133,23 +121,23 @@ public final class DataManagementModule {
                         backupCsvCodec,
                         executor
                 );
-        validateWarehouseBackupUseCase =
+        validateBackupService =
                 new ValidateWarehouseBackupService(
                         backupDocumentReader
                 );
-        restoreWarehouseBackupUseCase =
+        restoreBackupService =
                 new RestoreWarehouseBackupService(repository);
     }
 
     public DataManagementViewModelFactory
     provideDataManagementViewModelFactory() {
         return new DataManagementViewModelFactory(
-                exportWarehouseItemsUseCase,
-                shareWarehouseItemsUseCase,
-                importWarehouseItemsUseCase,
-                createWarehouseBackupUseCase,
-                validateWarehouseBackupUseCase,
-                restoreWarehouseBackupUseCase,
+                exportService,
+                shareService,
+                importService,
+                createBackupService,
+                validateBackupService,
+                restoreBackupService,
                 () -> "almacentracker-export-"
                         + LocalDate.now()
                         + ".csv",

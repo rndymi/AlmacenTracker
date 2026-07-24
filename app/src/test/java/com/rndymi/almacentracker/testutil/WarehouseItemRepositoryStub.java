@@ -2,12 +2,12 @@ package com.rndymi.almacentracker.testutil;
 
 import androidx.lifecycle.LiveData;
 
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
+import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.List;
