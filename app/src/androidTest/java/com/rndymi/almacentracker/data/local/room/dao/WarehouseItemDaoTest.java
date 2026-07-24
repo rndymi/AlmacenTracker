@@ -1377,7 +1377,7 @@ public class WarehouseItemDaoTest {
                         1000L
                 );
 
-        dao.insert(existing);
+        long previousId = dao.insert(existing);
 
         List<WarehouseItemEntity> replacement =
                 Arrays.asList(
@@ -1413,9 +1413,23 @@ public class WarehouseItemDaoTest {
 
         assertEquals(2000L, stored.get(0).getCreatedAt());
         assertEquals(3000L, stored.get(0).getUpdatedAt());
+        assertEquals(2000L, stored.get(1).getCreatedAt());
+        assertEquals(3000L, stored.get(1).getUpdatedAt());
 
         assertTrue(stored.get(0).getId() > 0L);
         assertTrue(stored.get(1).getId() > 0L);
+        assertTrue(stored.get(0).getId() != previousId);
+        assertTrue(stored.get(1).getId() != previousId);
+        assertTrue(
+                generatedIds.contains(
+                        stored.get(0).getId()
+                )
+        );
+        assertTrue(
+                generatedIds.contains(
+                        stored.get(1).getId()
+                )
+        );
     }
 
     @Test
@@ -1442,35 +1456,63 @@ public class WarehouseItemDaoTest {
 
     @Test
     public void replaceAll_whenInsertFails_rollsBackExistingData() {
-        WarehouseItemEntity existing =
-                createEntity(
+        dao.insert(
+                new WarehouseItemEntity(
                         0L,
-                        "OLD",
-                        "100",
-                        "A1",
+                        "CA",
+                        "3000",
+                        "C1",
+                        "Nivel 3",
+                        "Registro anterior C",
                         1000L,
-                        1000L
-                );
+                        1100L
+                )
+        );
+        dao.insert(
+                new WarehouseItemEntity(
+                        0L,
+                        "MD",
+                        "2000",
+                        "B1",
+                        null,
+                        null,
+                        2000L,
+                        2200L
+                )
+        );
+        dao.insert(
+                new WarehouseItemEntity(
+                        0L,
+                        "MR",
+                        "1000",
+                        "A1",
+                        "Nivel 1",
+                        "Registro anterior A",
+                        3000L,
+                        3300L
+                )
+        );
 
-        dao.insert(existing);
+        List<WarehouseItemEntity> beforeRestore =
+                dao.findAll();
 
         List<WarehouseItemEntity> invalidReplacement =
                 Arrays.asList(
                         createEntity(
                                 0L,
-                                "MR",
+                                "NEW",
                                 "1050",
-                                "B1",
-                                2000L,
-                                2000L
+                                "N1",
+                                4000L,
+                                4000L
                         ),
                         createEntity(
                                 0L,
-                                "MR",
+                                "NEW",
                                 "1050",
-                                "B2",
-                                2000L,
-                                2000L
+                                "N2",
+                                5000L,
+                                5000L
                         )
                 );
 
@@ -1487,8 +1529,59 @@ public class WarehouseItemDaoTest {
         List<WarehouseItemEntity> stored =
                 dao.findAll();
 
-        assertEquals(1, stored.size());
-        assertEquals("OLD", stored.get(0).getCategory());
-        assertEquals("100", stored.get(0).getCode());
+        assertWarehouseItemsExactlyEqual(
+                beforeRestore,
+                stored
+        );
+    }
+
+    private void assertWarehouseItemsExactlyEqual(
+            List<WarehouseItemEntity> expected,
+            List<WarehouseItemEntity> actual
+    ) {
+        assertEquals(expected.size(), actual.size());
+
+        for (int index = 0;
+             index < expected.size();
+             index++) {
+
+            WarehouseItemEntity expectedItem =
+                    expected.get(index);
+            WarehouseItemEntity actualItem =
+                    actual.get(index);
+
+            assertEquals(
+                    expectedItem.getId(),
+                    actualItem.getId()
+            );
+            assertEquals(
+                    expectedItem.getCategory(),
+                    actualItem.getCategory()
+            );
+            assertEquals(
+                    expectedItem.getCode(),
+                    actualItem.getCode()
+            );
+            assertEquals(
+                    expectedItem.getSite(),
+                    actualItem.getSite()
+            );
+            assertEquals(
+                    expectedItem.getPosition(),
+                    actualItem.getPosition()
+            );
+            assertEquals(
+                    expectedItem.getObservations(),
+                    actualItem.getObservations()
+            );
+            assertEquals(
+                    expectedItem.getCreatedAt(),
+                    actualItem.getCreatedAt()
+            );
+            assertEquals(
+                    expectedItem.getUpdatedAt(),
+                    actualItem.getUpdatedAt()
+            );
+        }
     }
 }

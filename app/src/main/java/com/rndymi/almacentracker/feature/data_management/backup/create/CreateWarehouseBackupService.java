@@ -2,8 +2,8 @@ package com.rndymi.almacentracker.feature.data_management.backup.create;
 
 import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvExportCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseBackupCsvExporter;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.Collections;
@@ -44,7 +44,7 @@ public final class CreateWarehouseBackupService
         }
 
         repository.findAll(
-                new WarehouseItemsFindCallback() {
+                new RepositoryCallback<List<WarehouseItem>>() {
                     @Override
                     public void onSuccess(
                             List<WarehouseItem> warehouseItems

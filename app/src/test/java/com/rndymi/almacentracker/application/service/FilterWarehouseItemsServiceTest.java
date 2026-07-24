@@ -9,24 +9,11 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
-import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.List;
 
 public class FilterWarehouseItemsServiceTest {
 
@@ -102,24 +89,12 @@ public class FilterWarehouseItemsServiceTest {
     }
 
     private static final class FakeRepository
-            implements WarehouseItemRepository {
+            extends WarehouseItemRepositoryStub {
 
         private WarehouseItemFilterCriteria criteria;
 
         private LiveData<WarehouseItemsResult> filterResult =
                 new MutableLiveData<>();
-
-        @Override
-        public LiveData<WarehouseItemsResult> observeAll() {
-            return new MutableLiveData<>();
-        }
-
-        @Override
-        public LiveData<WarehouseItemsResult> search(
-                String query
-        ) {
-            return new MutableLiveData<>();
-        }
 
         @Override
         public LiveData<WarehouseItemsResult> filter(
@@ -129,100 +104,5 @@ public class FilterWarehouseItemsServiceTest {
             return filterResult;
         }
 
-        @Override
-        public LiveData<WarehouseItemFilterOptionsResult>
-        observeFilterOptions() {
-            return new MutableLiveData<>();
-        }
-
-        @Override
-        public LiveData<WarehouseItemDetailResult> observeById(
-                long warehouseItemId
-        ) {
-            return new MutableLiveData<>();
-        }
-
-        @Override
-        public void findAll(
-                WarehouseItemsFindCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void findById(
-                long warehouseItemId,
-                WarehouseItemFindCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void insert(
-                WarehouseItem warehouseItem,
-                WarehouseItemInsertCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-       @Override
-        public void insertAll(
-                List<WarehouseItem> warehouseItems,
-                WarehouseItemsWriteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void replaceAll(
-                List<WarehouseItem> warehouseItems,
-                com.rndymi.almacentracker.application.port.out
-                        .WarehouseItemsWriteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-       public void update(
-                WarehouseItem warehouseItem,
-                WarehouseItemUpdateCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void deleteById(
-                long warehouseItemId,
-                WarehouseItemDeleteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void deleteByIds(
-                List<Long> warehouseItemIds,
-                WarehouseItemsDeleteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void existsByCategoryAndCode(
-                String category,
-                String code,
-                WarehouseItemDuplicateCheckCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void existsByCategoryAndCodeExcludingId(
-                String category,
-                String code,
-                long excludedWarehouseItemId,
-                WarehouseItemDuplicateCheckCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
     }
 }

@@ -1,7 +1,7 @@
 package com.rndymi.almacentracker.application.service;
 
 import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.DeleteWarehouseItemResult;
 
@@ -35,9 +35,9 @@ public final class DeleteWarehouseItemService
 
         repository.deleteById(
                 warehouseItemId,
-                new WarehouseItemDeleteCallback() {
+                new RepositoryCallback<Void>() {
                     @Override
-                    public void onSuccess() {
+                    public void onSuccess(Void ignored) {
                         callback.accept(
                                 DeleteWarehouseItemResult.success()
                         );

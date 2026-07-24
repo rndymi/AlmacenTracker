@@ -11,15 +11,8 @@ import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -189,7 +182,7 @@ public final class RoomWarehouseItemRepository
 
     @Override
     public void findAll(
-            WarehouseItemsFindCallback callback
+            RepositoryCallback<List<WarehouseItem>> callback
     ) {
         Objects.requireNonNull(callback);
 
@@ -210,7 +203,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void findById(
             long warehouseItemId,
-            WarehouseItemFindCallback callback
+            RepositoryCallback<WarehouseItem> callback
     ) {
         Objects.requireNonNull(callback);
 
@@ -226,7 +219,7 @@ public final class RoomWarehouseItemRepository
                     return;
                 }
 
-                callback.onFound(
+                callback.onSuccess(
                         mapper.toDomain(entity)
                 );
             } catch (RuntimeException exception) {
@@ -239,7 +232,7 @@ public final class RoomWarehouseItemRepository
     public void existsByCategoryAndCode(
             String category,
             String code,
-            WarehouseItemDuplicateCheckCallback callback
+            RepositoryCallback<Boolean> callback
     ) {
         Objects.requireNonNull(category);
         Objects.requireNonNull(code);
@@ -254,7 +247,7 @@ public final class RoomWarehouseItemRepository
                                         code
                                 );
 
-                callback.onResult(exists);
+                callback.onSuccess(exists);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }
@@ -266,7 +259,7 @@ public final class RoomWarehouseItemRepository
             String category,
             String code,
             long excludedWarehouseItemId,
-            WarehouseItemDuplicateCheckCallback callback
+            RepositoryCallback<Boolean> callback
     ) {
         Objects.requireNonNull(category);
         Objects.requireNonNull(code);
@@ -282,7 +275,7 @@ public final class RoomWarehouseItemRepository
                                         excludedWarehouseItemId
                                 );
 
-                callback.onResult(exists);
+                callback.onSuccess(exists);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }
@@ -292,7 +285,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void update(
             WarehouseItem warehouseItem,
-            WarehouseItemUpdateCallback callback
+            RepositoryCallback<Void> callback
     ) {
         Objects.requireNonNull(warehouseItem);
         Objects.requireNonNull(callback);
@@ -310,9 +303,9 @@ public final class RoomWarehouseItemRepository
                     return;
                 }
 
-                callback.onSuccess();
+                callback.onSuccess(null);
             } catch (SQLiteConstraintException exception) {
-                callback.onDuplicate();
+                callback.onDuplicate(exception);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }
@@ -322,7 +315,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void insertAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsWriteCallback callback
+            RepositoryCallback<Integer> callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);
@@ -360,7 +353,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void replaceAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsWriteCallback callback
+            RepositoryCallback<Integer> callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);
@@ -411,7 +404,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void deleteById(
             long warehouseItemId,
-            WarehouseItemDeleteCallback callback
+            RepositoryCallback<Void> callback
     ) {
         Objects.requireNonNull(callback);
 
@@ -433,14 +426,14 @@ public final class RoomWarehouseItemRepository
                 return;
             }
 
-            callback.onSuccess();
+            callback.onSuccess(null);
         });
     }
 
     @Override
     public void deleteByIds(
             List<Long> warehouseItemIds,
-            WarehouseItemsDeleteCallback callback
+            RepositoryCallback<Integer> callback
     ) {
         Objects.requireNonNull(warehouseItemIds);
         Objects.requireNonNull(callback);
@@ -457,7 +450,7 @@ public final class RoomWarehouseItemRepository
                                 idsCopy
                         );
 
-                callback.onComplete(deletedCount);
+                callback.onSuccess(deletedCount);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }
@@ -467,7 +460,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void insert(
             WarehouseItem warehouseItem,
-            WarehouseItemInsertCallback callback
+            RepositoryCallback<Long> callback
     ) {
         Objects.requireNonNull(warehouseItem);
         Objects.requireNonNull(callback);
@@ -482,7 +475,7 @@ public final class RoomWarehouseItemRepository
 
                 callback.onSuccess(generatedId);
             } catch (SQLiteConstraintException exception) {
-                callback.onDuplicate();
+                callback.onDuplicate(exception);
             } catch (RuntimeException exception) {
                 callback.onError(exception);
             }

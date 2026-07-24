@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
-import com.rndymi.almacentracker.feature.inventory.list.SimpleTextWatcher;
+import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.databinding.ActivityItemFormBinding;
 

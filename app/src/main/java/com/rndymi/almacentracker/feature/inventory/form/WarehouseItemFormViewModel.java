@@ -59,6 +59,8 @@ public final class WarehouseItemFormViewModel
     private final MediatorLiveData<WarehouseItemFormUiState>
             uiState = new MediatorLiveData<>();
 
+    private volatile WarehouseItemFormUiState currentState;
+
     private final MutableLiveData<UiEvent<Long>>
             creationSuccess = new MutableLiveData<>();
 
@@ -70,6 +72,7 @@ public final class WarehouseItemFormViewModel
 
     private boolean initialDataApplied;
     private boolean userHasEdited;
+    private boolean saveInProgress;
 
     public WarehouseItemFormViewModel(
             CreateWarehouseItemUseCase createWarehouseItemUseCase,
@@ -100,20 +103,20 @@ public final class WarehouseItemFormViewModel
 
     private void initialize() {
         if (warehouseItemId == 0L) {
-            uiState.setValue(
+            setInitialState(
                     WarehouseItemFormUiState.createMode()
             );
             return;
         }
 
         if (warehouseItemId < 0L) {
-            uiState.setValue(
+            setInitialState(
                     invalidIdState()
             );
             return;
         }
 
-        uiState.setValue(
+        setInitialState(
                 WarehouseItemFormUiState.editLoading(
                         warehouseItemId
                 )
@@ -271,9 +274,11 @@ public final class WarehouseItemFormViewModel
     public void save() {
         WarehouseItemFormUiState current = requireState();
 
-        if (!current.isEditable()) {
+        if (saveInProgress || !current.isEditable()) {
             return;
         }
+
+        saveInProgress = true;
 
         publish(
                 copy(
@@ -372,6 +377,8 @@ public final class WarehouseItemFormViewModel
     private void handleCreateResult(
             CreateWarehouseItemResult result
     ) {
+        saveInProgress = false;
+
         switch (result.getStatus()) {
             case SUCCESS:
                 publish(
@@ -408,6 +415,8 @@ public final class WarehouseItemFormViewModel
     private void handleUpdateResult(
             UpdateWarehouseItemResult result
     ) {
+        saveInProgress = false;
+
         switch (result.getStatus()) {
             case SUCCESS:
                 publish(
@@ -639,12 +648,18 @@ public final class WarehouseItemFormViewModel
     }
 
     private WarehouseItemFormUiState requireState() {
-        WarehouseItemFormUiState current =
-                uiState.getValue();
+        WarehouseItemFormUiState current = currentState;
 
         return current != null
                 ? current
                 : WarehouseItemFormUiState.createMode();
+    }
+
+    private void setInitialState(
+            WarehouseItemFormUiState state
+    ) {
+        currentState = Objects.requireNonNull(state);
+        uiState.setValue(state);
     }
 
     private String optionalToText(String value) {
@@ -654,6 +669,7 @@ public final class WarehouseItemFormViewModel
     private void publish(
             WarehouseItemFormUiState state
     ) {
+        currentState = Objects.requireNonNull(state);
         uiState.postValue(state);
     }
 

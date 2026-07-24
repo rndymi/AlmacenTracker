@@ -2,8 +2,8 @@ package com.rndymi.almacentracker.feature.data_management.export;
 
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExportCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvExporter;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.List;
@@ -41,7 +41,7 @@ public final class ExportWarehouseItemsService
             return;
         }
 
-        repository.findAll(new WarehouseItemsFindCallback() {
+        repository.findAll(new RepositoryCallback<List<WarehouseItem>>() {
             @Override
             public void onSuccess(List<WarehouseItem> warehouseItems) {
                 if (warehouseItems == null || warehouseItems.isEmpty()) {

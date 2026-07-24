@@ -106,6 +106,19 @@ public final class DataManagementViewModelTest {
     }
 
     @Test
+    public void cancelExportDestinationReturnsToIdleWithoutExport()
+            throws InterruptedException {
+        viewModel.requestExportDestination();
+        viewModel.onDestinationSelected(null);
+
+        assertEquals(
+                DataManagementUiState.Status.IDLE,
+                state().getStatus()
+        );
+        assertEquals(0, exportUseCase.calls);
+    }
+
+    @Test
     public void successfulExportReturnsToIdleAndEmitsCount()
             throws InterruptedException {
         viewModel.requestExportDestination();
@@ -211,6 +224,19 @@ public final class DataManagementViewModelTest {
     }
 
     @Test
+    public void cancelImportSourceReturnsToIdleWithoutImport()
+            throws InterruptedException {
+        viewModel.requestImportSource();
+        viewModel.onImportSourceSelected(null);
+
+        assertEquals(
+                DataManagementUiState.Status.IDLE,
+                state().getStatus()
+        );
+        assertEquals(0, importUseCase.calls);
+    }
+
+    @Test
     public void backupSelectionDelegatesToUseCase()
             throws InterruptedException {
         viewModel.requestBackupDestination();
@@ -227,6 +253,36 @@ public final class DataManagementViewModelTest {
                 "content://warehouse-backup.csv",
                 createBackupUseCase.destinationReference
         );
+    }
+
+    @Test
+    public void requestBackupDestinationUsesSuggestedFileName()
+            throws InterruptedException {
+        viewModel.requestBackupDestination();
+
+        UiEvent<String> event =
+                LiveDataTestUtil.getOrAwaitValue(
+                        viewModel.getBackupDestinationRequest()
+                );
+
+        assertEquals(
+                "warehouse-backup.csv",
+                event.getContentIfNotHandled()
+        );
+        assertNull(event.getContentIfNotHandled());
+    }
+
+    @Test
+    public void cancelBackupDestinationReturnsToIdleWithoutBackup()
+            throws InterruptedException {
+        viewModel.requestBackupDestination();
+        viewModel.onBackupDestinationSelected(null);
+
+        assertEquals(
+                DataManagementUiState.Status.IDLE,
+                state().getStatus()
+        );
+        assertEquals(0, createBackupUseCase.calls);
     }
 
     @Test

@@ -2,9 +2,8 @@ package com.rndymi.almacentracker.feature.data_management.import_data;
 
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
@@ -125,7 +124,7 @@ public final class ImportWarehouseItemsService
             Callback callback
     ) {
         repository.findAll(
-                new WarehouseItemsFindCallback() {
+                new RepositoryCallback<List<WarehouseItem>>() {
                     @Override
                     public void onSuccess(
                             List<WarehouseItem> existingItems
@@ -277,10 +276,10 @@ public final class ImportWarehouseItemsService
     ) {
         repository.insertAll(
                 acceptedItems,
-                new WarehouseItemsWriteCallback() {
+                new RepositoryCallback<Integer>() {
                     @Override
                     public void onSuccess(
-                            int insertedCount
+                            Integer insertedCount
                     ) {
                         callback.onResult(
                                 ImportWarehouseItemsResult

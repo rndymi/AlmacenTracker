@@ -28,54 +28,54 @@ public interface WarehouseItemRepository {
     );
 
     void findAll(
-            WarehouseItemsFindCallback callback
+            RepositoryCallback<List<WarehouseItem>> callback
     );
 
     void findById(
             long warehouseItemId,
-            WarehouseItemFindCallback callback
+            RepositoryCallback<WarehouseItem> callback
     );
 
     void existsByCategoryAndCode(
             String category,
             String code,
-            WarehouseItemDuplicateCheckCallback callback
+            RepositoryCallback<Boolean> callback
     );
 
     void existsByCategoryAndCodeExcludingId(
             String category,
             String code,
             long excludedWarehouseItemId,
-            WarehouseItemDuplicateCheckCallback callback
+            RepositoryCallback<Boolean> callback
     );
 
     void insert(
             WarehouseItem warehouseItem,
-            WarehouseItemInsertCallback callback
+            RepositoryCallback<Long> callback
     );
 
     void insertAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsWriteCallback callback
+            RepositoryCallback<Integer> callback
     );
 
     void replaceAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsWriteCallback callback
+            RepositoryCallback<Integer> callback
     );
 
     void update(
             WarehouseItem warehouseItem,
-            WarehouseItemUpdateCallback callback
+            RepositoryCallback<Void> callback
     );
 
     void deleteById(
             long warehouseItemId,
-            WarehouseItemDeleteCallback callback
+            RepositoryCallback<Void> callback
     );
 
     void deleteByIds(
             List<Long> warehouseItemIds,
-            WarehouseItemsDeleteCallback callback
+            RepositoryCallback<Integer> callback
     );
 }

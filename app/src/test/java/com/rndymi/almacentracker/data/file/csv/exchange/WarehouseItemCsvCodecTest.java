@@ -85,6 +85,36 @@ public final class WarehouseItemCsvCodecTest {
     }
 
     @Test
+    public void encodeUsesUtf8ForUnicodeValues() {
+        WarehouseItem warehouseItem =
+                new WarehouseItem(
+                        1L,
+                        "Categoría",
+                        "Ñ-1050",
+                        "Almacén",
+                        "Posición",
+                        "Revisión ✅",
+                        1L,
+                        1L
+                );
+
+        byte[] encoded = codec.encode(
+                Collections.singletonList(warehouseItem)
+        );
+
+        String csv = new String(
+                encoded,
+                StandardCharsets.UTF_8
+        );
+
+        assertTrue(csv.contains("Categoría"));
+        assertTrue(csv.contains("Ñ-1050"));
+        assertTrue(csv.contains("Almacén"));
+        assertTrue(csv.contains("Posición"));
+        assertTrue(csv.contains("Revisión ✅"));
+    }
+
+    @Test
     public void decodeReadsOfficialHeaderAndSimpleRow()
             throws WarehouseItemCsvFormatException {
         String csv =

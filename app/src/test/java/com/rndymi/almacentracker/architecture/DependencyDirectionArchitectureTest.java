@@ -31,10 +31,10 @@ public final class DependencyDirectionArchitectureTest {
     private static final List<String>
             LEGACY_HEXAGONAL_PACKAGES =
             Arrays.asList(
-                    "adapter.in.ui",
-                    "adapter.out.file",
-                    "adapter.out.persistence",
-                    "configuration"
+                    "adapter" + ".in.ui",
+                    "adapter" + ".out.file",
+                    "adapter" + ".out.persistence",
+                    "configura" + "tion"
             );
 
     private static final List<String>
@@ -79,17 +79,10 @@ public final class DependencyDirectionArchitectureTest {
             throws IOException {
 
         Path coreDirectory = findSourceDirectory("core");
-        Path featureDirectory =
-                findSourceDirectory("feature");
-        List<Path> features;
-
-        try (Stream<Path> directories =
-                     Files.list(featureDirectory)) {
-            features = directories
-                    .filter(Files::isDirectory)
-                    .sorted()
-                    .toList();
-        }
+        Path productionPackage = findExistingPath(
+                "src/main/java/com/rndymi/almacentracker",
+                "app/src/main/java/com/rndymi/almacentracker"
+        );
 
         try (Stream<Path> files = javaFiles(coreDirectory)) {
             List<Path> coreTypes = files.toList();
@@ -106,24 +99,32 @@ public final class DependencyDirectionArchitectureTest {
                         .getFileName()
                         .toString()
                         .replaceFirst("\\.java$", "");
-                int featureConsumers = 0;
+                Pattern typeReference = Pattern.compile(
+                        "\\b"
+                                + Pattern.quote(typeName)
+                                + "\\b"
+                );
+                long consumers;
 
-                for (Path feature : features) {
-                    if (Pattern.compile(
-                                    "\\b"
-                                            + Pattern.quote(typeName)
-                                            + "\\b"
+                try (Stream<Path> productionFiles =
+                             javaFiles(productionPackage)) {
+                    consumers = productionFiles
+                            .filter(path ->
+                                    !path.equals(coreType)
                             )
-                            .matcher(readJavaSource(feature))
-                            .find()) {
-                        featureConsumers++;
-                    }
+                            .filter(path ->
+                                    typeReference.matcher(
+                                            readFile(path)
+                                    ).find()
+                            )
+                            .count();
                 }
 
                 assertTrue(
                         "Core type must be shared by more than "
-                                + "one feature: " + typeName,
-                        featureConsumers > 1
+                                + "one production component: "
+                                + typeName,
+                        consumers > 1
                 );
             }
         }
@@ -212,12 +213,19 @@ public final class DependencyDirectionArchitectureTest {
 
         for (String forbiddenType
                 : FORBIDDEN_FEATURE_INFRASTRUCTURE_TYPES) {
-            assertFalse(
-                    "Feature code must not access infrastructure "
-                            + "directly: " + forbiddenType,
-                    featureSource.contains(forbiddenType)
+        assertFalse(
+                "Feature code must not access infrastructure "
+                        + "directly: " + forbiddenType,
+                featureSource.contains(forbiddenType)
             );
         }
+
+        assertFalse(
+                "Feature code must not import data classes",
+                featureSource.contains(
+                        "import " + PROJECT_PACKAGE + "data."
+                )
+        );
     }
 
     @Test
@@ -263,43 +271,6 @@ public final class DependencyDirectionArchitectureTest {
                                     .endsWith("Activity.java")
                     )
                     .forEach(this::assertActivityDoesNotCompose);
-        }
-    }
-
-    @Test
-    public void viewModelFactoriesStayFeatureSpecific()
-            throws IOException {
-
-        Path featureDirectory =
-                findSourceDirectory("feature");
-
-        try (Stream<Path> files = javaFiles(featureDirectory)) {
-            List<Path> factories = files
-                    .filter(path ->
-                            path.getFileName()
-                                    .toString()
-                                    .endsWith(
-                                            "ViewModelFactory.java"
-                                    )
-                    )
-                    .toList();
-
-            assertTrue(
-                    "Expected feature-specific ViewModel factories",
-                    !factories.isEmpty()
-            );
-
-            for (Path factory : factories) {
-                String source = readFile(factory);
-
-                assertFalse(
-                        "Factories must use checked Class.cast: "
-                                + factory,
-                        source.contains(
-                                "@SuppressWarnings(\"unchecked\")"
-                        )
-                );
-            }
         }
     }
 

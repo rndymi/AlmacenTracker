@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.feature.inventory.list;
+package com.rndymi.almacentracker.feature.inventory.common;
 
 import android.text.Editable;
 import android.text.TextWatcher;

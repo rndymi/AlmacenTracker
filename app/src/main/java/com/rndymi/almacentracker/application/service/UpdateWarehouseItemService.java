@@ -2,10 +2,8 @@ package com.rndymi.almacentracker.application.service;
 
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.in.UpdateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.result.UpdateWarehouseItemResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
@@ -99,9 +97,9 @@ public final class UpdateWarehouseItemService
 
         repository.findById(
                 command.getWarehouseItemId(),
-                new WarehouseItemFindCallback() {
+                new RepositoryCallback<WarehouseItem>() {
                     @Override
-                    public void onFound(
+                    public void onSuccess(
                             WarehouseItem original
                     ) {
                         checkDuplicateAndUpdate(
@@ -148,9 +146,9 @@ public final class UpdateWarehouseItemService
                 category,
                 code,
                 original.getId(),
-                new WarehouseItemDuplicateCheckCallback() {
+                new RepositoryCallback<Boolean>() {
                     @Override
-                    public void onResult(boolean exists) {
+                    public void onSuccess(Boolean exists) {
                         if (exists) {
                             callback.accept(
                                     UpdateWarehouseItemResult
@@ -205,16 +203,16 @@ public final class UpdateWarehouseItemService
 
         repository.update(
                 updatedItem,
-                new WarehouseItemUpdateCallback() {
+                new RepositoryCallback<Void>() {
                     @Override
-                    public void onSuccess() {
+                    public void onSuccess(Void ignored) {
                         callback.accept(
                                 UpdateWarehouseItemResult.success()
                         );
                     }
 
                     @Override
-                    public void onDuplicate() {
+                    public void onDuplicate(Throwable cause) {
                         callback.accept(
                                 UpdateWarehouseItemResult.duplicate()
                         );

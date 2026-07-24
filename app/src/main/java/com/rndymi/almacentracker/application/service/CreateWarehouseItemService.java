@@ -2,8 +2,7 @@ package com.rndymi.almacentracker.application.service;
 
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemUseCase;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
@@ -92,9 +91,9 @@ public final class CreateWarehouseItemService
         repository.existsByCategoryAndCode(
                 category,
                 code,
-                new WarehouseItemDuplicateCheckCallback() {
+                new RepositoryCallback<Boolean>() {
                     @Override
-                    public void onResult(boolean exists) {
+                    public void onSuccess(Boolean exists) {
                         if (exists) {
                             callback.accept(
                                     CreateWarehouseItemResult
@@ -149,9 +148,9 @@ public final class CreateWarehouseItemService
 
         repository.insert(
                 warehouseItem,
-                new WarehouseItemInsertCallback() {
+                new RepositoryCallback<Long>() {
                     @Override
-                    public void onSuccess(long createdItemId) {
+                    public void onSuccess(Long createdItemId) {
                         callback.accept(
                                 CreateWarehouseItemResult.success(
                                         createdItemId
@@ -160,7 +159,7 @@ public final class CreateWarehouseItemService
                     }
 
                     @Override
-                    public void onDuplicate() {
+                    public void onDuplicate(Throwable cause) {
                         callback.accept(
                                 CreateWarehouseItemResult.duplicate()
                         );

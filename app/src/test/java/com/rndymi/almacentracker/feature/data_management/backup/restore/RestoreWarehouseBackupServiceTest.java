@@ -5,21 +5,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import androidx.lifecycle.LiveData;
-
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Before;
@@ -171,128 +158,21 @@ public final class RestoreWarehouseBackupServiceTest {
     }
 
     private static final class FakeRepository
-            implements WarehouseItemRepository {
+            extends WarehouseItemRepositoryStub {
 
         private int replaceCalls;
         private List<WarehouseItem> replacement;
-        private WarehouseItemsWriteCallback callback;
+        private RepositoryCallback<Integer> callback;
 
         @Override
         public void replaceAll(
                 List<WarehouseItem> warehouseItems,
-                WarehouseItemsWriteCallback callback
+                RepositoryCallback<Integer> callback
         ) {
             replaceCalls++;
             replacement = warehouseItems;
             this.callback = callback;
         }
 
-        @Override
-        public LiveData<WarehouseItemsResult> observeAll() {
-            throw unsupported();
-        }
-
-        @Override
-        public LiveData<WarehouseItemsResult> search(String query) {
-            throw unsupported();
-        }
-
-        @Override
-        public LiveData<WarehouseItemsResult> filter(
-                WarehouseItemFilterCriteria criteria
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public LiveData<WarehouseItemFilterOptionsResult>
-        observeFilterOptions() {
-            throw unsupported();
-        }
-
-        @Override
-        public LiveData<WarehouseItemDetailResult> observeById(
-                long warehouseItemId
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void findAll(WarehouseItemsFindCallback callback) {
-            throw unsupported();
-        }
-
-        @Override
-        public void findById(
-                long warehouseItemId,
-                WarehouseItemFindCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void existsByCategoryAndCode(
-                String category,
-                String code,
-                WarehouseItemDuplicateCheckCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void existsByCategoryAndCodeExcludingId(
-                String category,
-                String code,
-                long excludedWarehouseItemId,
-                WarehouseItemDuplicateCheckCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void insert(
-                WarehouseItem warehouseItem,
-                WarehouseItemInsertCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void insertAll(
-                List<WarehouseItem> warehouseItems,
-                WarehouseItemsWriteCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void update(
-                WarehouseItem warehouseItem,
-                WarehouseItemUpdateCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void deleteById(
-                long warehouseItemId,
-                WarehouseItemDeleteCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        @Override
-        public void deleteByIds(
-                List<Long> warehouseItemIds,
-                WarehouseItemsDeleteCallback callback
-        ) {
-            throw unsupported();
-        }
-
-        private UnsupportedOperationException unsupported() {
-            return new UnsupportedOperationException(
-                    "Not required by this test"
-            );
-        }
     }
 }

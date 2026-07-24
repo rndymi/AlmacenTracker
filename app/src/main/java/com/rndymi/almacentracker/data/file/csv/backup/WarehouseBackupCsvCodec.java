@@ -2,6 +2,8 @@ package com.rndymi.almacentracker.data.file.csv.backup;
 
 import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
 import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
+import com.rndymi.almacentracker.core.csv.CsvFormulaProtector;
+import com.rndymi.almacentracker.core.csv.CsvRecordCodec;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.nio.charset.StandardCharsets;
@@ -13,7 +15,6 @@ import java.util.Objects;
 
 public final class WarehouseBackupCsvCodec {
 
-    private static final String LINE_SEPARATOR = "\r\n";
     private static final int EXPECTED_COLUMN_COUNT = 8;
 
     private static final List<String> HEADER =
@@ -48,12 +49,17 @@ public final class WarehouseBackupCsvCodec {
 
         StringBuilder csv = new StringBuilder();
 
-        appendRow(csv, HEADER);
+        CsvRecordCodec.appendRecord(
+                csv,
+                CsvFormulaProtector.protectAll(HEADER)
+        );
 
         for (WarehouseItem warehouseItem : warehouseItems) {
-            appendRow(
+            CsvRecordCodec.appendRecord(
                     csv,
-                    mapper.toColumns(warehouseItem)
+                    CsvFormulaProtector.protectAll(
+                            mapper.toColumns(warehouseItem)
+                    )
             );
         }
 
@@ -77,7 +83,8 @@ public final class WarehouseBackupCsvCodec {
                     StandardCharsets.UTF_8
             );
 
-            List<ParsedRecord> records = parseRecords(csv);
+            List<CsvRecordCodec.Record> records =
+                    CsvRecordCodec.parse(csv);
 
             if (records.isEmpty()) {
                 return WarehouseBackupReadResult.invalidFormat(
@@ -87,7 +94,9 @@ public final class WarehouseBackupCsvCodec {
                 );
             }
 
-            if (!HEADER.equals(records.get(0).columns)) {
+            if (!HEADER.equals(
+                    records.get(0).getColumns()
+            )) {
                 return WarehouseBackupReadResult.invalidFormat(
                         new IllegalArgumentException(
                                 "Unexpected backup CSV header"
@@ -104,24 +113,27 @@ public final class WarehouseBackupCsvCodec {
                  index < records.size();
                  index++) {
 
-                ParsedRecord record = records.get(index);
+                CsvRecordCodec.Record record =
+                        records.get(index);
 
                 if (record.isCompletelyEmpty()) {
                     continue;
                 }
 
-                if (record.columns.size()
+                if (record.getColumns().size()
                         != EXPECTED_COLUMN_COUNT) {
                     return WarehouseBackupReadResult.invalidFormat(
                             new IllegalArgumentException(
                                     "Invalid column count at row "
-                                            + record.rowNumber
+                                            + record.getRowNumber()
                             )
                     );
                 }
 
                 List<String> columns =
-                        unprotectColumns(record.columns);
+                        CsvFormulaProtector.unprotectAll(
+                                record.getColumns()
+                        );
 
                 String formatVersion = columns.get(0);
 
@@ -143,7 +155,7 @@ public final class WarehouseBackupCsvCodec {
 
                 rows.add(
                         new WarehouseBackupCsvRow(
-                                record.rowNumber,
+                                record.getRowNumber(),
                                 formatVersion,
                                 columns.get(1),
                                 columns.get(2),
@@ -164,273 +176,4 @@ public final class WarehouseBackupCsvCodec {
         }
     }
 
-    private List<ParsedRecord> parseRecords(String csv) {
-        List<ParsedRecord> records = new ArrayList<>();
-        List<String> currentColumns = new ArrayList<>();
-        StringBuilder currentField = new StringBuilder();
-
-        boolean insideQuotes = false;
-        boolean quoteClosed = false;
-        int currentRowNumber = 1;
-        int recordStartRow = 1;
-
-        for (int index = 0; index < csv.length(); index++) {
-            char character = csv.charAt(index);
-
-            if (insideQuotes) {
-                if (character == '"') {
-                    if (index + 1 < csv.length()
-                            && csv.charAt(index + 1) == '"') {
-                        currentField.append('"');
-                        index++;
-                    } else {
-                        insideQuotes = false;
-                        quoteClosed = true;
-                    }
-                } else {
-                    currentField.append(character);
-
-                    if (character == '\n') {
-                        currentRowNumber++;
-                    }
-                }
-
-                continue;
-            }
-
-            if (quoteClosed) {
-                if (character == ',') {
-                    currentColumns.add(
-                            currentField.toString()
-                    );
-                    currentField.setLength(0);
-                    quoteClosed = false;
-                    continue;
-                }
-
-                if (character == '\r'
-                        || character == '\n') {
-                    currentColumns.add(
-                            currentField.toString()
-                    );
-
-                    records.add(
-                            new ParsedRecord(
-                                    recordStartRow,
-                                    currentColumns
-                            )
-                    );
-
-                    currentColumns = new ArrayList<>();
-                    currentField.setLength(0);
-                    quoteClosed = false;
-
-                    if (character == '\r'
-                            && index + 1 < csv.length()
-                            && csv.charAt(index + 1) == '\n') {
-                        index++;
-                    }
-
-                    currentRowNumber++;
-                    recordStartRow = currentRowNumber;
-                    continue;
-                }
-
-                throw new IllegalArgumentException(
-                        "Unexpected character after closing quote"
-                );
-            }
-
-            if (character == '"') {
-                if (currentField.length() > 0) {
-                    throw new IllegalArgumentException(
-                            "Unexpected quote inside unquoted field"
-                    );
-                }
-
-                insideQuotes = true;
-                continue;
-            }
-
-            if (character == ',') {
-                currentColumns.add(
-                        currentField.toString()
-                );
-                currentField.setLength(0);
-                continue;
-            }
-
-            if (character == '\r'
-                    || character == '\n') {
-                currentColumns.add(
-                        currentField.toString()
-                );
-
-                records.add(
-                        new ParsedRecord(
-                                recordStartRow,
-                                currentColumns
-                        )
-                );
-
-                currentColumns = new ArrayList<>();
-                currentField.setLength(0);
-
-                if (character == '\r'
-                        && index + 1 < csv.length()
-                        && csv.charAt(index + 1) == '\n') {
-                    index++;
-                }
-
-                currentRowNumber++;
-                recordStartRow = currentRowNumber;
-                continue;
-            }
-
-            currentField.append(character);
-        }
-
-        if (insideQuotes) {
-            throw new IllegalArgumentException(
-                    "Unclosed quoted field"
-            );
-        }
-
-        if (quoteClosed
-                || currentField.length() > 0
-                || !currentColumns.isEmpty()) {
-            currentColumns.add(currentField.toString());
-
-            records.add(
-                    new ParsedRecord(
-                            recordStartRow,
-                            currentColumns
-                    )
-            );
-        }
-
-        return records;
-    }
-
-    private List<String> unprotectColumns(
-            List<String> columns
-    ) {
-        List<String> values =
-                new ArrayList<>(columns.size());
-
-        for (String column : columns) {
-            values.add(unprotectFormula(column));
-        }
-
-        return values;
-    }
-
-    private String unprotectFormula(String value) {
-        if (value == null || value.length() < 2) {
-            return value == null ? "" : value;
-        }
-
-        if (value.charAt(0) != '\'') {
-            return value;
-        }
-
-        char secondCharacter = value.charAt(1);
-
-        if (secondCharacter == '\''
-                || secondCharacter == '='
-                || secondCharacter == '+'
-                || secondCharacter == '-'
-                || secondCharacter == '@') {
-            return value.substring(1);
-        }
-
-        return value;
-    }
-
-    private void appendRow(
-            StringBuilder csv,
-            List<String> columns
-    ) {
-        for (int index = 0;
-             index < columns.size();
-             index++) {
-
-            if (index > 0) {
-                csv.append(',');
-            }
-
-            csv.append(
-                    escape(
-                            protectFormula(
-                                    columns.get(index)
-                            )
-                    )
-            );
-        }
-
-        csv.append(LINE_SEPARATOR);
-    }
-
-    private String protectFormula(String value) {
-        String safeValue = value == null ? "" : value;
-
-        if (safeValue.isEmpty()) {
-            return safeValue;
-        }
-
-        char firstCharacter = safeValue.charAt(0);
-
-        if (firstCharacter == '\''
-                || firstCharacter == '='
-                || firstCharacter == '+'
-                || firstCharacter == '-'
-                || firstCharacter == '@') {
-            return "'" + safeValue;
-        }
-
-        return safeValue;
-    }
-
-    private String escape(String value) {
-        boolean requiresQuotes =
-                value.indexOf(',') >= 0
-                        || value.indexOf('"') >= 0
-                        || value.indexOf('\r') >= 0
-                        || value.indexOf('\n') >= 0;
-
-        if (!requiresQuotes) {
-            return value;
-        }
-
-        return "\""
-                + value.replace("\"", "\"\"")
-                + "\"";
-    }
-
-    private static final class ParsedRecord {
-
-        private final int rowNumber;
-        private final List<String> columns;
-
-        private ParsedRecord(
-                int rowNumber,
-                List<String> columns
-        ) {
-            this.rowNumber = rowNumber;
-            this.columns = Collections.unmodifiableList(
-                    new ArrayList<>(columns)
-            );
-        }
-
-        private boolean isCompletelyEmpty() {
-            for (String column : columns) {
-                if (column != null
-                        && !column.trim().isEmpty()) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
 }

@@ -1,7 +1,10 @@
 package com.rndymi.almacentracker.feature.data_management.import_data;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import com.rndymi.almacentracker.application.result.ImportIssueType;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 
 import org.junit.Test;
@@ -121,5 +124,49 @@ public final class ImportWarehouseItemsResultTest {
                         .get(1)
                         .getRowNumber()
         );
+    }
+
+    @Test
+    public void issuesOnSameRowAreOrderedByTypeAndCountedOnce() {
+        ImportWarehouseItemsResult result =
+                ImportWarehouseItemsResult.completed(
+                        1,
+                        0,
+                        Arrays.asList(
+                                ImportWarehouseItemIssue
+                                        .missingSite(
+                                                2,
+                                                "",
+                                                ""
+                                        ),
+                                ImportWarehouseItemIssue
+                                        .missingCategory(
+                                                2,
+                                                ""
+                                        ),
+                                ImportWarehouseItemIssue
+                                        .missingCode(
+                                                2,
+                                                ""
+                                        )
+                        )
+                );
+
+        assertEquals(
+                ImportIssueType.MISSING_CATEGORY,
+                result.getIssues().get(0).getType()
+        );
+        assertEquals(
+                ImportIssueType.MISSING_CODE,
+                result.getIssues().get(1).getType()
+        );
+        assertEquals(
+                ImportIssueType.MISSING_SITE,
+                result.getIssues().get(2).getType()
+        );
+        assertEquals(1, result.getInvalidCount());
+        assertEquals(0, result.getDuplicateCount());
+        assertTrue(result.hasIssues());
+        assertFalse(result.getIssues().isEmpty());
     }
 }

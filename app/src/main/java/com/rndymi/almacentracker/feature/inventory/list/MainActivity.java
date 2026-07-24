@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.rndymi.almacentracker.feature.data_management.common.DataManagementActivity;
+import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.application.port.in.PositionFilter;

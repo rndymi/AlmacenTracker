@@ -1,8 +1,8 @@
 package com.rndymi.almacentracker.application.service;
 
 import com.rndymi.almacentracker.application.port.in.DeleteWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.result.DeleteWarehouseItemsResult;
 
 import java.util.ArrayList;
@@ -62,9 +62,9 @@ public final class DeleteWarehouseItemsService
 
         repository.deleteByIds(
                 immutableIds,
-                new WarehouseItemsDeleteCallback() {
+                new RepositoryCallback<Integer>() {
                     @Override
-                    public void onComplete(int deletedCount) {
+                    public void onSuccess(Integer deletedCount) {
                         if (deletedCount <= 0) {
                             callback.accept(
                                     DeleteWarehouseItemsResult

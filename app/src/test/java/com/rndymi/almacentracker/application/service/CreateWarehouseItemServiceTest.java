@@ -5,29 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseItemCommand;
-import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemDuplicateCheckCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import org.junit.Test;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CreateWarehouseItemServiceTest {
@@ -327,7 +312,7 @@ public class CreateWarehouseItemServiceTest {
     }
 
     private static final class FakeRepository
-            implements WarehouseItemRepository {
+            extends WarehouseItemRepositoryStub {
 
         private WarehouseItem insertedItem;
         private boolean insertCalled;
@@ -340,114 +325,25 @@ public class CreateWarehouseItemServiceTest {
         private Throwable duplicateCheckError;
 
         @Override
-        public LiveData<WarehouseItemsResult> observeAll() {
-            return new MutableLiveData<>();
-        }
-
-        @Override
-        public LiveData<WarehouseItemDetailResult> observeById(
-                long warehouseItemId
-        ) {
-            return new MutableLiveData<>(
-                    WarehouseItemDetailResult.notFound());
-        }
-
-        @Override
-        public void findAll(
-                WarehouseItemsFindCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void findById(
-                long warehouseItemId,
-                WarehouseItemFindCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public void insert(
                 WarehouseItem warehouseItem,
-                WarehouseItemInsertCallback callback
+                RepositoryCallback<Long> callback
         ) {
             insertCalled = true;
             insertedItem = warehouseItem;
 
             if (duplicate) {
-                callback.onDuplicate();
+                callback.onDuplicate(null);
             } else {
                 callback.onSuccess(10L);
             }
-        }
-
-       @Override
-        public void insertAll(
-                List<WarehouseItem> warehouseItems,
-                WarehouseItemsWriteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void replaceAll(
-                List<WarehouseItem> warehouseItems,
-                com.rndymi.almacentracker.application.port.out
-                        .WarehouseItemsWriteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-       public void update(
-                WarehouseItem warehouseItem,
-                WarehouseItemUpdateCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void deleteById(
-                long warehouseItemId,
-                WarehouseItemDeleteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void deleteByIds(
-                List<Long> warehouseItemIds,
-                WarehouseItemsDeleteCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public LiveData<WarehouseItemsResult> search(
-                String query
-        ) {
-            return new MutableLiveData<>();
-        }
-
-        @Override
-        public LiveData<WarehouseItemsResult> filter(
-                WarehouseItemFilterCriteria criteria
-        ) {
-            return new MutableLiveData<>();
-        }
-
-        @Override
-        public LiveData<WarehouseItemFilterOptionsResult>
-        observeFilterOptions() {
-            return new MutableLiveData<>();
         }
 
         @Override
         public void existsByCategoryAndCode(
                 String category,
                 String code,
-                WarehouseItemDuplicateCheckCallback callback
+                RepositoryCallback<Boolean> callback
         ) {
             duplicateCheckCalled = true;
             checkedCategory = category;
@@ -458,17 +354,8 @@ public class CreateWarehouseItemServiceTest {
                 return;
             }
 
-            callback.onResult(duplicateExists);
+            callback.onSuccess(duplicateExists);
         }
 
-        @Override
-        public void existsByCategoryAndCodeExcludingId(
-                String category,
-                String code,
-                long excludedWarehouseItemId,
-                WarehouseItemDuplicateCheckCallback callback
-        ) {
-            throw new UnsupportedOperationException();
-        }
     }
 }

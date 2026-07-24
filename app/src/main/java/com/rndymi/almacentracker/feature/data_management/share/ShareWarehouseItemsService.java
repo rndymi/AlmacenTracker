@@ -2,8 +2,8 @@ package com.rndymi.almacentracker.feature.data_management.share;
 
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvShareFileGateway;
+import com.rndymi.almacentracker.application.port.out.RepositoryCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
 import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
@@ -36,7 +36,7 @@ public final class ShareWarehouseItemsService
     ) {
         Objects.requireNonNull(callback);
 
-        repository.findAll(new WarehouseItemsFindCallback() {
+        repository.findAll(new RepositoryCallback<List<WarehouseItem>>() {
 
             @Override
             public void onSuccess(
