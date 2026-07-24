@@ -8,9 +8,16 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
+import com.rndymi.almacentracker.feature.data_management.backup.create.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupUseCase;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.ValidateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.feature.data_management.backup.restore.RestoreWarehouseBackupResult;
+import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsResult;
+import com.rndymi.almacentracker.feature.data_management.export.ExportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.feature.data_management.import_data.ImportWarehouseItemsUseCase;
+import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsResult;
+import com.rndymi.almacentracker.feature.data_management.share.ShareWarehouseItemsUseCase;
+import com.rndymi.almacentracker.application.result.ShareableCsvFile;
 import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.testutil.LiveDataTestUtil;
@@ -30,22 +37,195 @@ public final class DataManagementViewModelTest {
 
     private FakeValidateBackupUseCase validateUseCase;
     private FakeRestoreBackupUseCase restoreUseCase;
+    private FakeExportUseCase exportUseCase;
+    private FakeShareUseCase shareUseCase;
+    private FakeImportUseCase importUseCase;
+    private FakeCreateBackupUseCase createBackupUseCase;
     private DataManagementViewModel viewModel;
 
     @Before
     public void setUp() {
         validateUseCase = new FakeValidateBackupUseCase();
         restoreUseCase = new FakeRestoreBackupUseCase();
+        exportUseCase = new FakeExportUseCase();
+        shareUseCase = new FakeShareUseCase();
+        importUseCase = new FakeImportUseCase();
+        createBackupUseCase = new FakeCreateBackupUseCase();
 
         viewModel = new DataManagementViewModel(
-                (destination, callback) -> { },
-                callback -> { },
-                (source, callback) -> { },
-                (destination, callback) -> { },
+                exportUseCase,
+                shareUseCase,
+                importUseCase,
+                createBackupUseCase,
                 validateUseCase,
                 restoreUseCase,
                 () -> "warehouse.csv",
                 () -> "warehouse-backup.csv"
+        );
+    }
+
+    @Test
+    public void requestExportDestinationEmitsOneShotRequest()
+            throws InterruptedException {
+        viewModel.requestExportDestination();
+
+        UiEvent<String> event =
+                LiveDataTestUtil.getOrAwaitValue(
+                        viewModel.getDestinationRequest()
+                );
+
+        assertEquals(
+                DataManagementUiState.Status
+                        .SELECTING_DESTINATION,
+                state().getStatus()
+        );
+        assertEquals(
+                "warehouse.csv",
+                event.getContentIfNotHandled()
+        );
+        assertNull(event.getContentIfNotHandled());
+    }
+
+    @Test
+    public void selectExportDestinationDelegatesToUseCase()
+            throws InterruptedException {
+        viewModel.requestExportDestination();
+        viewModel.onDestinationSelected(
+                "content://warehouse.csv"
+        );
+
+        assertEquals(
+                DataManagementUiState.Status.EXPORTING,
+                state().getStatus()
+        );
+        assertEquals(1, exportUseCase.calls);
+        assertEquals(
+                "content://warehouse.csv",
+                exportUseCase.destinationReference
+        );
+    }
+
+    @Test
+    public void successfulExportReturnsToIdleAndEmitsCount()
+            throws InterruptedException {
+        viewModel.requestExportDestination();
+        viewModel.onDestinationSelected(
+                "content://warehouse.csv"
+        );
+
+        exportUseCase.callback.onResult(
+                ExportWarehouseItemsResult.success(3)
+        );
+
+        UiEvent<Integer> event =
+                LiveDataTestUtil.getOrAwaitValue(
+                        viewModel.getExportSuccess()
+                );
+
+        assertEquals(
+                DataManagementUiState.Status.IDLE,
+                state().getStatus()
+        );
+        assertEquals(
+                Integer.valueOf(3),
+                event.getContentIfNotHandled()
+        );
+        assertNull(event.getContentIfNotHandled());
+    }
+
+    @Test
+    public void operationInProgressBlocksAnotherOperation()
+            throws InterruptedException {
+        viewModel.requestExportDestination();
+        viewModel.onDestinationSelected(
+                "content://warehouse.csv"
+        );
+
+        viewModel.requestImportSource();
+
+        assertEquals(
+                DataManagementUiState.Status.EXPORTING,
+                state().getStatus()
+        );
+        assertNull(viewModel.getSourceRequest().getValue());
+        assertEquals(0, importUseCase.calls);
+    }
+
+    @Test
+    public void shareSuccessWaitsForChooserCompletion()
+            throws InterruptedException {
+        ShareableCsvFile shareableFile =
+                new ShareableCsvFile(
+                        "content://shared/items.csv",
+                        "items.csv",
+                        "text/csv",
+                        2
+                );
+
+        viewModel.shareWarehouseItems();
+        shareUseCase.callback.onResult(
+                ShareWarehouseItemsResult.success(
+                        shareableFile
+                )
+        );
+
+        UiEvent<ShareableCsvFile> event =
+                LiveDataTestUtil.getOrAwaitValue(
+                        viewModel.getShareFileReady()
+                );
+
+        assertEquals(
+                shareableFile,
+                event.getContentIfNotHandled()
+        );
+        assertEquals(
+                DataManagementUiState.Status.PREPARING_SHARE,
+                state().getStatus()
+        );
+
+        viewModel.onShareChooserLaunched();
+
+        assertEquals(
+                DataManagementUiState.Status.IDLE,
+                state().getStatus()
+        );
+    }
+
+    @Test
+    public void importSelectionDelegatesToUseCase()
+            throws InterruptedException {
+        viewModel.requestImportSource();
+        viewModel.onImportSourceSelected(
+                "content://warehouse.csv"
+        );
+
+        assertEquals(
+                DataManagementUiState.Status.IMPORTING,
+                state().getStatus()
+        );
+        assertEquals(1, importUseCase.calls);
+        assertEquals(
+                "content://warehouse.csv",
+                importUseCase.sourceReference
+        );
+    }
+
+    @Test
+    public void backupSelectionDelegatesToUseCase()
+            throws InterruptedException {
+        viewModel.requestBackupDestination();
+        viewModel.onBackupDestinationSelected(
+                "content://warehouse-backup.csv"
+        );
+
+        assertEquals(
+                DataManagementUiState.Status.CREATING_BACKUP,
+                state().getStatus()
+        );
+        assertEquals(1, createBackupUseCase.calls);
+        assertEquals(
+                "content://warehouse-backup.csv",
+                createBackupUseCase.destinationReference
         );
     }
 
@@ -298,6 +478,75 @@ public final class DataManagementViewModelTest {
                 resultItems = result.getWarehouseItems();
                 callback.onResult(result);
             };
+        }
+    }
+
+    private static final class FakeExportUseCase
+            implements ExportWarehouseItemsUseCase {
+
+        private int calls;
+        private String destinationReference;
+        private Callback callback;
+
+        @Override
+        public void exportWarehouseItems(
+                String destinationReference,
+                Callback callback
+        ) {
+            calls++;
+            this.destinationReference = destinationReference;
+            this.callback = callback;
+        }
+    }
+
+    private static final class FakeShareUseCase
+            implements ShareWarehouseItemsUseCase {
+
+        private int calls;
+        private Callback callback;
+
+        @Override
+        public void prepareWarehouseItemsForSharing(
+                Callback callback
+        ) {
+            calls++;
+            this.callback = callback;
+        }
+    }
+
+    private static final class FakeImportUseCase
+            implements ImportWarehouseItemsUseCase {
+
+        private int calls;
+        private String sourceReference;
+        private Callback callback;
+
+        @Override
+        public void importWarehouseItems(
+                String sourceReference,
+                Callback callback
+        ) {
+            calls++;
+            this.sourceReference = sourceReference;
+            this.callback = callback;
+        }
+    }
+
+    private static final class FakeCreateBackupUseCase
+            implements CreateWarehouseBackupUseCase {
+
+        private int calls;
+        private String destinationReference;
+        private Callback callback;
+
+        @Override
+        public void createBackup(
+                String destinationReference,
+                Callback callback
+        ) {
+            calls++;
+            this.destinationReference = destinationReference;
+            this.callback = callback;
         }
     }
 

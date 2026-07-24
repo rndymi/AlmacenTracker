@@ -4,17 +4,19 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReadCallba
 import com.rndymi.almacentracker.application.port.out.WarehouseItemCsvReader;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
 import com.rndymi.almacentracker.application.result.ImportWarehouseItemIssue;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemIdentity;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemValidator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -22,6 +24,11 @@ import java.util.function.LongSupplier;
 
 public final class ImportWarehouseItemsService
         implements ImportWarehouseItemsUseCase {
+
+    private static final WarehouseItemNormalizer NORMALIZER =
+            new WarehouseItemNormalizer();
+    private static final WarehouseItemValidator VALIDATOR =
+            new WarehouseItemValidator();
 
     private final WarehouseItemCsvReader csvReader;
     private final WarehouseItemRepository repository;
@@ -153,10 +160,10 @@ public final class ImportWarehouseItemsService
             List<WarehouseItem> existingItems,
             Callback callback
     ) {
-        Set<String> existingIdentities =
+        Set<WarehouseItemIdentity> existingIdentities =
                 buildExistingIdentities(existingItems);
 
-        Map<String, Integer> acceptedFileRows =
+        Map<WarehouseItemIdentity, Integer> acceptedFileRows =
                 new HashMap<>();
 
         List<WarehouseItem> acceptedItems =
@@ -188,8 +195,8 @@ public final class ImportWarehouseItemsService
                 continue;
             }
 
-            String identity =
-                    createIdentity(
+            WarehouseItemIdentity identity =
+                    new WarehouseItemIdentity(
                             normalized.category,
                             normalized.code
                     );
@@ -270,7 +277,7 @@ public final class ImportWarehouseItemsService
     ) {
         repository.insertAll(
                 acceptedItems,
-                new WarehouseItemsInsertCallback() {
+                new WarehouseItemsWriteCallback() {
                     @Override
                     public void onSuccess(
                             int insertedCount
@@ -322,7 +329,16 @@ public final class ImportWarehouseItemsService
         List<ImportWarehouseItemIssue> issues =
                 new ArrayList<>();
 
-        if (normalized.category.isEmpty()) {
+        WarehouseItemValidator.ValidationResult validation =
+                VALIDATOR.validateRequiredFields(
+                        normalized.category,
+                        normalized.code,
+                        normalized.site
+                );
+
+        if (validation.isMissing(
+                WarehouseItemValidator.RequiredField.CATEGORY
+        )) {
             issues.add(
                     ImportWarehouseItemIssue
                             .missingCategory(
@@ -332,7 +348,9 @@ public final class ImportWarehouseItemsService
             );
         }
 
-        if (normalized.code.isEmpty()) {
+        if (validation.isMissing(
+                WarehouseItemValidator.RequiredField.CODE
+        )) {
             issues.add(
                     ImportWarehouseItemIssue
                             .missingCode(
@@ -342,7 +360,9 @@ public final class ImportWarehouseItemsService
             );
         }
 
-        if (normalized.site.isEmpty()) {
+        if (validation.isMissing(
+                WarehouseItemValidator.RequiredField.SITE
+        )) {
             issues.add(
                     ImportWarehouseItemIssue
                             .missingSite(
@@ -356,10 +376,11 @@ public final class ImportWarehouseItemsService
         return issues;
     }
 
-    private Set<String> buildExistingIdentities(
+    private Set<WarehouseItemIdentity> buildExistingIdentities(
             List<WarehouseItem> existingItems
     ) {
-        Set<String> identities = new HashSet<>();
+        Set<WarehouseItemIdentity> identities =
+                new HashSet<>();
 
         if (existingItems == null) {
             return identities;
@@ -367,13 +388,9 @@ public final class ImportWarehouseItemsService
 
         for (WarehouseItem item : existingItems) {
             identities.add(
-                    createIdentity(
-                            normalizeRequired(
-                                    item.getCategory()
-                            ),
-                            normalizeRequired(
-                                    item.getCode()
-                            )
+                    new WarehouseItemIdentity(
+                            item.getCategory(),
+                            item.getCode()
                     )
             );
         }
@@ -385,40 +402,18 @@ public final class ImportWarehouseItemsService
             WarehouseItemCsvRow row
     ) {
         return new NormalizedRow(
-                normalizeRequired(row.getCategory()),
-                normalizeRequired(row.getCode()),
-                normalizeRequired(row.getSite()),
-                normalizeOptional(row.getPosition()),
-                normalizeOptional(row.getObservations())
+                NORMALIZER.normalizeCategory(
+                        row.getCategory()
+                ),
+                NORMALIZER.normalizeCode(row.getCode()),
+                NORMALIZER.normalizeSite(row.getSite()),
+                NORMALIZER.normalizeOptional(
+                        row.getPosition()
+                ),
+                NORMALIZER.normalizeOptional(
+                        row.getObservations()
+                )
         );
-    }
-
-    private String normalizeRequired(
-            String value
-    ) {
-        return value == null
-                ? ""
-                : value.trim().toUpperCase(
-                Locale.ROOT
-        );
-    }
-
-    private String normalizeOptional(
-            String value
-    ) {
-        if (value == null
-                || value.trim().isEmpty()) {
-            return null;
-        }
-
-        return value.trim();
-    }
-
-    private String createIdentity(
-            String category,
-            String code
-    ) {
-        return category + '\u0000' + code;
     }
 
     private void sortIssues(

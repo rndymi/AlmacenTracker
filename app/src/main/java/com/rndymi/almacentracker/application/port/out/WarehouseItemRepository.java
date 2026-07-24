@@ -3,7 +3,6 @@ package com.rndymi.almacentracker.application.port.out;
 import androidx.lifecycle.LiveData;
 
 import com.rndymi.almacentracker.application.port.in.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsReplaceCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemsResult;
@@ -57,12 +56,12 @@ public interface WarehouseItemRepository {
 
     void insertAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsInsertCallback callback
+            WarehouseItemsWriteCallback callback
     );
 
     void replaceAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsReplaceCallback callback
+            WarehouseItemsWriteCallback callback
     );
 
     void update(

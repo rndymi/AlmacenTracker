@@ -19,8 +19,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsReplaceCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
 import com.rndymi.almacentracker.application.result.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.application.result.WarehouseItemFilterOptionsResult;
@@ -323,7 +322,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void insertAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsInsertCallback callback
+            WarehouseItemsWriteCallback callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);
@@ -361,7 +360,7 @@ public final class RoomWarehouseItemRepository
     @Override
     public void replaceAll(
             List<WarehouseItem> warehouseItems,
-            WarehouseItemsReplaceCallback callback
+            WarehouseItemsWriteCallback callback
     ) {
         Objects.requireNonNull(warehouseItems);
         Objects.requireNonNull(callback);

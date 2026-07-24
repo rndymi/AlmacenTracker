@@ -1,8 +1,8 @@
 package com.rndymi.almacentracker.application.port.out;
 
-public interface WarehouseItemsReplaceCallback {
+public interface WarehouseItemsWriteCallback {
 
-    void onSuccess(int replacedCount);
+    void onSuccess(int writtenCount);
 
     void onDuplicate(Throwable cause);
 

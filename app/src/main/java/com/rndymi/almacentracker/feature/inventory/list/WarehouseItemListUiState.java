@@ -8,6 +8,7 @@ import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public final class WarehouseItemListUiState {
 
@@ -32,7 +33,7 @@ public final class WarehouseItemListUiState {
             WarehouseItemFilterOptions filterOptions,
             String errorMessage
     ) {
-        this.status = status;
+        this.status = Objects.requireNonNull(status);
 
         this.items = items == null
                 ? Collections.emptyList()
@@ -49,6 +50,36 @@ public final class WarehouseItemListUiState {
                 : filterOptions;
 
         this.errorMessage = errorMessage;
+
+        if (status == Status.CONTENT
+                && this.items.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "CONTENT requires at least one item"
+            );
+        }
+
+        if (status == Status.NO_RESULTS
+                && !this.criteria.hasQuery()
+                && !this.criteria.hasActiveFilters()) {
+            throw new IllegalArgumentException(
+                    "NO_RESULTS requires search or filters"
+            );
+        }
+
+        if (status == Status.ERROR
+                && (errorMessage == null
+                || errorMessage.trim().isEmpty())) {
+            throw new IllegalArgumentException(
+                    "ERROR requires a message"
+            );
+        }
+
+        if (status != Status.ERROR
+                && errorMessage != null) {
+            throw new IllegalArgumentException(
+                    status + " cannot contain an error message"
+            );
+        }
     }
 
     public static WarehouseItemListUiState loading(

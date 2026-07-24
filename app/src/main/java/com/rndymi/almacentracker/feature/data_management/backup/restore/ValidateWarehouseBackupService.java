@@ -5,16 +5,23 @@ import com.rndymi.almacentracker.application.result.WarehouseBackupCsvRow;
 import com.rndymi.almacentracker.application.result.WarehouseBackupReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseBackupValidationResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemIdentity;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemValidator;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
 public final class ValidateWarehouseBackupService
         implements ValidateWarehouseBackupUseCase {
+
+    private static final WarehouseItemNormalizer NORMALIZER =
+            new WarehouseItemNormalizer();
+    private static final WarehouseItemValidator VALIDATOR =
+            new WarehouseItemValidator();
 
     private final WarehouseBackupCsvReader backupCsvReader;
 
@@ -116,17 +123,18 @@ public final class ValidateWarehouseBackupService
             List<WarehouseItem> warehouseItems =
                     new ArrayList<>(rows.size());
 
-            Set<String> functionalIdentities =
+            Set<WarehouseItemIdentity> functionalIdentities =
                     new HashSet<>();
 
             for (WarehouseBackupCsvRow row : rows) {
                 ValidationValues values =
                         validateAndNormalize(row);
 
-                String identity =
-                        values.category
-                                + '\u0000'
-                                + values.code;
+                WarehouseItemIdentity identity =
+                        new WarehouseItemIdentity(
+                                values.category,
+                                values.code
+                        );
 
                 if (!functionalIdentities.add(identity)) {
                     callback.onResult(
@@ -188,21 +196,22 @@ public final class ValidateWarehouseBackupService
     private ValidationValues validateAndNormalize(
             WarehouseBackupCsvRow row
     ) {
-        String category = normalizeRequired(
-                row.getCategory(),
-                "Category",
-                row.getRowNumber()
+        String category = NORMALIZER.normalizeCategory(
+                row.getCategory()
         );
 
-        String code = normalizeRequired(
-                row.getCode(),
-                "Code",
-                row.getRowNumber()
+        String code = NORMALIZER.normalizeCode(
+                row.getCode()
         );
 
-        String site = normalizeRequired(
-                row.getSite(),
-                "Site",
+        String site = NORMALIZER.normalizeSite(
+                row.getSite()
+        );
+
+        validateRequiredFields(
+                category,
+                code,
+                site,
                 row.getRowNumber()
         );
 
@@ -229,37 +238,56 @@ public final class ValidateWarehouseBackupService
                 category,
                 code,
                 site,
-                normalizeOptional(row.getPosition()),
-                normalizeOptional(row.getObservations()),
+                NORMALIZER.normalizeOptional(
+                        row.getPosition()
+                ),
+                NORMALIZER.normalizeOptional(
+                        row.getObservations()
+                ),
                 createdAt,
                 updatedAt
         );
     }
 
-    private String normalizeRequired(
-            String value,
-            String fieldName,
+    private void validateRequiredFields(
+            String category,
+            String code,
+            String site,
             int rowNumber
     ) {
-        String normalized =
-                value == null ? "" : value.trim();
+        WarehouseItemValidator.ValidationResult validation =
+                VALIDATOR.validateRequiredFields(
+                        category,
+                        code,
+                        site
+                );
 
-        if (normalized.isEmpty()) {
+        if (validation.isMissing(
+                WarehouseItemValidator.RequiredField.CATEGORY
+        )) {
             throw new InvalidBackupRowException(
                     rowNumber,
-                    fieldName + " cannot be empty"
+                    "Category cannot be empty"
             );
         }
 
-        return normalized.toUpperCase(Locale.ROOT);
-    }
-
-    private String normalizeOptional(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
+        if (validation.isMissing(
+                WarehouseItemValidator.RequiredField.CODE
+        )) {
+            throw new InvalidBackupRowException(
+                    rowNumber,
+                    "Code cannot be empty"
+            );
         }
 
-        return value.trim();
+        if (validation.isMissing(
+                WarehouseItemValidator.RequiredField.SITE
+        )) {
+            throw new InvalidBackupRowException(
+                    rowNumber,
+                    "Site cannot be empty"
+            );
+        }
     }
 
     private long parsePositiveDate(

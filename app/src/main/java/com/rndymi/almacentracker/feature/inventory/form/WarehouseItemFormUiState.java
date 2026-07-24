@@ -1,5 +1,7 @@
 package com.rndymi.almacentracker.feature.inventory.form;
 
+import java.util.Objects;
+
 public final class WarehouseItemFormUiState {
 
     private final WarehouseItemFormMode mode;
@@ -38,11 +40,48 @@ public final class WarehouseItemFormUiState {
             boolean notFound,
             boolean invalidId
     ) {
-        this.mode = mode;
+        this.mode = Objects.requireNonNull(mode);
+
+        int activeLifecycleStates =
+                (loading ? 1 : 0)
+                        + (saving ? 1 : 0)
+                        + (notFound ? 1 : 0)
+                        + (invalidId ? 1 : 0);
+
+        if (activeLifecycleStates > 1) {
+            throw new IllegalArgumentException(
+                    "Form lifecycle states are mutually exclusive"
+            );
+        }
+
+        if (mode == WarehouseItemFormMode.CREATE) {
+            if (warehouseItemId != 0L) {
+                throw new IllegalArgumentException(
+                        "Create mode cannot contain an item ID"
+                );
+            }
+
+            if (loading || notFound || invalidId) {
+                throw new IllegalArgumentException(
+                        "Create mode cannot load an existing item"
+                );
+            }
+        } else if (invalidId) {
+            if (warehouseItemId > 0L) {
+                throw new IllegalArgumentException(
+                        "Invalid-ID state requires an invalid ID"
+                );
+            }
+        } else if (warehouseItemId <= 0L) {
+            throw new IllegalArgumentException(
+                    "Edit mode requires a positive item ID"
+            );
+        }
+
+        this.category = Objects.requireNonNull(category);
+        this.code = Objects.requireNonNull(code);
+        this.site = Objects.requireNonNull(site);
         this.warehouseItemId = warehouseItemId;
-        this.category = category;
-        this.code = code;
-        this.site = site;
         this.position = position;
         this.observations = observations;
         this.categoryError = categoryError;

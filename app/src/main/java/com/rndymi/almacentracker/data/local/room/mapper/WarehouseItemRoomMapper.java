@@ -2,12 +2,17 @@ package com.rndymi.almacentracker.data.local.room.mapper;
 
 import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public final class WarehouseItemRoomMapper {
+
+    private static final WarehouseItemNormalizer NORMALIZER =
+            new WarehouseItemNormalizer();
+
     public WarehouseItem toDomain(WarehouseItemEntity entity) {
         if (entity == null) {
             throw new IllegalArgumentException(
@@ -20,8 +25,12 @@ public final class WarehouseItemRoomMapper {
                 entity.getCategory(),
                 entity.getCode(),
                 entity.getSite(),
-                normalizeOptional(entity.getPosition()),
-                normalizeOptional(entity.getObservations()),
+                NORMALIZER.normalizeOptional(
+                        entity.getPosition()
+                ),
+                NORMALIZER.normalizeOptional(
+                        entity.getObservations()
+                ),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -38,8 +47,12 @@ public final class WarehouseItemRoomMapper {
                 item.getCategory(),
                 item.getCode(),
                 item.getSite(),
-                normalizeOptional(item.getPosition()),
-                normalizeOptional(item.getObservations()),
+                NORMALIZER.normalizeOptional(
+                        item.getPosition()
+                ),
+                NORMALIZER.normalizeOptional(
+                        item.getObservations()
+                ),
                 item.getCreatedAt(),
                 item.getUpdatedAt()
         );
@@ -59,13 +72,5 @@ public final class WarehouseItemRoomMapper {
         }
 
         return items;
-    }
-
-    private String normalizeOptional(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-
-        return value.trim();
     }
 }

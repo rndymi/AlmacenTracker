@@ -7,14 +7,20 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemInsertCallbac
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.result.CreateWarehouseItemResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemValidator;
 
-import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 public final class CreateWarehouseItemService
         implements CreateWarehouseItemUseCase {
+
+    private static final WarehouseItemNormalizer NORMALIZER =
+            new WarehouseItemNormalizer();
+    private static final WarehouseItemValidator VALIDATOR =
+            new WarehouseItemValidator();
 
     private final WarehouseItemRepository repository;
     private final LongSupplier currentTimeProvider;
@@ -36,36 +42,48 @@ public final class CreateWarehouseItemService
         Objects.requireNonNull(command);
         Objects.requireNonNull(callback);
 
-        String category = normalizeUppercase(
+        String category = NORMALIZER.normalizeCategory(
                 command.getCategory()
         );
 
-        String code = normalizeUppercase(
+        String code = NORMALIZER.normalizeCode(
                 command.getCode()
         );
 
-        String site = normalizeUppercase(
+        String site = NORMALIZER.normalizeSite(
                 command.getSite()
         );
 
-        String position = normalizeOptional(
+        String position = NORMALIZER.normalizeOptional(
                 command.getPosition()
         );
 
-        String observations = normalizeOptional(
+        String observations = NORMALIZER.normalizeOptional(
                 command.getObservations()
         );
 
-        boolean categoryRequired = category.isEmpty();
-        boolean codeRequired = code.isEmpty();
-        boolean siteRequired = site.isEmpty();
+        WarehouseItemValidator.ValidationResult validation =
+                VALIDATOR.validateRequiredFields(
+                        category,
+                        code,
+                        site
+                );
 
-        if (categoryRequired || codeRequired || siteRequired) {
+        if (!validation.isValid()) {
             callback.accept(
                     CreateWarehouseItemResult.validationError(
-                            categoryRequired,
-                            codeRequired,
-                            siteRequired
+                            validation.isMissing(
+                                    WarehouseItemValidator
+                                            .RequiredField.CATEGORY
+                            ),
+                            validation.isMissing(
+                                    WarehouseItemValidator
+                                            .RequiredField.CODE
+                            ),
+                            validation.isMissing(
+                                    WarehouseItemValidator
+                                            .RequiredField.SITE
+                            )
                     )
             );
             return;
@@ -161,21 +179,4 @@ public final class CreateWarehouseItemService
         );
     }
 
-    private String normalizeUppercase(String value) {
-        return value == null
-                ? ""
-                : value.trim().toUpperCase(Locale.ROOT);
-    }
-
-    private String normalizeOptional(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalized = value.trim();
-
-        return normalized.isEmpty()
-                ? null
-                : normalized;
-    }
 }

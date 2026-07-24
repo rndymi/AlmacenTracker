@@ -48,18 +48,19 @@ public final class WarehouseItemListViewModelFactory
 
     @NonNull
     @Override
-    @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(
             @NonNull Class<T> modelClass
     ) {
         if (modelClass.isAssignableFrom(
                 WarehouseItemListViewModel.class
         )) {
-            return (T) new WarehouseItemListViewModel(
-                    observeUseCase,
-                    filterUseCase,
-                    observeFilterOptionsUseCase,
-                    deleteWarehouseItemsUseCase
+            return modelClass.cast(
+                    new WarehouseItemListViewModel(
+                            observeUseCase,
+                            filterUseCase,
+                            observeFilterOptionsUseCase,
+                            deleteWarehouseItemsUseCase
+                    )
             );
         }
 

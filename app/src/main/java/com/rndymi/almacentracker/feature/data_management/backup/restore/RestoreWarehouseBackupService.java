@@ -1,7 +1,7 @@
 package com.rndymi.almacentracker.feature.data_management.backup.restore;
 
 import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsReplaceCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public final class RestoreWarehouseBackupService
 
         repository.replaceAll(
                 snapshot,
-                new WarehouseItemsReplaceCallback() {
+                new WarehouseItemsWriteCallback() {
                     @Override
                     public void onSuccess(
                             int replacedCount

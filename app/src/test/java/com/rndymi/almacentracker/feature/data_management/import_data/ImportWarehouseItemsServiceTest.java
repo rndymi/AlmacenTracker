@@ -16,7 +16,7 @@ import com.rndymi.almacentracker.application.port.out.WarehouseItemRepository;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemUpdateCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsDeleteCallback;
 import com.rndymi.almacentracker.application.port.out.WarehouseItemsFindCallback;
-import com.rndymi.almacentracker.application.port.out.WarehouseItemsInsertCallback;
+import com.rndymi.almacentracker.application.port.out.WarehouseItemsWriteCallback;
 import com.rndymi.almacentracker.application.result.ImportIssueType;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvReadResult;
 import com.rndymi.almacentracker.application.result.WarehouseItemCsvRow;
@@ -437,7 +437,7 @@ public final class ImportWarehouseItemsServiceTest {
         @Override
         public void insertAll(
                 List<WarehouseItem> warehouseItems,
-                WarehouseItemsInsertCallback callback
+                WarehouseItemsWriteCallback callback
         ) {
             if (insertError != null) {
                 callback.onError(insertError);
@@ -456,7 +456,7 @@ public final class ImportWarehouseItemsServiceTest {
         public void replaceAll(
                 List<WarehouseItem> warehouseItems,
                 com.rndymi.almacentracker.application.port.out
-                        .WarehouseItemsReplaceCallback callback
+                        .WarehouseItemsWriteCallback callback
         ) {
             throw new UnsupportedOperationException();
         }

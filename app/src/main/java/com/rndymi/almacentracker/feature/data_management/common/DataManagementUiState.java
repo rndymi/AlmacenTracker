@@ -1,5 +1,7 @@
 package com.rndymi.almacentracker.feature.data_management.common;
 
+import java.util.Objects;
+
 public final class DataManagementUiState {
 
     public enum Status {
@@ -28,7 +30,38 @@ public final class DataManagementUiState {
             String message,
             int pendingRestoreCount
     ) {
-        this.status = status;
+        this.status = Objects.requireNonNull(status);
+
+        boolean messageRequired =
+                status == Status.EMPTY_DATABASE
+                        || status == Status.ERROR;
+
+        if (messageRequired
+                && (message == null
+                || message.trim().isEmpty())) {
+            throw new IllegalArgumentException(
+                    status + " requires a message"
+            );
+        }
+
+        if (!messageRequired && message != null) {
+            throw new IllegalArgumentException(
+                    status + " cannot contain a message"
+            );
+        }
+
+        if (status == Status.BACKUP_READY) {
+            if (pendingRestoreCount < 0) {
+                throw new IllegalArgumentException(
+                        "Pending restore count cannot be negative"
+                );
+            }
+        } else if (pendingRestoreCount != 0) {
+            throw new IllegalArgumentException(
+                    status + " cannot contain a restore count"
+            );
+        }
+
         this.message = message;
         this.pendingRestoreCount =
                 pendingRestoreCount;

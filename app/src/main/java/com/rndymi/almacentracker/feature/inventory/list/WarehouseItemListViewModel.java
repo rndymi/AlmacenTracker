@@ -305,6 +305,18 @@ public final class WarehouseItemListViewModel
                         latestFilteredResult)
                         .getItems();
 
+        if (filteredItems.isEmpty()
+                && !criteria.hasQuery()
+                && !criteria.hasActiveFilters()) {
+            uiState.setValue(
+                    WarehouseItemListUiState.loading(
+                            criteria,
+                            filterOptions
+                    )
+            );
+            return;
+        }
+
         pruneSelectedIds(filteredItems);
 
         if (filteredItems.isEmpty()) {

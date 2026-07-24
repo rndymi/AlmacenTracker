@@ -5,6 +5,7 @@ import com.rndymi.almacentracker.core.common.event.UiEvent;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public final class WarehouseItemSelectionUiState {
@@ -18,6 +19,16 @@ public final class WarehouseItemSelectionUiState {
             boolean deleting,
             UiEvent<DeleteWarehouseItemsResult> resultEvent
     ) {
+        Objects.requireNonNull(selectedIds);
+
+        for (Long selectedId : selectedIds) {
+            if (selectedId == null || selectedId <= 0L) {
+                throw new IllegalArgumentException(
+                        "Selected IDs must be positive"
+                );
+            }
+        }
+
         this.selectedIds =
                 Collections.unmodifiableSet(
                         new LinkedHashSet<>(selectedIds)
@@ -38,6 +49,8 @@ public final class WarehouseItemSelectionUiState {
     public static WarehouseItemSelectionUiState selecting(
             Set<Long> selectedIds
     ) {
+        requireSelection(selectedIds, "Selecting");
+
         return new WarehouseItemSelectionUiState(
                 selectedIds,
                 false,
@@ -48,6 +61,8 @@ public final class WarehouseItemSelectionUiState {
     public static WarehouseItemSelectionUiState deleting(
             Set<Long> selectedIds
     ) {
+        requireSelection(selectedIds, "Deleting");
+
         return new WarehouseItemSelectionUiState(
                 selectedIds,
                 true,
@@ -59,6 +74,8 @@ public final class WarehouseItemSelectionUiState {
             Set<Long> selectedIds,
             DeleteWarehouseItemsResult result
     ) {
+        Objects.requireNonNull(result);
+
         return new WarehouseItemSelectionUiState(
                 selectedIds,
                 false,
@@ -84,5 +101,16 @@ public final class WarehouseItemSelectionUiState {
 
     public UiEvent<DeleteWarehouseItemsResult> getResultEvent() {
         return resultEvent;
+    }
+
+    private static void requireSelection(
+            Set<Long> selectedIds,
+            String stateName
+    ) {
+        if (selectedIds == null || selectedIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                    stateName + " requires a selection"
+            );
+        }
     }
 }

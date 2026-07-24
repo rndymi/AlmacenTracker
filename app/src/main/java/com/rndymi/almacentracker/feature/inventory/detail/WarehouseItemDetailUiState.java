@@ -2,6 +2,8 @@ package com.rndymi.almacentracker.feature.inventory.detail;
 
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
+import java.util.Objects;
+
 public final class WarehouseItemDetailUiState {
 
     public enum Status {
@@ -45,6 +47,8 @@ public final class WarehouseItemDetailUiState {
     public static WarehouseItemDetailUiState content(
             WarehouseItem warehouseItem
     ) {
+        Objects.requireNonNull(warehouseItem);
+
         return new WarehouseItemDetailUiState(
                 Status.CONTENT,
                 warehouseItem,
@@ -57,6 +61,8 @@ public final class WarehouseItemDetailUiState {
     public static WarehouseItemDetailUiState deleting(
             WarehouseItem warehouseItem
     ) {
+        Objects.requireNonNull(warehouseItem);
+
         return new WarehouseItemDetailUiState(
                 Status.CONTENT,
                 warehouseItem,
@@ -70,6 +76,12 @@ public final class WarehouseItemDetailUiState {
             WarehouseItem warehouseItem,
             String deleteErrorMessage
     ) {
+        Objects.requireNonNull(warehouseItem);
+        requireMessage(
+                deleteErrorMessage,
+                "Delete error"
+        );
+
         return new WarehouseItemDetailUiState(
                 Status.CONTENT,
                 warehouseItem,
@@ -102,6 +114,8 @@ public final class WarehouseItemDetailUiState {
     public static WarehouseItemDetailUiState error(
             String errorMessage
     ) {
+        requireMessage(errorMessage, "Error");
+
         return new WarehouseItemDetailUiState(
                 Status.ERROR,
                 null,
@@ -129,5 +143,16 @@ public final class WarehouseItemDetailUiState {
 
     public String getDeleteErrorMessage() {
         return deleteErrorMessage;
+    }
+
+    private static void requireMessage(
+            String message,
+            String stateName
+    ) {
+        if (message == null || message.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    stateName + " requires a message"
+            );
+        }
     }
 }

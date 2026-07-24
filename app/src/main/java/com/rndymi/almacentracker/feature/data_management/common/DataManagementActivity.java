@@ -378,8 +378,7 @@ public final class DataManagementActivity
         );
 
         sendIntent.setClipData(
-                ClipData.newUri(
-                        getContentResolver(),
+                ClipData.newRawUri(
                         shareableFile.getFileName(),
                         contentUri
                 )

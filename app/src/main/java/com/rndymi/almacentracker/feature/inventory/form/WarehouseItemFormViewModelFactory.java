@@ -65,15 +65,13 @@ public final class WarehouseItemFormViewModelFactory
             );
         }
 
-        @SuppressWarnings("unchecked")
-        T viewModel = (T)
+        return modelClass.cast(
                 new WarehouseItemFormViewModel(
                         createWarehouseItemUseCase,
                         updateWarehouseItemUseCase,
                         getWarehouseItemDetailUseCase,
                         warehouseItemId
-                );
-
-        return viewModel;
+                )
+        );
     }
 }
