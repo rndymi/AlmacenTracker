@@ -5,7 +5,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
-import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
+import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.application.port.in.CreateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ExportWarehouseItemsUseCase;
 import com.rndymi.almacentracker.application.port.in.ImportWarehouseItemsUseCase;

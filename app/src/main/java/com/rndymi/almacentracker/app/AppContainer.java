@@ -5,9 +5,9 @@ import android.content.Context;
 import androidx.room.Room;
 
 import com.rndymi.almacentracker.adapter.in.ui.viewmodel.DataManagementViewModelFactory;
-import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemDetailViewModelFactory;
-import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemFormViewModelFactory;
-import com.rndymi.almacentracker.adapter.in.ui.viewmodel.WarehouseItemListViewModelFactory;
+import com.rndymi.almacentracker.feature.inventory.detail.WarehouseItemDetailViewModelFactory;
+import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemFormViewModelFactory;
+import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvCodec;
 import com.rndymi.almacentracker.data.file.csv.backup.WarehouseBackupCsvMapper;
 import com.rndymi.almacentracker.data.file.csv.exchange.WarehouseItemCsvCodec;

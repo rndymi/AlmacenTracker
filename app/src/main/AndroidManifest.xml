@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AlmacenTracker">
         <activity
-            android:name=".adapter.in.ui.activity.MainActivity"
+            android:name=".feature.inventory.list.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,10 +22,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".adapter.in.ui.activity.ItemFormActivity"
+            android:name=".feature.inventory.form.ItemFormActivity"
             android:exported="false" />
         <activity
-            android:name=".adapter.in.ui.activity.ItemDetailActivity"
+            android:name=".feature.inventory.detail.ItemDetailActivity"
             android:exported="false" />
         <activity
             android:name=".adapter.in.ui.activity.DataManagementActivity"

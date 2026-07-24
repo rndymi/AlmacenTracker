@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import com.rndymi.almacentracker.adapter.in.ui.state.DataManagementUiState;
-import com.rndymi.almacentracker.adapter.in.ui.state.UiEvent;
+import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.application.port.in.RestoreWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.port.in.ValidateWarehouseBackupUseCase;
 import com.rndymi.almacentracker.application.result.RestoreWarehouseBackupResult;
