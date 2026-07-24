@@ -118,9 +118,9 @@ public class OfflineArchitectureTest {
 
         String appContainer = readProjectFile(
                 "src/main/java/com/rndymi/almacentracker/"
-                        + "configuration/AppContainer.java",
+                        + "app/AppContainer.java",
                 "app/src/main/java/com/rndymi/almacentracker/"
-                        + "configuration/AppContainer.java"
+                        + "app/AppContainer.java"
         );
 
         assertTrue(

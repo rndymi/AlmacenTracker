@@ -62,9 +62,15 @@ La aplicación utiliza el selector de documentos de Android sin solicitar acceso
 
 ## Arquitectura
 
-El proyecto aplica una arquitectura hexagonal pragmática, separando dominio, puertos, casos de uso, interfaz Android, persistencia Room, archivos CSV, escaneo y configuración.
+El proyecto aplica una arquitectura MVVM pragmática organizada por funcionalidades:
 
-Room continúa siendo la única fuente de verdad.
+- `feature` agrupa las pantallas y flujos de inventario y gestión de datos.
+- `domain` contiene el modelo y las reglas de negocio independientes de Android.
+- `data` contiene Room, el repositorio y la infraestructura de archivos.
+- `core` reúne componentes compartidos, como eventos y utilidades CSV.
+- `app` compone las dependencias de la aplicación.
+
+Las Activities se encargan del renderizado, la interacción y la navegación, mientras que los ViewModels mantienen el estado de cada pantalla. Room continúa siendo la única fuente de verdad.
 
 ## Requisitos
 
