@@ -12,10 +12,6 @@ import com.rndymi.almacentracker.domain.model.WarehouseItem;
 
 import java.util.List;
 
-/**
- * Strict repository test double. Tests override only the operations they expect
- * their subject to invoke; every other call fails immediately.
- */
 public class WarehouseItemRepositoryStub
         implements WarehouseItemRepository {
 
@@ -62,6 +58,14 @@ public class WarehouseItemRepositoryStub
             RepositoryCallback<WarehouseItem> callback
     ) {
         throw unexpected("findById");
+    }
+
+    @Override
+    public void findAllByCode(
+            String code,
+            RepositoryCallback<List<WarehouseItem>> callback
+    ) {
+        throw unexpected("findAllByCode");
     }
 
     @Override
