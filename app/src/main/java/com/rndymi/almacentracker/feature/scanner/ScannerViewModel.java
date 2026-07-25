@@ -91,7 +91,7 @@ public final class ScannerViewModel extends ViewModel {
         if (scannedCode == null) {
             return;
         }
-
+        
         if (!resultAccepted.compareAndSet(false, true)) {
             return;
         }
