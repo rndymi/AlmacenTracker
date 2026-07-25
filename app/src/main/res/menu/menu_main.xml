@@ -3,6 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_scan_code"
+        android:icon="@drawable/ic_scan_code"
+        android:title="@string/scanner_action"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_data_management"
         android:icon="@drawable/ic_data_management"
         android:title="@string/data_management_action"
