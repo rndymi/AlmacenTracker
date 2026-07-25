@@ -418,4 +418,40 @@
             Se restauraron %1$d registros.
         </item>
     </plurals>
+
+
+    <string name="scanner_action">Escanear</string>
+    <string name="scanner_title">Escanear código</string>
+    <string name="scanner_help">Apunta la cámara al código.</string>
+    <string name="scanner_initializing">Inicializando cámara</string>
+
+    <string name="scanner_permission_denied">
+        La cámara es necesaria para escanear códigos.
+    </string>
+
+    <string name="scanner_permission_permanently_denied">
+        El permiso de cámara está desactivado. Puedes habilitarlo desde los ajustes de la aplicación.
+    </string>
+
+    <string name="scanner_camera_unavailable">
+        No hay una cámara disponible para escanear códigos.
+    </string>
+
+    <string name="scanner_camera_error">
+        No se pudo iniciar la cámara.
+    </string>
+
+    <string name="scanner_analysis_error">
+        No se pudo analizar la imagen.
+    </string>
+
+    <string name="open_settings_action">Abrir ajustes</string>
+
+    <string name="scanned_code_result_title">
+        Código detectado
+    </string>
+
+    <string name="scanned_code_result_message">
+        Valor: %1$s\nFormato: %2$s
+    </string>
 </resources>

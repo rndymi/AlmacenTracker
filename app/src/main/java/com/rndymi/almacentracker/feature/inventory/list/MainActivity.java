@@ -9,6 +9,8 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -16,16 +18,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.databinding.ActivityMainBinding;
+import com.rndymi.almacentracker.data.repository.PositionFilter;
+import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.feature.data_management.common.DataManagementActivity;
 import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
-import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
-import com.rndymi.almacentracker.R;
-import com.rndymi.almacentracker.data.repository.PositionFilter;
 import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
-import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
-import com.rndymi.almacentracker.databinding.ActivityMainBinding;
 import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
 import com.rndymi.almacentracker.feature.inventory.form.ItemFormActivity;
+import com.rndymi.almacentracker.feature.scanner.ScannerActivity;
+import com.rndymi.almacentracker.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +40,7 @@ public final class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private WarehouseItemAdapter warehouseItemAdapter;
     private WarehouseItemListViewModel viewModel;
+    private ActivityResultLauncher<Intent> scannerActivityLauncher;
 
     private boolean renderingControls;
 
@@ -55,6 +59,7 @@ public final class MainActivity extends AppCompatActivity {
         configureToolbar();
         configureRecyclerView();
         configureViewModel();
+        configureScannerResult();
         configureActions();
         observeUiState();
     }
@@ -148,6 +153,42 @@ public final class MainActivity extends AppCompatActivity {
                         .get(
                                 WarehouseItemListViewModel.class
                         );
+    }
+
+    private void configureScannerResult() {
+        scannerActivityLauncher =
+                registerForActivityResult(
+                        new ActivityResultContracts
+                                .StartActivityForResult(),
+                        result -> {
+                            if (result.getResultCode()
+                                    != RESULT_OK) {
+                                return;
+                            }
+
+                            String scannedValue =
+                                    ScannerActivity
+                                            .getScannedValue(
+                                                    result.getData()
+                                            );
+
+                            String scannedFormat =
+                                    ScannerActivity
+                                            .getScannedFormat(
+                                                    result.getData()
+                                            );
+
+                            if (scannedValue == null
+                                    || scannedValue.trim().isEmpty()) {
+                                return;
+                            }
+
+                            showScannedCodeResult(
+                                    scannedValue,
+                                    scannedFormat
+                            );
+                        }
+                );
     }
 
     private void configureActions() {
@@ -839,6 +880,45 @@ public final class MainActivity extends AppCompatActivity {
         ).show();
     }
 
+    private void openScanner() {
+        if (viewModel.hasSelection()) {
+            return;
+        }
+
+        scannerActivityLauncher.launch(
+                ScannerActivity.createIntent(this)
+        );
+    }
+
+    private void showScannedCodeResult(
+            String scannedValue,
+            @Nullable String scannedFormat
+    ) {
+        String visibleFormat =
+                scannedFormat == null
+                        || scannedFormat.trim().isEmpty()
+                        ? "UNKNOWN"
+                        : scannedFormat;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string.scanned_code_result_title
+                )
+                .setMessage(
+                        getString(
+                                R.string
+                                        .scanned_code_result_message,
+                                scannedValue,
+                                visibleFormat
+                        )
+                )
+                .setPositiveButton(
+                        android.R.string.ok,
+                        null
+                )
+                .show();
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -847,13 +927,23 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_data_management) {
+        if (item.getItemId() == R.id.action_scan_code) {
+            openScanner();
+            return true;
+        }
+
+        if (item.getItemId()
+                == R.id.action_data_management) {
             startActivity(
-                    new Intent(this, DataManagementActivity.class)
+                    new Intent(
+                            this,
+                            DataManagementActivity.class
+                    )
             );
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
+
 }

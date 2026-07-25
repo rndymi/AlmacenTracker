@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
     <application
         android:name=".app.AlmacenTrackerApplication"
         android:allowBackup="true"
@@ -30,6 +36,10 @@
         <activity
             android:name=".feature.data_management.common.DataManagementActivity"
             android:exported="false" />
+        <activity
+            android:name=".feature.scanner.ScannerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
