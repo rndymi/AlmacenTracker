@@ -30,10 +30,6 @@ public final class MlKitCodeScanner
     private final MlKitBarcodeMapper mapper;
     private final Listener listener;
 
-    /*
-     * ML Kit processes one ImageProxy at a time.
-     * STRATEGY_KEEP_ONLY_LATEST will discard stale frames.
-     */
     private final AtomicBoolean processingFrame =
             new AtomicBoolean(false);
 
