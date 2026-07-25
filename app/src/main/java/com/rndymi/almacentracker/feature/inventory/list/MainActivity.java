@@ -22,6 +22,7 @@ import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityMainBinding;
 import com.rndymi.almacentracker.data.repository.PositionFilter;
 import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
+import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.feature.data_management.common.DataManagementActivity;
 import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
 import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
@@ -166,26 +167,10 @@ public final class MainActivity extends AppCompatActivity {
                                 return;
                             }
 
-                            String scannedValue =
-                                    ScannerActivity
-                                            .getScannedValue(
-                                                    result.getData()
-                                            );
-
-                            String scannedFormat =
-                                    ScannerActivity
-                                            .getScannedFormat(
-                                                    result.getData()
-                                            );
-
-                            if (scannedValue == null
-                                    || scannedValue.trim().isEmpty()) {
-                                return;
-                            }
-
-                            showScannedCodeResult(
-                                    scannedValue,
-                                    scannedFormat
+                            viewModel.searchScannedCode(
+                                    ScannerActivity.getScannedValue(
+                                            result.getData()
+                                    )
                             );
                         }
                 );
@@ -308,6 +293,22 @@ public final class MainActivity extends AppCompatActivity {
         viewModel.getSelectionUiState().observe(
                 this,
                 this::renderSelection
+        );
+
+        viewModel.getScannedCodeSearchEvent().observe(
+                this,
+                event -> {
+                    if (event == null) {
+                        return;
+                    }
+
+                    WarehouseItemCodeSearchResult result =
+                            event.getContentIfNotHandled();
+
+                    if (result != null) {
+                        handleScannedCodeSearchResult(result);
+                    }
+                }
         );
 
         getOnBackPressedDispatcher().addCallback(
@@ -890,31 +891,152 @@ public final class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void showScannedCodeResult(
-            String scannedValue,
-            @Nullable String scannedFormat
+    private void handleScannedCodeSearchResult(
+            WarehouseItemCodeSearchResult result
     ) {
-        String visibleFormat =
-                scannedFormat == null
-                        || scannedFormat.trim().isEmpty()
-                        ? "UNKNOWN"
-                        : scannedFormat;
+        switch (result.getStatus()) {
+            case SINGLE_MATCH:
+                openWarehouseItemDetail(
+                        result.getSingleMatch().getId()
+                );
+                break;
+
+            case MULTIPLE_MATCHES:
+                showMultipleCodeMatches(result);
+                break;
+
+            case NOT_FOUND:
+                showScannedCodeNotFound(
+                        result.getScannedCode()
+                );
+                break;
+
+            case INVALID_CODE:
+                showMessage(
+                        getString(
+                                R.string.scanned_code_invalid
+                        )
+                );
+                break;
+
+            case ERROR:
+                Log.e(
+                        TAG,
+                        "Scanned code search failed",
+                        result.getCause()
+                );
+
+                showMessage(
+                        getString(
+                                R.string.scanned_code_search_error
+                        )
+                );
+                break;
+        }
+    }
+
+    private void showMultipleCodeMatches(
+            WarehouseItemCodeSearchResult result
+    ) {
+        List<com.rndymi.almacentracker.domain.model.WarehouseItem>
+                matches = result.getMatches();
+
+        CharSequence[] options =
+                new CharSequence[matches.size()];
+
+        for (int index = 0;
+             index < matches.size();
+             index++) {
+
+            com.rndymi.almacentracker.domain.model.WarehouseItem item =
+                    matches.get(index);
+
+            options[index] =
+                    buildCodeMatchDescription(item);
+        }
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle(
-                        R.string.scanned_code_result_title
+                        getString(
+                                R.string
+                                        .scanned_code_multiple_matches_title,
+                                result.getScannedCode()
+                        )
+                )
+                .setItems(
+                        options,
+                        (dialog, selectedIndex) -> {
+                            com.rndymi.almacentracker.domain.model
+                                    .WarehouseItem selectedItem =
+                                    matches.get(
+                                            selectedIndex
+                                    );
+
+                            openWarehouseItemDetail(
+                                    selectedItem.getId()
+                            );
+                        }
+                )
+                .setNegativeButton(
+                        R.string.close_action,
+                        null
+                )
+                .show();
+    }
+
+    private String buildCodeMatchDescription(
+            WarehouseItem item
+    ) {
+        String location =
+                item.hasPosition()
+                        ? getString(
+                        R.string
+                        .scanned_code_match_location_with_position,
+                        item.getSite(),
+                        item.getPosition()
+                )
+                        : getString(
+                        R.string
+                        .scanned_code_match_location,
+                        item.getSite()
+                );
+
+        return getString(
+                R.string.scanned_code_match_item,
+                item.getCategory(),
+                item.getCode(),
+                location
+        );
+    }
+
+    private void showScannedCodeNotFound(
+            String scannedCode
+    ) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string
+                                .scanned_code_not_found_title
                 )
                 .setMessage(
                         getString(
                                 R.string
-                                        .scanned_code_result_message,
-                                scannedValue,
-                                visibleFormat
+                                        .scanned_code_not_found_message,
+                                scannedCode
                         )
                 )
-                .setPositiveButton(
-                        android.R.string.ok,
+                .setNeutralButton(
+                        R.string.scan_again_action,
+                        (dialog, which) -> openScanner()
+                )
+                .setNegativeButton(
+                        R.string.close_action,
                         null
+                )
+                .setPositiveButton(
+                        R.string
+                                .register_warehouse_item_action,
+                        (dialog, which) ->
+                                openWarehouseItemForm()
                 )
                 .show();
     }
