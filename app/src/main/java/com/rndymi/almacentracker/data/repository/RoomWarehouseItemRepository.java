@@ -227,6 +227,28 @@ public final class RoomWarehouseItemRepository
     }
 
     @Override
+    public void findAllByCode(
+            String code,
+            RepositoryCallback<List<WarehouseItem>> callback
+    ) {
+        Objects.requireNonNull(code);
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                List<WarehouseItemEntity> entities =
+                        warehouseItemDao.findAllByCode(code);
+
+                callback.onSuccess(
+                        mapper.toDomainList(entities)
+                );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
     public void existsByCategoryAndCode(
             String category,
             String code,

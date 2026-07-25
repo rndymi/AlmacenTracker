@@ -36,6 +36,11 @@ public interface WarehouseItemRepository {
             RepositoryCallback<WarehouseItem> callback
     );
 
+    void findAllByCode(
+            String code,
+            RepositoryCallback<List<WarehouseItem>> callback
+    );
+
     void existsByCategoryAndCode(
             String category,
             String code,

@@ -137,6 +137,14 @@ public interface WarehouseItemDao {
     );
 
     @Query(
+            "SELECT * FROM warehouse_items " +
+                    "WHERE code = :code COLLATE NOCASE " +
+                    "ORDER BY category COLLATE NOCASE ASC, " +
+                    "code COLLATE NOCASE ASC"
+    )
+    List<WarehouseItemEntity> findAllByCode(String code);
+
+    @Query(
             "SELECT EXISTS(" +
                     "SELECT 1 FROM warehouse_items " +
                     "WHERE category = :category COLLATE NOCASE " +
