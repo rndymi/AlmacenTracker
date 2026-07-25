@@ -1584,4 +1584,88 @@ public class WarehouseItemDaoTest {
             );
         }
     }
+
+    @Test
+    public void findAllByCodeReturnsExactMatchesFromDifferentCategories() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "1050",
+                        "B1"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "10501",
+                        "C1"
+                )
+        );
+
+        List<WarehouseItemEntity> result =
+                dao.findAllByCode("1050");
+
+        assertEquals(2, result.size());
+        assertEquals("MD", result.get(0).getCategory());
+        assertEquals("MR", result.get(1).getCategory());
+    }
+
+    @Test
+    public void findAllByCodeIsCaseInsensitive() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "AB-10",
+                        "A1"
+                )
+        );
+
+        List<WarehouseItemEntity> result =
+                dao.findAllByCode("ab-10");
+
+        assertEquals(1, result.size());
+        assertEquals("AB-10", result.get(0).getCode());
+    }
+
+    @Test
+    public void findAllByCodeDoesNotReturnPartialMatches() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "10501",
+                        "A2"
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "A1050",
+                        "A3"
+                )
+        );
+
+        List<WarehouseItemEntity> result =
+                dao.findAllByCode("1050");
+
+        assertEquals(1, result.size());
+        assertEquals("1050", result.get(0).getCode());
+    }
 }

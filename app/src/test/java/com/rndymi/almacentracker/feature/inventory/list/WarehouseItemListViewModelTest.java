@@ -13,6 +13,7 @@ import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
 import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
@@ -401,10 +402,17 @@ public class WarehouseItemListViewModelTest {
                             new WarehouseItemRepositoryStub()
                     );
 
+            WarehouseItemCodeSearchService codeSearchService =
+                    new WarehouseItemCodeSearchService(
+                            repository,
+                            new WarehouseItemNormalizer()
+                    );
+
             WarehouseItemListViewModel viewModel =
                     new WarehouseItemListViewModel(
                             repository,
-                            deleteService
+                            deleteService,
+                            codeSearchService
                     );
 
             viewModel.getUiState().observeForever(

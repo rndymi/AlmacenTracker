@@ -1,10 +1,12 @@
 package com.rndymi.almacentracker.app.di;
 
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
 import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 import com.rndymi.almacentracker.feature.inventory.detail.WarehouseItemDetailViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemSaveService;
+import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemCodeSearchService;
 import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemListViewModelFactory;
 
 import java.util.Objects;
@@ -14,6 +16,7 @@ public final class InventoryModule {
     private final WarehouseItemRepository repository;
     private final WarehouseItemSaveService saveService;
     private final WarehouseItemDeleteService deleteService;
+    private final WarehouseItemCodeSearchService codeSearchService;
     public InventoryModule(
             WarehouseItemRepository warehouseItemRepository
     ) {
@@ -27,6 +30,11 @@ public final class InventoryModule {
         deleteService = new WarehouseItemDeleteService(
                 repository
         );
+        codeSearchService =
+                new WarehouseItemCodeSearchService(
+                        repository,
+                        new WarehouseItemNormalizer()
+                );
     }
 
     public WarehouseItemDetailViewModelFactory
@@ -44,7 +52,8 @@ public final class InventoryModule {
     provideWarehouseItemListViewModelFactory() {
         return new WarehouseItemListViewModelFactory(
                 repository,
-                deleteService
+                deleteService,
+                codeSearchService
         );
     }
 

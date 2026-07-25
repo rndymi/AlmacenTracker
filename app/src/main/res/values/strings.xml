@@ -447,11 +447,40 @@
 
     <string name="open_settings_action">Abrir ajustes</string>
 
-    <string name="scanned_code_result_title">
-        Código detectado
+
+    <string name="scanned_code_invalid">
+        El código escaneado no contiene un valor válido.
     </string>
 
-    <string name="scanned_code_result_message">
-        Valor: %1$s\nFormato: %2$s
+    <string name="scanned_code_search_error">
+        No se pudo buscar la mercadería escaneada.
+    </string>
+
+    <string name="scanned_code_multiple_matches_title">
+        Coincidencias para %1$s
+    </string>
+
+    <string name="scanned_code_match_item">
+        %1$s · %2$s\n%3$s
+    </string>
+
+    <string name="scanned_code_match_location">
+        Sitio %1$s
+    </string>
+
+    <string name="scanned_code_match_location_with_position">
+        Sitio %1$s · %2$s
+    </string>
+
+    <string name="scanned_code_not_found_title">
+        Mercancía no encontrada
+    </string>
+
+    <string name="scanned_code_not_found_message">
+        No existe mercadería registrada con el código %1$s.
+    </string>
+
+    <string name="scan_again_action">
+        Volver a escanear
     </string>
 </resources>

@@ -2,8 +2,10 @@ package com.rndymi.almacentracker.feature.inventory.list;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.data.repository.PositionFilter;
 import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
 import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
@@ -15,6 +17,7 @@ import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteRes
 import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteService;
 
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +51,17 @@ public final class WarehouseItemListViewModel
     private final Set<Long> selectedWarehouseItemIds =
             new LinkedHashSet<>();
 
+    private final WarehouseItemCodeSearchService
+            codeSearchService;
+
+    private final MutableLiveData<
+            UiEvent<WarehouseItemCodeSearchResult>>
+            scannedCodeSearchEvent =
+            new MutableLiveData<>();
+
+    private final AtomicBoolean searchingScannedCode =
+            new AtomicBoolean(false);
+
     private boolean deletingSelection;
 
     private LiveData<WarehouseItemsResult> filteredItemsSource;
@@ -64,11 +78,15 @@ public final class WarehouseItemListViewModel
 
     public WarehouseItemListViewModel(
             WarehouseItemRepository repository,
-            WarehouseItemDeleteService deleteService
+            WarehouseItemDeleteService deleteService,
+            WarehouseItemCodeSearchService codeSearchService
     ) {
         this.repository = Objects.requireNonNull(repository);
 
         this.deleteService = Objects.requireNonNull(deleteService);
+
+        this.codeSearchService =
+                Objects.requireNonNull(codeSearchService);
 
         selectionUiState.setValue(
                 WarehouseItemSelectionUiState.empty()
@@ -100,6 +118,36 @@ public final class WarehouseItemListViewModel
 
     public LiveData<WarehouseItemListUiState> getUiState() {
         return uiState;
+    }
+
+    public LiveData<UiEvent<WarehouseItemCodeSearchResult>>
+    getScannedCodeSearchEvent() {
+        return scannedCodeSearchEvent;
+    }
+
+    public void searchScannedCode(String scannedCode) {
+        if (hasSelection()
+                || !searchingScannedCode.compareAndSet(
+                false,
+                true
+        )) {
+            return;
+        }
+
+        codeSearchService.search(
+                scannedCode,
+                result -> {
+                    searchingScannedCode.set(false);
+
+                    scannedCodeSearchEvent.postValue(
+                            new UiEvent<>(result)
+                    );
+                }
+        );
+    }
+
+    public boolean isSearchingScannedCode() {
+        return searchingScannedCode.get();
     }
 
     public void setSearchQuery(String query) {
