@@ -14,14 +14,21 @@ public final class WarehouseItemListViewModelFactory
 
     private final WarehouseItemRepository repository;
     private final WarehouseItemDeleteService deleteService;
+    private final WarehouseItemCodeSearchService
+            codeSearchService;
 
     public WarehouseItemListViewModelFactory(
             WarehouseItemRepository repository,
-            WarehouseItemDeleteService deleteService
+            WarehouseItemDeleteService deleteService,
+            WarehouseItemCodeSearchService codeSearchService
     ) {
         this.repository = Objects.requireNonNull(repository);
 
-        this.deleteService = Objects.requireNonNull(deleteService);
+        this.deleteService =
+                Objects.requireNonNull(deleteService);
+
+        this.codeSearchService =
+                Objects.requireNonNull(codeSearchService);
     }
 
     @NonNull
@@ -35,7 +42,8 @@ public final class WarehouseItemListViewModelFactory
             return modelClass.cast(
                     new WarehouseItemListViewModel(
                             repository,
-                            deleteService
+                            deleteService,
+                            codeSearchService
                     )
             );
         }
