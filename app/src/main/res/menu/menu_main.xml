@@ -9,6 +9,12 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_process_reference_list"
+        android:icon="@drawable/ic_reference_list"
+        android:title="@string/reference_list_action"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_data_management"
         android:icon="@drawable/ic_data_management"
         android:title="@string/data_management_action"

@@ -29,6 +29,7 @@ import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteRes
 import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
 import com.rndymi.almacentracker.feature.inventory.form.ItemFormActivity;
 import com.rndymi.almacentracker.feature.scanner.ScannerActivity;
+import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureActivity;
 import com.rndymi.almacentracker.R;
 
 import java.util.ArrayList;
@@ -784,6 +785,7 @@ public final class MainActivity extends AppCompatActivity {
         }
 
         consumeSelectionResult(state);
+        invalidateOptionsMenu();
     }
 
     private void setQueryControlsEnabled(
@@ -1056,9 +1058,31 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem processReferenceListItem =
+                menu.findItem(
+                        R.id.action_process_reference_list
+                );
+
+        if (processReferenceListItem != null) {
+            processReferenceListItem.setEnabled(
+                    !viewModel.hasSelection()
+            );
+        }
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_scan_code) {
             openScanner();
+            return true;
+        }
+
+        if (item.getItemId()
+                == R.id.action_process_reference_list) {
+            openReferenceListCapture();
             return true;
         }
 
@@ -1074,6 +1098,18 @@ public final class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void openReferenceListCapture() {
+        if (viewModel.hasSelection()) {
+            return;
+        }
+
+        startActivity(
+                ReferenceListCaptureActivity.createIntent(
+                        this
+                )
+        );
     }
 
 }

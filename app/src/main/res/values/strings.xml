@@ -526,4 +526,54 @@
 
 
 
+    <string name="reference_list_action"> Procesar lista </string>
+    <string name="reference_list_capture_title"> Procesar lista </string>
+    <string name="reference_list_capture_description">
+        Toma una fotografía o selecciona una imagen de la lista para reconocer su texto.
+    </string>
+    <string name="reference_list_privacy_description">
+        La imagen se procesa únicamente en este dispositivo y no se guarda permanentemente.
+    </string>
+
+    <string name="reference_list_take_photo_action"> Tomar fotografía </string>
+    <string name="reference_list_select_image_action">
+        Seleccionar imagen
+    </string>
+    <string name="reference_list_preview_description">
+        Previsualización de la lista seleccionada
+    </string>
+    <string name="reference_list_camera_source">
+        Fotografía tomada con la cámara
+    </string>
+    <string name="reference_list_picker_source"> Imagen seleccionada </string>
+    <string name="reference_list_process_action"> Procesar imagen </string>
+    <string name="reference_list_processing"> Reconociendo texto… </string>
+    <string name="reference_list_change_image_action"> Cambiar imagen </string>
+    <string name="reference_list_recognized_text_title"> Texto reconocido </string>
+    <string name="reference_list_review_pending">
+        La validación y corrección de referencias se incorporará en la siguiente historia.
+    </string>
+    <string name="reference_list_no_text_error">
+        No se encontró texto legible en la imagen.
+    </string>
+    <string name="reference_list_image_open_error">
+        No se pudo abrir la imagen seleccionada.
+    </string>
+    <string name="reference_list_recognition_error">
+        No se pudo reconocer el texto de la imagen.
+    </string>
+    <string name="reference_list_capture_error_title">
+        No se pudo preparar la captura
+    </string>
+    <string name="reference_list_capture_file_error">
+        No se pudo crear el archivo temporal para la fotografía.
+    </string>
+    <plurals name="reference_list_lines_recognized">
+        <item quantity="one">
+            Se reconoció %1$d línea.
+        </item>
+        <item quantity="other">
+            Se reconocieron %1$d líneas.
+        </item>
+    </plurals>
 </resources>
