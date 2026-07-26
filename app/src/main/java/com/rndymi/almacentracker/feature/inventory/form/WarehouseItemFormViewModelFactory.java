@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
 
 import java.util.Objects;
 
@@ -12,19 +13,24 @@ public final class WarehouseItemFormViewModelFactory
         implements ViewModelProvider.Factory {
 
     private final WarehouseItemSaveService saveService;
-
     private final WarehouseItemRepository repository;
-
+    private final WarehouseItemNormalizer normalizer;
     private final long warehouseItemId;
 
     public WarehouseItemFormViewModelFactory(
             WarehouseItemSaveService saveService,
             WarehouseItemRepository repository,
+            WarehouseItemNormalizer normalizer,
             long warehouseItemId
     ) {
-        this.saveService = Objects.requireNonNull(saveService);
+        this.saveService =
+                Objects.requireNonNull(saveService);
 
-        this.repository = Objects.requireNonNull(repository);
+        this.repository =
+                Objects.requireNonNull(repository);
+
+        this.normalizer =
+                Objects.requireNonNull(normalizer);
 
         this.warehouseItemId = warehouseItemId;
     }
@@ -47,6 +53,7 @@ public final class WarehouseItemFormViewModelFactory
                 new WarehouseItemFormViewModel(
                         saveService,
                         repository,
+                        normalizer,
                         warehouseItemId
                 )
         );

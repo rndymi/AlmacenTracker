@@ -68,7 +68,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:hint="@string/code_required_label">
+                android:hint="@string/code_required_label"
+                app:endIconContentDescription="@string/scan_code_for_registration_action"
+                app:endIconDrawable="@drawable/ic_scan_code"
+                app:endIconMode="custom">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/codeEditText"
