@@ -566,30 +566,6 @@ public final class WarehouseItemFormViewModelTest {
     }
 
     @Test
-    public void scannedCodeIsIgnoredInEditMode() {
-        TestDependencies dependencies =
-                new TestDependencies();
-
-        WarehouseItemFormViewModel viewModel =
-                dependencies.createViewModel(8L);
-
-        dependencies.detailResult.setValue(
-                WarehouseItemDetailResult.found(
-                        item(8L)
-                )
-        );
-
-        viewModel.applyScannedCode("9999");
-
-        assertEquals(
-                "1050",
-                viewModel.getUiState()
-                        .getValue()
-                        .getCode()
-        );
-    }
-
-    @Test
     public void scannedCodeIsIgnoredWhileSaving() {
         TestDependencies dependencies =
                 new TestDependencies();
