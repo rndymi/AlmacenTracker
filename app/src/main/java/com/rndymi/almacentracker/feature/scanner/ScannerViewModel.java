@@ -23,6 +23,9 @@ public final class ScannerViewModel extends ViewModel {
     private final AtomicBoolean resultAccepted =
             new AtomicBoolean(false);
 
+    private final AtomicBoolean fatalErrorAccepted =
+            new AtomicBoolean(false);
+
     public LiveData<ScannerUiState> getUiState() {
         return uiState;
     }
@@ -33,7 +36,7 @@ public final class ScannerViewModel extends ViewModel {
     }
 
     public void onPermissionRequestStarted() {
-        if (resultAccepted.get()) {
+        if (!canChangeScannerState()) {
             return;
         }
 
@@ -49,6 +52,8 @@ public final class ScannerViewModel extends ViewModel {
             return;
         }
 
+        fatalErrorAccepted.set(false);
+
         uiState.setValue(
                 permanentlyDenied
                         ? ScannerUiState
@@ -58,7 +63,7 @@ public final class ScannerViewModel extends ViewModel {
     }
 
     public void onCameraInitializing() {
-        if (resultAccepted.get()) {
+        if (!canChangeScannerState()) {
             return;
         }
 
@@ -68,7 +73,7 @@ public final class ScannerViewModel extends ViewModel {
     }
 
     public void onCameraReady() {
-        if (resultAccepted.get()) {
+        if (!canChangeScannerState()) {
             return;
         }
 
@@ -82,6 +87,8 @@ public final class ScannerViewModel extends ViewModel {
             return;
         }
 
+        fatalErrorAccepted.set(false);
+
         uiState.setValue(
                 ScannerUiState.cameraUnavailable()
         );
@@ -91,8 +98,11 @@ public final class ScannerViewModel extends ViewModel {
         if (scannedCode == null) {
             return;
         }
-        
-        if (!resultAccepted.compareAndSet(false, true)) {
+
+        if (!resultAccepted.compareAndSet(
+                false,
+                true
+        )) {
             return;
         }
 
@@ -105,22 +115,33 @@ public final class ScannerViewModel extends ViewModel {
         );
     }
 
-    public void onScannerError() {
+    public boolean onScannerErrorOnce(
+            String message
+    ) {
         if (resultAccepted.get()) {
-            return;
+            return false;
         }
 
-        uiState.postValue(
-                ScannerUiState.error(
-                        "No se pudo analizar la imagen."
-                )
+        if (!fatalErrorAccepted.compareAndSet(
+                false,
+                true
+        )) {
+            return false;
+        }
+
+        uiState.setValue(
+                ScannerUiState.error(message)
         );
+
+        return true;
     }
 
     public void retry() {
         if (resultAccepted.get()) {
             return;
         }
+
+        fatalErrorAccepted.set(false);
 
         uiState.setValue(
                 ScannerUiState.initializing()
@@ -129,5 +150,14 @@ public final class ScannerViewModel extends ViewModel {
 
     public boolean hasAcceptedResult() {
         return resultAccepted.get();
+    }
+
+    public boolean hasAcceptedFatalError() {
+        return fatalErrorAccepted.get();
+    }
+
+    private boolean canChangeScannerState() {
+        return !resultAccepted.get()
+                && !fatalErrorAccepted.get();
     }
 }
