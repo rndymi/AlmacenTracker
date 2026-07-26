@@ -608,4 +608,272 @@ public final class WarehouseItemFormViewModelTest {
                         .getCode()
         );
     }
+
+    @Test
+    public void normalizeScannedCodeUsesDomainNormalizer() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        assertEquals(
+                "001050A",
+                viewModel.normalizeScannedCode(
+                        " 001050a "
+                )
+        );
+    }
+
+    @Test
+    public void editAppliesConfirmedScannedCode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode(
+                " 001050a "
+        );
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertEquals(8L, state.getWarehouseItemId());
+        assertEquals("MR", state.getCategory());
+        assertEquals("001050A", state.getCode());
+        assertEquals("A1", state.getSite());
+        assertEquals("", state.getPosition());
+        assertEquals(
+                "Observación",
+                state.getObservations()
+        );
+    }
+
+    @Test
+    public void editScannedCodeKeepsLeadingZeros() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode(
+                "001050"
+        );
+
+        assertEquals(
+                "001050",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void editRejectsEmptyScannedCode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode(
+                "   "
+        );
+
+        assertEquals(
+                "1050",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void editRejectsNullScannedCode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode(
+                null
+        );
+
+        assertEquals(
+                "1050",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void editIgnoresScannedCodeWhileLoading() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        viewModel.applyScannedCode(
+                "2050"
+        );
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertTrue(state.isLoading());
+        assertEquals("", state.getCode());
+    }
+
+    @Test
+    public void editIgnoresScannedCodeWhileSaving() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.save();
+
+        viewModel.applyScannedCode(
+                "2050"
+        );
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertTrue(state.isSaving());
+        assertEquals("1050", state.getCode());
+    }
+
+    @Test
+    public void editScannedCodeDoesNotSaveAutomatically() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode(
+                "2050"
+        );
+
+        assertEquals(
+                0L,
+                dependencies.saveService.lastUpdatedId
+        );
+
+        assertNull(
+                dependencies.saveService.lastFormData
+        );
+    }
+
+    @Test
+    public void editSavesScannedCodeUsingExistingUpdateFlow() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode(
+                "2050"
+        );
+
+        viewModel.save();
+
+        assertEquals(
+                8L,
+                dependencies.saveService.lastUpdatedId
+        );
+
+        assertNotNull(
+                dependencies.saveService.lastFormData
+        );
+
+        assertEquals(
+                "2050",
+                dependencies.saveService
+                        .lastFormData
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void createModeKeepsScannedCodeBehavior() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.onCategoryChanged("MR");
+        viewModel.onSiteChanged("A1");
+
+        viewModel.applyScannedCode(
+                " 001050 "
+        );
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertEquals(
+                WarehouseItemFormMode.CREATE,
+                state.getMode()
+        );
+        assertEquals("MR", state.getCategory());
+        assertEquals("001050", state.getCode());
+        assertEquals("A1", state.getSite());
+    }
 }
