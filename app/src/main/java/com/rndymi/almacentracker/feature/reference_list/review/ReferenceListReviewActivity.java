@@ -11,6 +11,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.rndymi.almacentracker.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
@@ -18,7 +19,7 @@ import com.rndymi.almacentracker.databinding.ActivityReferenceListReviewBinding;
 import com.rndymi.almacentracker.databinding.DialogReferenceEditorBinding;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.feature.reference_list.common.WarehouseReferenceIntentContract;
-import com.rndymi.almacentracker.R;
+import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -221,9 +222,7 @@ public final class ReferenceListReviewActivity
                                 return;
                             }
 
-                            finishWithResult(
-                                    references
-                            );
+                            openReferenceLocations(references);
                         }
                 );
     }
@@ -446,5 +445,17 @@ public final class ReferenceListReviewActivity
         );
 
         finish();
+    }
+
+    private void openReferenceLocations(
+            List<WarehouseReference> references
+    ) {
+        startActivity(
+                ReferenceListLocationActivity
+                        .createIntent(
+                                this,
+                                references
+                        )
+        );
     }
 }

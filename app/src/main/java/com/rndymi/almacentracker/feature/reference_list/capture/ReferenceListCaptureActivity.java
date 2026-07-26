@@ -15,15 +15,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.material.snackbar.Snackbar;
-
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListCaptureBinding;
-import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewActivity;
 
 import java.io.File;
@@ -56,8 +53,6 @@ public final class ReferenceListCaptureActivity
     private File activeCapturedFile;
     private String renderedImageUri;
     private ReferenceListCaptureUiState.Status lastAnnouncedErrorStatus;
-
-    private ActivityResultLauncher<Intent> reviewReferencesLauncher;
 
     public static Intent createIntent(
             Context context
@@ -107,40 +102,6 @@ public final class ReferenceListCaptureActivity
                         new ActivityResultContracts
                                 .PickVisualMedia(),
                         this::handleSelectedImage
-                );
-
-        reviewReferencesLauncher =
-                registerForActivityResult(
-                        new ActivityResultContracts
-                                .StartActivityForResult(),
-                        result -> {
-                            if (result.getResultCode()
-                                    != RESULT_OK) {
-                                return;
-                            }
-
-                            List<WarehouseReference> references =
-                                    ReferenceListReviewActivity
-                                            .getConfirmedReferences(
-                                                    result.getData()
-                                            );
-
-                            if (references.isEmpty()) {
-                                return;
-                            }
-
-                            Snackbar.make(
-                                    binding.getRoot(),
-                                    getResources()
-                                            .getQuantityString(
-                                                    R.plurals
-                                                            .reference_list_review_confirmed,
-                                                    references.size(),
-                                                    references.size()
-                                            ),
-                                    Snackbar.LENGTH_LONG
-                            ).show();
-                        }
                 );
     }
 
@@ -726,7 +687,7 @@ public final class ReferenceListCaptureActivity
             );
         }
 
-        reviewReferencesLauncher.launch(
+        startActivity(
                 ReferenceListReviewActivity
                         .createIntent(
                                 this,
