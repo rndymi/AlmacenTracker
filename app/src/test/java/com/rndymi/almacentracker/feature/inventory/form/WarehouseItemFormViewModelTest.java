@@ -10,9 +10,10 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
+import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Rule;
@@ -308,11 +309,12 @@ public final class WarehouseItemFormViewModelTest {
                     };
 
             WarehouseItemFormViewModel viewModel =
-                    new WarehouseItemFormViewModel(
-                            saveService,
-                            repository,
-                            warehouseItemId
-                    );
+                new WarehouseItemFormViewModel(
+                        saveService,
+                        repository,
+                        new WarehouseItemNormalizer(),
+                        warehouseItemId
+                );
 
             viewModel.getUiState().observeForever(
                     ignored -> {
@@ -364,5 +366,246 @@ public final class WarehouseItemFormViewModelTest {
         ) {
             callback.accept(result);
         }
+    }
+
+    @Test
+    public void initialCodeIsAppliedInCreateMode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.applyInitialCode(" 001050 ");
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertEquals("001050", state.getCode());
+        assertTrue(state.isEditable());
+        assertEquals(0, dependencies.saveService.createCallCount);
+    }
+
+    @Test
+    public void initialCodeIsNormalizedToUppercase() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.applyInitialCode(" 1210a ");
+
+        assertEquals(
+                "1210A",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void initialCodeIsIgnoredInEditMode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        viewModel.applyInitialCode("9999");
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        assertEquals(
+                "1050",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void initialCodeIsAppliedOnlyOnce() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.applyInitialCode("1050");
+        viewModel.applyInitialCode("9999");
+
+        assertEquals(
+                "1050",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void initialCodeDoesNotOverwriteUserInput() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.onCodeChanged("MANUAL");
+        viewModel.applyInitialCode("SCANNED");
+
+        assertEquals(
+                "MANUAL",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void emptyInitialCodeIsIgnored() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.applyInitialCode("   ");
+
+        assertEquals(
+                "",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void scannedCodeReplacesOnlyCodeInCreateMode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.onCategoryChanged("MR");
+        viewModel.onCodeChanged("1000");
+        viewModel.onSiteChanged("A1");
+        viewModel.onPositionChanged("Nivel 2");
+        viewModel.onObservationsChanged(
+                "Revisar embalaje"
+        );
+
+        viewModel.applyScannedCode(" 001050 ");
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertEquals("MR", state.getCategory());
+        assertEquals("001050", state.getCode());
+        assertEquals("A1", state.getSite());
+        assertEquals("Nivel 2", state.getPosition());
+        assertEquals(
+                "Revisar embalaje",
+                state.getObservations()
+        );
+    }
+
+    @Test
+    public void scannedCodeClearsOnlyCodeError() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.save();
+
+        dependencies.saveService.complete(
+                WarehouseItemSaveResult.validationError(
+                        true,
+                        true,
+                        true
+                )
+        );
+
+        viewModel.applyScannedCode("1050");
+
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertNotNull(state.getCategoryError());
+        assertNull(state.getCodeError());
+        assertNotNull(state.getSiteError());
+    }
+
+    @Test
+    public void invalidScannedCodeDoesNotReplaceCurrentCode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        viewModel.onCodeChanged("CURRENT");
+        viewModel.applyScannedCode("   ");
+
+        assertEquals(
+                "CURRENT",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void scannedCodeIsIgnoredInEditMode() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(8L);
+
+        dependencies.detailResult.setValue(
+                WarehouseItemDetailResult.found(
+                        item(8L)
+                )
+        );
+
+        viewModel.applyScannedCode("9999");
+
+        assertEquals(
+                "1050",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void scannedCodeIsIgnoredWhileSaving() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WarehouseItemFormViewModel viewModel =
+                dependencies.createViewModel(0L);
+
+        fillForm(viewModel);
+        viewModel.save();
+        viewModel.applyScannedCode("9999");
+
+        assertEquals(
+                " 1050 ",
+                viewModel.getUiState()
+                        .getValue()
+                        .getCode()
+        );
     }
 }

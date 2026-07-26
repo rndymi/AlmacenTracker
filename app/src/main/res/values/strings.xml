@@ -473,7 +473,7 @@
     </string>
 
     <string name="scanned_code_not_found_title">
-        Mercancía no encontrada
+        Mercadería no encontrada
     </string>
 
     <string name="scanned_code_not_found_message">
@@ -482,5 +482,27 @@
 
     <string name="scan_again_action">
         Volver a escanear
+    </string>
+
+
+
+    <string name="scan_code_for_registration_action">
+        Escanear código para el registro
+    </string>
+
+    <string name="replace_form_code_title">
+        Reemplazar código
+    </string>
+
+    <string name="replace_form_code_message">
+        El código actual será sustituido por el valor que se escanee.
+    </string>
+
+    <string name="replace_form_code_action">
+        Escanear
+    </string>
+
+    <string name="scanned_code_apply_error">
+        No se pudo aplicar el código escaneado.
     </string>
 </resources>

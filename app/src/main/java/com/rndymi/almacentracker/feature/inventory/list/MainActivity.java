@@ -330,14 +330,21 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void openWarehouseItemForm() {
+        openWarehouseItemForm(null);
+    }
+
+    private void openWarehouseItemForm(
+            String initialCode
+    ) {
         if (viewModel.hasSelection()) {
             return;
         }
 
-        Intent intent = new Intent(
-                this,
-                ItemFormActivity.class
-        );
+        Intent intent =
+                ItemFormActivity.createIntent(
+                        this,
+                        initialCode
+                );
 
         startActivity(intent);
     }
@@ -1033,10 +1040,11 @@ public final class MainActivity extends AppCompatActivity {
                         null
                 )
                 .setPositiveButton(
-                        R.string
-                                .register_warehouse_item_action,
+                        R.string.register_warehouse_item_action,
                         (dialog, which) ->
-                                openWarehouseItemForm()
+                                openWarehouseItemForm(
+                                        scannedCode
+                                )
                 )
                 .show();
     }

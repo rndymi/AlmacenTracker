@@ -9,6 +9,7 @@ import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.rule.WarehouseItemNormalizer;
 
 import java.util.Objects;
 
@@ -17,31 +18,24 @@ public final class WarehouseItemFormViewModel
 
     private static final String REQUIRED_FIELD_ERROR =
             "Este campo es obligatorio.";
-
     private static final String CREATE_DUPLICATE_ERROR =
             "Ya existe una mercancía con esta categoría y código.";
-
     private static final String UPDATE_DUPLICATE_ERROR =
             "Ya existe otra mercancía con esta categoría y código.";
-
     private static final String CREATE_ERROR =
             "No se pudo registrar la mercancía.";
-
     private static final String UPDATE_ERROR =
             "No se pudieron guardar los cambios.";
-
     private static final String LOAD_ERROR =
             "No se pudo cargar la mercancía para editarla.";
-
     private static final String NOT_FOUND_ERROR =
             "La mercancía ya no está disponible.";
-
     private static final String INVALID_ID_ERROR =
             "No se pudo identificar la mercancía.";
 
     private final WarehouseItemSaveService saveService;
-
     private final WarehouseItemRepository repository;
+    private final WarehouseItemNormalizer normalizer;
 
     private final long warehouseItemId;
 
@@ -59,6 +53,7 @@ public final class WarehouseItemFormViewModel
     private LiveData<WarehouseItemDetailResult>
             detailSource;
 
+    private boolean initialCodeApplied;
     private boolean initialDataApplied;
     private boolean userHasEdited;
     private boolean saveInProgress;
@@ -66,11 +61,17 @@ public final class WarehouseItemFormViewModel
     public WarehouseItemFormViewModel(
             WarehouseItemSaveService saveService,
             WarehouseItemRepository repository,
+            WarehouseItemNormalizer normalizer,
             long warehouseItemId
     ) {
-        this.saveService = Objects.requireNonNull(saveService);
+        this.saveService =
+                Objects.requireNonNull(saveService);
 
-        this.repository = Objects.requireNonNull(repository);
+        this.repository =
+                Objects.requireNonNull(repository);
+
+        this.normalizer =
+                Objects.requireNonNull(normalizer);
 
         this.warehouseItemId = warehouseItemId;
 
@@ -117,6 +118,37 @@ public final class WarehouseItemFormViewModel
 
     public LiveData<UiEvent<Boolean>> getUpdateSuccess() {
         return updateSuccess;
+    }
+
+    public void applyInitialCode(String initialCode) {
+        WarehouseItemFormUiState current = requireState();
+
+        if (initialCodeApplied) {
+            return;
+        }
+
+        initialCodeApplied = true;
+
+        if (current.getMode() != WarehouseItemFormMode.CREATE
+                || userHasEdited
+                || !current.isEditable()
+                || !current.getCode().isEmpty()) {
+            return;
+        }
+
+        applyNormalizedCode(current, initialCode);
+    }
+
+    public void applyScannedCode(String scannedCode) {
+        WarehouseItemFormUiState current = requireState();
+
+        if (current.getMode() != WarehouseItemFormMode.CREATE
+                || !current.isEditable()
+                || saveInProgress) {
+            return;
+        }
+
+        applyNormalizedCode(current, scannedCode);
     }
 
     public void onCategoryChanged(String value) {
@@ -622,6 +654,39 @@ public final class WarehouseItemFormViewModel
     ) {
         currentState = Objects.requireNonNull(state);
         uiState.postValue(state);
+    }
+
+    private void applyNormalizedCode(
+            WarehouseItemFormUiState current,
+            String code
+    ) {
+        String normalizedCode =
+                normalizer.normalizeCode(code);
+
+        if (normalizedCode.isEmpty()) {
+            return;
+        }
+
+        userHasEdited = true;
+
+        publish(
+                copy(
+                        current,
+                        current.getCategory(),
+                        normalizedCode,
+                        current.getSite(),
+                        current.getPosition(),
+                        current.getObservations(),
+                        current.getCategoryError(),
+                        null,
+                        current.getSiteError(),
+                        current.getGeneralError(),
+                        current.isLoading(),
+                        current.isSaving(),
+                        current.isNotFound(),
+                        current.isInvalidId()
+                )
+        );
     }
 
     @Override

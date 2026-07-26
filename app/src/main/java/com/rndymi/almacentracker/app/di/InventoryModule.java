@@ -17,23 +17,30 @@ public final class InventoryModule {
     private final WarehouseItemSaveService saveService;
     private final WarehouseItemDeleteService deleteService;
     private final WarehouseItemCodeSearchService codeSearchService;
+    private final WarehouseItemNormalizer normalizer;
+
     public InventoryModule(
             WarehouseItemRepository warehouseItemRepository
     ) {
         repository = Objects.requireNonNull(
                 warehouseItemRepository
         );
+
+        normalizer = new WarehouseItemNormalizer();
+
         saveService = new WarehouseItemSaveService(
                 repository,
                 System::currentTimeMillis
         );
+
         deleteService = new WarehouseItemDeleteService(
                 repository
         );
+
         codeSearchService =
                 new WarehouseItemCodeSearchService(
                         repository,
-                        new WarehouseItemNormalizer()
+                        normalizer
                 );
     }
 
@@ -64,6 +71,7 @@ public final class InventoryModule {
         return new WarehouseItemFormViewModelFactory(
                 saveService,
                 repository,
+                normalizer,
                 warehouseItemId
         );
     }
