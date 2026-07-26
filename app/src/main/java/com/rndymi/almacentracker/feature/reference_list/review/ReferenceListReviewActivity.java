@@ -11,21 +11,16 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.material.dialog
-        .MaterialAlertDialogBuilder;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.databinding.ActivityReferenceListReviewBinding;
+import com.rndymi.almacentracker.databinding.DialogReferenceEditorBinding;
+import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.feature.reference_list.common.WarehouseReferenceIntentContract;
 import com.rndymi.almacentracker.R;
-import com.rndymi.almacentracker.app
-        .AlmacenTrackerApplication;
-import com.rndymi.almacentracker.databinding
-        .ActivityReferenceListReviewBinding;
-import com.rndymi.almacentracker.databinding
-        .DialogReferenceEditorBinding;
-import com.rndymi.almacentracker.domain.reference
-        .WarehouseReference;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public final class ReferenceListReviewActivity
@@ -36,23 +31,9 @@ public final class ReferenceListReviewActivity
             "com.rndymi.almacentracker.extra."
                     + "RECOGNIZED_LINES";
 
-    private static final String
-            EXTRA_CONFIRMED_REFERENCES =
-            "com.rndymi.almacentracker.extra."
-                    + "CONFIRMED_REFERENCES";
-
-    private static final String
-            CONTRACT_SEPARATOR =
-            "\u001F";
-
-    private ActivityReferenceListReviewBinding
-            binding;
-
-    private ReferenceListReviewViewModel
-            viewModel;
-
-    private ReferenceListReviewAdapter
-            adapter;
+    private ActivityReferenceListReviewBinding binding;
+    private ReferenceListReviewViewModel viewModel;
+    private ReferenceListReviewAdapter adapter;
 
     public static Intent createIntent(
             Context context,
@@ -83,53 +64,8 @@ public final class ReferenceListReviewActivity
     getConfirmedReferences(
             @Nullable Intent data
     ) {
-        if (data == null) {
-            return Collections.emptyList();
-        }
-
-        ArrayList<String> encodedReferences =
-                data.getStringArrayListExtra(
-                        EXTRA_CONFIRMED_REFERENCES
-                );
-
-        if (encodedReferences == null) {
-            return Collections.emptyList();
-        }
-
-        List<WarehouseReference> references =
-                new ArrayList<>();
-
-        for (
-                String encodedReference
-                : encodedReferences
-        ) {
-            if (encodedReference == null) {
-                continue;
-            }
-
-            String[] parts =
-                    encodedReference.split(
-                            CONTRACT_SEPARATOR,
-                            -1
-                    );
-
-            if (parts.length != 2
-                    || parts[0].isEmpty()
-                    || parts[1].isEmpty()) {
-                continue;
-            }
-
-            references.add(
-                    new WarehouseReference(
-                            parts[0],
-                            parts[1]
-                    )
-            );
-        }
-
-        return Collections.unmodifiableList(
-                references
-        );
+        return WarehouseReferenceIntentContract
+                .getReferences(data);
     }
 
     @Override
@@ -496,26 +432,13 @@ public final class ReferenceListReviewActivity
     private void finishWithResult(
             List<WarehouseReference> references
     ) {
-        ArrayList<String> encodedReferences =
-                new ArrayList<>();
+        Intent result = new Intent();
 
-        for (
-                WarehouseReference reference
-                : references
-        ) {
-            encodedReferences.add(
-                    reference.getCategory()
-                            + CONTRACT_SEPARATOR
-                            + reference.getCode()
-            );
-        }
-
-        Intent result =
-                new Intent()
-                        .putStringArrayListExtra(
-                                EXTRA_CONFIRMED_REFERENCES,
-                                encodedReferences
-                        );
+        WarehouseReferenceIntentContract
+                .putReferences(
+                        result,
+                        references
+                );
 
         setResult(
                 RESULT_OK,
