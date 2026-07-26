@@ -550,9 +550,9 @@
     <string name="reference_list_processing"> Reconociendo texto… </string>
     <string name="reference_list_change_image_action"> Cambiar imagen </string>
     <string name="reference_list_recognized_text_title"> Texto reconocido </string>
-    <string name="reference_list_review_pending">
+    <!--<string name="reference_list_review_pending">
         La validación y corrección de referencias se incorporará en la siguiente historia.
-    </string>
+    </string>-->
     <string name="reference_list_no_text_error">
         No se encontró texto legible en la imagen.
     </string>
@@ -575,5 +575,52 @@
         <item quantity="other">
             Se reconocieron %1$d líneas.
         </item>
+    </plurals>
+
+
+    <string name="reference_list_review_open_action"> Revisar referencias </string>
+    <string name="reference_list_review_title"> Revisar referencias </string>
+    <string name="reference_list_review_description">
+        Corrige, elimina o añade referencias antes de confirmar la lista.
+    </string>
+    <string name="reference_list_review_empty">
+        No hay referencias para confirmar. Añade una referencia manualmente o vuelve al texto reconocido.
+    </string>
+    <string name="reference_list_review_add_action"> Añadir referencia </string>
+    <string name="reference_list_review_confirm_action"> Confirmar lista </string>
+    <string name="reference_list_review_add_title"> Añadir referencia </string>
+    <string name="reference_list_review_edit_title"> Editar referencia </string>
+    <string name="reference_list_review_source_format">
+        Texto original: %1$s
+    </string>
+    <string name="reference_list_review_edit_description">
+        Editar referencia %1$s
+    </string>
+    <string name="reference_list_review_delete_description">
+        Eliminar referencia %1$s
+    </string>
+    <string name="reference_list_review_category_error">
+        Introduce exactamente dos letras.
+    </string>
+    <string name="reference_list_review_code_error">
+        Introduce uno o más dígitos y, opcionalmente, una letra final.
+    </string>
+    <string name="reference_list_review_duplicate">
+        La referencia ya estaba incluida en la lista.
+    </string>
+    <string name="reference_list_review_deleted">
+        Referencia eliminada.
+    </string>
+    <plurals name="reference_list_review_count">
+        <item quantity="one"> %1$d referencia </item>
+        <item quantity="other"> %1$d referencias </item>
+    </plurals>
+    <plurals name="reference_list_review_duplicates">
+        <item quantity="one"> Se consolidó %1$d referencia duplicada. </item>
+        <item quantity="other"> Se consolidaron %1$d referencias duplicadas. </item>
+    </plurals>
+    <plurals name="reference_list_review_confirmed">
+        <item quantity="one"> Se confirmó %1$d referencia. </item>
+        <item quantity="other"> Se confirmaron %1$d referencias. </item>
     </plurals>
 </resources>

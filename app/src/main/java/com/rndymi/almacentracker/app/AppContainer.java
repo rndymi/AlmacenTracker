@@ -18,6 +18,7 @@ import com.rndymi.almacentracker.feature.inventory.detail.WarehouseItemDetailVie
 import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemListViewModelFactory;
 import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureViewModelFactory;
+import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewViewModelFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,6 +103,12 @@ public final class AppContainer {
     provideReferenceListCaptureViewModelFactory() {
         return referenceListModule
                 .provideReferenceListCaptureViewModelFactory();
+    }
+
+    public ReferenceListReviewViewModelFactory
+    provideReferenceListReviewViewModelFactory() {
+        return referenceListModule
+                .provideReferenceListReviewViewModelFactory();
     }
 
     public DocumentImageLoader<Bitmap>
