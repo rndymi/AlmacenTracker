@@ -34,6 +34,7 @@ public final class ItemFormActivity
     private WarehouseItemFormViewModel viewModel;
     private ActivityResultLauncher<Intent> scannerActivityLauncher;
     private boolean rendering;
+    private boolean scannerLaunchInProgress;
 
     public static Intent createIntent(
             Context context,
@@ -182,29 +183,17 @@ public final class ItemFormActivity
                         new ActivityResultContracts
                                 .StartActivityForResult(),
                         result -> {
+                            scannerLaunchInProgress = false;
+
                             if (result.getResultCode()
                                     != RESULT_OK) {
                                 return;
                             }
 
-                            String scannedCode =
+                            handleScannedCodeResult(
                                     ScannerActivity.getScannedValue(
                                             result.getData()
-                                    );
-
-                            if (scannedCode == null
-                                    || scannedCode.trim().isEmpty()) {
-                                Toast.makeText(
-                                        this,
-                                        R.string.scanned_code_apply_error,
-                                        Toast.LENGTH_SHORT
-                                ).show();
-
-                                return;
-                            }
-
-                            viewModel.applyScannedCode(
-                                    scannedCode
+                                    )
                             );
                         }
                 );
@@ -296,7 +285,10 @@ public final class ItemFormActivity
         );
 
         binding.codeInputLayout.setEndIconVisible(
-                !editMode
+                state.getMode() == WarehouseItemFormMode.CREATE
+                        || (!state.isLoading()
+                        && !state.isNotFound()
+                        && !state.isInvalidId())
         );
     }
 
@@ -395,9 +387,7 @@ public final class ItemFormActivity
         binding.cancelButton.setEnabled(!state.isSaving());
 
         binding.codeInputLayout.setEndIconActivated(
-                editable
-                        && state.getMode()
-                        == WarehouseItemFormMode.CREATE
+                editable && !scannerLaunchInProgress
         );
 
         binding.codeInputLayout.setEndIconCheckable(false);
@@ -458,13 +448,13 @@ public final class ItemFormActivity
                 viewModel.getUiState().getValue();
 
         if (state == null
-                || state.getMode()
-                != WarehouseItemFormMode.CREATE
-                || !state.isEditable()) {
+                || !state.isEditable()
+                || scannerLaunchInProgress) {
             return;
         }
 
-        if (state.getCode().trim().isEmpty()) {
+        if (state.getMode() == WarehouseItemFormMode.EDIT
+                || state.getCode().trim().isEmpty()) {
             openScanner();
             return;
         }
@@ -487,7 +477,99 @@ public final class ItemFormActivity
                 .show();
     }
 
+    private void handleScannedCodeResult(
+            @Nullable String scannedCode
+    ) {
+        WarehouseItemFormUiState state =
+                viewModel.getUiState().getValue();
+
+        if (state == null || !state.isEditable()) {
+            return;
+        }
+
+        String normalizedScannedCode =
+                viewModel.normalizeScannedCode(
+                        scannedCode
+                );
+
+        if (normalizedScannedCode.isEmpty()) {
+            Toast.makeText(
+                    this,
+                    R.string.scanned_code_apply_error,
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        if (state.getMode()
+                == WarehouseItemFormMode.CREATE) {
+            viewModel.applyScannedCode(
+                    normalizedScannedCode
+            );
+
+            return;
+        }
+
+        String normalizedCurrentCode =
+                viewModel.normalizeScannedCode(
+                        state.getCode()
+                );
+
+        if (normalizedCurrentCode.equals(
+                normalizedScannedCode
+        )) {
+            Toast.makeText(
+                    this,
+                    R.string.scanned_code_same_as_current,
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        showEditCodeReplacementConfirmation(
+                normalizedCurrentCode,
+                normalizedScannedCode
+        );
+    }
+
+    private void showEditCodeReplacementConfirmation(
+            String currentCode,
+            String newCode
+    ) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string.replace_edit_code_title
+                )
+                .setMessage(
+                        getString(
+                                R.string.replace_edit_code_message,
+                                currentCode,
+                                newCode
+                        )
+                )
+                .setNegativeButton(
+                        R.string.cancel_action,
+                        null
+                )
+                .setPositiveButton(
+                        R.string.replace_edit_code_action,
+                        (dialog, which) ->
+                                viewModel.applyScannedCode(
+                                        newCode
+                                )
+                )
+                .show();
+    }
+
     private void openScanner() {
+        if (scannerLaunchInProgress) {
+            return;
+        }
+
+        scannerLaunchInProgress = true;
+
         scannerActivityLauncher.launch(
                 ScannerActivity.createIntent(this)
         );

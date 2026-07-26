@@ -139,12 +139,14 @@ public final class WarehouseItemFormViewModel
         applyNormalizedCode(current, initialCode);
     }
 
+    public String normalizeScannedCode(String scannedCode) {
+        return normalizer.normalizeCode(scannedCode);
+    }
+
     public void applyScannedCode(String scannedCode) {
         WarehouseItemFormUiState current = requireState();
 
-        if (current.getMode() != WarehouseItemFormMode.CREATE
-                || !current.isEditable()
-                || saveInProgress) {
+        if (!current.isEditable() || saveInProgress) {
             return;
         }
 
