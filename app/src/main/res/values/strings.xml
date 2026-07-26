@@ -505,4 +505,21 @@
     <string name="scanned_code_apply_error">
         No se pudo aplicar el código escaneado.
     </string>
+
+
+    <string name="scanned_code_same_as_current">
+        El código escaneado ya es el código actual.
+    </string>
+
+    <string name="replace_edit_code_title">
+        Sustituir código
+    </string>
+
+    <string name="replace_edit_code_message">
+        Código actual: %1$s\nCódigo nuevo: %2$s\n\nEl cambio no se guardará hasta que pulses Guardar.
+    </string>
+
+    <string name="replace_edit_code_action">
+        Sustituir
+    </string>
 </resources>
