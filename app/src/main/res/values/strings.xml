@@ -623,4 +623,36 @@
         <item quantity="one"> Se confirmó %1$d referencia. </item>
         <item quantity="other"> Se confirmaron %1$d referencias. </item>
     </plurals>
+
+
+    <string name="reference_list_location_title">
+        Ubicaciones de la lista
+    </string>
+    <string name="reference_list_location_loading">
+        Consultando ubicaciones…
+    </string>
+    <string name="reference_list_location_not_found">
+        No encontrada
+    </string>
+    <string name="reference_list_location_site_format">
+        Sitio %1$s
+    </string>
+    <string name="reference_list_location_site_position_format">
+        Sitio %1$s · Posición %2$s
+    </string>
+    <string name="reference_list_location_summary">
+        %1$d referencias · %2$d encontradas · %3$d no encontradas
+    </string>
+    <string name="reference_list_location_invalid_input">
+        No hay referencias válidas para consultar.
+    </string>
+    <string name="reference_list_location_error">
+        No se pudieron consultar las ubicaciones.
+    </string>
+    <string name="reference_list_location_found_description">
+        Referencia %1$s. %2$s. Abrir detalle.
+    </string>
+    <string name="reference_list_location_not_found_description">
+        Referencia %1$s. No encontrada.
+    </string>
 </resources>
