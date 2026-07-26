@@ -238,7 +238,9 @@ public final class ScannerViewModelTest {
         ScannerViewModel viewModel =
                 new ScannerViewModel();
 
-        viewModel.onScannerError();
+        viewModel.onScannerErrorOnce(
+                "No se pudo analizar el código."
+        );
 
         ScannerUiState state =
                 viewModel.getUiState().getValue();
@@ -249,5 +251,137 @@ public final class ScannerViewModelTest {
         );
 
         assertNotNull(state.getMessage());
+    }
+
+    @Test
+    public void firstFatalErrorIsAccepted() {
+        ScannerViewModel viewModel =
+                new ScannerViewModel();
+
+        boolean accepted =
+                viewModel.onScannerErrorOnce(
+                        "No se pudo analizar el código."
+                );
+
+        assertTrue(accepted);
+        assertTrue(viewModel.hasAcceptedFatalError());
+
+        ScannerUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+
+        assertEquals(
+                ScannerUiState.Status.ERROR,
+                state.getStatus()
+        );
+
+        assertEquals(
+                "No se pudo analizar el código.",
+                state.getMessage()
+        );
+    }
+
+    @Test
+    public void secondFatalErrorIsIgnored() {
+        ScannerViewModel viewModel =
+                new ScannerViewModel();
+
+        assertTrue(
+                viewModel.onScannerErrorOnce(
+                        "Primer error"
+                )
+        );
+
+        assertFalse(
+                viewModel.onScannerErrorOnce(
+                        "Segundo error"
+                )
+        );
+
+        ScannerUiState state =
+                viewModel.getUiState().getValue();
+
+        assertNotNull(state);
+        assertEquals("Primer error", state.getMessage());
+    }
+
+    @Test
+    public void retryClearsFatalErrorLock() {
+        ScannerViewModel viewModel =
+                new ScannerViewModel();
+
+        viewModel.onScannerErrorOnce(
+                "Primer error"
+        );
+
+        viewModel.retry();
+
+        assertFalse(viewModel.hasAcceptedFatalError());
+
+        assertEquals(
+                ScannerUiState.Status.INITIALIZING,
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getStatus()
+        );
+
+        assertTrue(
+                viewModel.onScannerErrorOnce(
+                        "Error después del reintento"
+                )
+        );
+    }
+
+    @Test
+    public void acceptedResultBlocksFatalErrors() {
+        ScannerViewModel viewModel =
+                new ScannerViewModel();
+
+        viewModel.onCodeDetected(
+                new ScannedCode(
+                        "001050",
+                        ScannedCodeFormat.CODE_128
+                )
+        );
+
+        boolean accepted =
+                viewModel.onScannerErrorOnce(
+                        "Error tardío"
+                );
+
+        assertFalse(accepted);
+
+        assertEquals(
+                ScannerUiState.Status.CODE_DETECTED,
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getStatus()
+        );
+    }
+
+    @Test
+    public void acceptedResultBlocksRetry() {
+        ScannerViewModel viewModel =
+                new ScannerViewModel();
+
+        viewModel.onCodeDetected(
+                new ScannedCode(
+                        "001050",
+                        ScannedCodeFormat.CODE_128
+                )
+        );
+
+        viewModel.retry();
+
+        assertEquals(
+                ScannerUiState.Status.CODE_DETECTED,
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getStatus()
+        );
     }
 }
