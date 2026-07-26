@@ -2,11 +2,9 @@ package com.rndymi.almacentracker.data.repository;
 
 import androidx.lifecycle.LiveData;
 
-import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
-import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceLocation;
 
 import java.util.List;
 
@@ -39,6 +37,13 @@ public interface WarehouseItemRepository {
     void findAllByCode(
             String code,
             RepositoryCallback<List<WarehouseItem>> callback
+    );
+
+    void findAllByReferences(
+            List<WarehouseReference> references,
+            RepositoryCallback<
+                    List<WarehouseReferenceLocation>
+                    > callback
     );
 
     void existsByCategoryAndCode(

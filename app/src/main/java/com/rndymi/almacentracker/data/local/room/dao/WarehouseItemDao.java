@@ -145,6 +145,17 @@ public interface WarehouseItemDao {
     List<WarehouseItemEntity> findAllByCode(String code);
 
     @Query(
+            "SELECT * FROM warehouse_items " +
+                    "WHERE category = :category COLLATE NOCASE " +
+                    "AND code = :code COLLATE NOCASE " +
+                    "LIMIT 1"
+    )
+    WarehouseItemEntity findByCategoryAndCode(
+            String category,
+            String code
+    );
+
+    @Query(
             "SELECT EXISTS(" +
                     "SELECT 1 FROM warehouse_items " +
                     "WHERE category = :category COLLATE NOCASE " +
