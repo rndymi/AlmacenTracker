@@ -206,13 +206,13 @@
                         android:textIsSelectable="true"
                         android:textAppearance="?attr/textAppearanceBodyMedium" />
 
-                    <TextView
-                        android:id="@+id/reviewPendingText"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/reviewReferencesButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:text="@string/reference_list_review_pending"
-                        android:textAppearance="?attr/textAppearanceBodySmall" />
+                        android:minHeight="48dp"
+                        android:text="@string/reference_list_review_open_action" />
 
                 </LinearLayout>
 

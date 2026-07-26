@@ -15,12 +15,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListCaptureBinding;
+import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,21 +45,19 @@ public final class ReferenceListCaptureActivity
     private ReferenceListCaptureViewModel viewModel;
     private DocumentImageLoader<Bitmap> imageLoader;
 
-    private ActivityResultLauncher<Uri>
-            takePictureLauncher;
+    private ActivityResultLauncher<Uri> takePictureLauncher;
 
-    private ActivityResultLauncher
-            <PickVisualMediaRequest>
+    private ActivityResultLauncher <PickVisualMediaRequest>
             photoPickerLauncher;
 
-    private final ExecutorService previewExecutor =
-            Executors.newSingleThreadExecutor();
+    private final ExecutorService previewExecutor = Executors.newSingleThreadExecutor();
 
     private File pendingCaptureFile;
     private File activeCapturedFile;
     private String renderedImageUri;
-    private ReferenceListCaptureUiState.Status
-            lastAnnouncedErrorStatus;
+    private ReferenceListCaptureUiState.Status lastAnnouncedErrorStatus;
+
+    private ActivityResultLauncher<Intent> reviewReferencesLauncher;
 
     public static Intent createIntent(
             Context context
@@ -105,6 +107,40 @@ public final class ReferenceListCaptureActivity
                         new ActivityResultContracts
                                 .PickVisualMedia(),
                         this::handleSelectedImage
+                );
+
+        reviewReferencesLauncher =
+                registerForActivityResult(
+                        new ActivityResultContracts
+                                .StartActivityForResult(),
+                        result -> {
+                            if (result.getResultCode()
+                                    != RESULT_OK) {
+                                return;
+                            }
+
+                            List<WarehouseReference> references =
+                                    ReferenceListReviewActivity
+                                            .getConfirmedReferences(
+                                                    result.getData()
+                                            );
+
+                            if (references.isEmpty()) {
+                                return;
+                            }
+
+                            Snackbar.make(
+                                    binding.getRoot(),
+                                    getResources()
+                                            .getQuantityString(
+                                                    R.plurals
+                                                            .reference_list_review_confirmed,
+                                                    references.size(),
+                                                    references.size()
+                                            ),
+                                    Snackbar.LENGTH_LONG
+                            ).show();
+                        }
                 );
     }
 
@@ -157,6 +193,12 @@ public final class ReferenceListCaptureActivity
         binding.cancelButton.setOnClickListener(
                 ignored -> finish()
         );
+
+        binding.reviewReferencesButton
+                .setOnClickListener(
+                        ignored ->
+                                openReferenceReview()
+                );
     }
 
     private void observeState() {
@@ -299,6 +341,11 @@ public final class ReferenceListCaptureActivity
         binding.cancelButton.setEnabled(
                 !processing
         );
+
+        binding.reviewReferencesButton
+                .setEnabled(
+                        state.shouldShowRecognizedText()
+                );
 
         binding.previewCard.setVisibility(
                 state.shouldShowPreview()
@@ -650,6 +697,42 @@ public final class ReferenceListCaptureActivity
             pendingCaptureFile =
                     new File(pendingPath);
         }
+    }
+
+    private void openReferenceReview() {
+        ReferenceListCaptureUiState state =
+                viewModel
+                        .getUiState()
+                        .getValue();
+
+        if (state == null
+                || !state.shouldShowRecognizedText()
+                || state.getRecognizedDocument()
+                == null) {
+            return;
+        }
+
+        List<String> recognizedLines =
+                new java.util.ArrayList<>();
+
+        for (
+                RecognizedTextLine line
+                : state
+                .getRecognizedDocument()
+                .getLines()
+        ) {
+            recognizedLines.add(
+                    line.getRawText()
+            );
+        }
+
+        reviewReferencesLauncher.launch(
+                ReferenceListReviewActivity
+                        .createIntent(
+                                this,
+                                recognizedLines
+                        )
+        );
     }
 
     @Override
