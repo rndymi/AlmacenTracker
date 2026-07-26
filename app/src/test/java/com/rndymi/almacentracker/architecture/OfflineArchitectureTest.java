@@ -145,6 +145,58 @@ public class OfflineArchitectureTest {
         );
     }
 
+    @Test
+    public void documentCoreDoesNotDependOnAndroidOrMlKit()
+            throws IOException {
+
+        assertJavaFilesDoNotContain(
+                findExistingPath(
+                        "src/main/java/com/rndymi/almacentracker/"
+                                + "core/document",
+                        "app/src/main/java/com/rndymi/almacentracker/"
+                                + "core/document"
+                ),
+                "com.google.mlkit",
+                "android.graphics.Bitmap",
+                "android.net.Uri",
+                "androidx.room"
+        );
+    }
+
+    @Test
+    public void referenceListDoesNotDependOnRoomImplementations()
+            throws IOException {
+
+        assertJavaFilesDoNotContain(
+                findExistingPath(
+                        "src/main/java/com/rndymi/almacentracker/"
+                                + "feature/reference_list",
+                        "app/src/main/java/com/rndymi/almacentracker/"
+                                + "feature/reference_list"
+                ),
+                "WarehouseItemDao",
+                "AlmacenTrackerDatabase",
+                "RoomWarehouseItemRepository"
+        );
+    }
+
+    private void assertJavaFilesDoNotContain(
+            Path sourceDirectory,
+            String... forbiddenReferences
+    ) throws IOException {
+
+        String source = readJavaSourceFiles(sourceDirectory);
+
+        for (String forbiddenReference : forbiddenReferences) {
+            assertFalse(
+                    "Forbidden dependency detected in "
+                            + sourceDirectory + ": "
+                            + forbiddenReference,
+                    source.contains(forbiddenReference)
+            );
+        }
+    }
+
     private String readJavaSourceFiles(
             Path sourceDirectory
     ) throws IOException {

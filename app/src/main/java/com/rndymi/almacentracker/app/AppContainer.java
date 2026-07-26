@@ -1,11 +1,14 @@
 package com.rndymi.almacentracker.app;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 
 import androidx.room.Room;
 
 import com.rndymi.almacentracker.app.di.DataManagementModule;
 import com.rndymi.almacentracker.app.di.InventoryModule;
+import com.rndymi.almacentracker.app.di.ReferenceListModule;
+import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
@@ -14,6 +17,7 @@ import com.rndymi.almacentracker.feature.data_management.common.DataManagementVi
 import com.rndymi.almacentracker.feature.inventory.detail.WarehouseItemDetailViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemFormViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemListViewModelFactory;
+import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureViewModelFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +30,7 @@ public final class AppContainer {
     private final WarehouseItemRepository warehouseItemRepository;
     private final InventoryModule inventoryModule;
     private final DataManagementModule dataManagementModule;
+    private final ReferenceListModule referenceListModule;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -54,6 +59,10 @@ public final class AppContainer {
                         applicationContext,
                         warehouseItemRepository,
                         fileExecutor
+                );
+        referenceListModule =
+                new ReferenceListModule(
+                        applicationContext
                 );
     }
 
@@ -87,5 +96,17 @@ public final class AppContainer {
     provideDataManagementViewModelFactory() {
         return dataManagementModule
                 .provideDataManagementViewModelFactory();
+    }
+
+    public ReferenceListCaptureViewModelFactory
+    provideReferenceListCaptureViewModelFactory() {
+        return referenceListModule
+                .provideReferenceListCaptureViewModelFactory();
+    }
+
+    public DocumentImageLoader<Bitmap>
+    provideDocumentImageLoader() {
+        return referenceListModule
+                .provideDocumentImageLoader();
     }
 }

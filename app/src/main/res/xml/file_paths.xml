@@ -5,4 +5,8 @@
         name="shared_csv"
         path="shared_csv/" />
 
+    <cache-path
+        name="reference_list_captures"
+        path="reference_lists/" />
+
 </paths>
