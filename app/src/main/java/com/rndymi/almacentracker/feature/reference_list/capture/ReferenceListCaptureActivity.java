@@ -3,10 +3,8 @@ package com.rndymi.almacentracker.feature.reference_list.capture;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Size;
 import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,13 +17,13 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListCaptureBinding;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -41,6 +39,7 @@ public final class ReferenceListCaptureActivity
 
     private ActivityReferenceListCaptureBinding binding;
     private ReferenceListCaptureViewModel viewModel;
+    private DocumentImageLoader<Bitmap> imageLoader;
 
     private ActivityResultLauncher<Uri>
             takePictureLauncher;
@@ -118,6 +117,10 @@ public final class ReferenceListCaptureActivity
                 application
                         .getAppContainer()
                         .provideReferenceListCaptureViewModelFactory();
+        imageLoader =
+                application
+                        .getAppContainer()
+                        .provideDocumentImageLoader();
 
         viewModel =
                 new ViewModelProvider(
@@ -259,7 +262,7 @@ public final class ReferenceListCaptureActivity
 
         deleteActiveCapturedFile();
 
-        if (!canOpenUri(selectedUri)) {
+        if (!imageLoader.canOpen(selectedUri.toString())) {
             viewModel.selectImage(
                     selectedUri.toString(),
                     DocumentImageSource.PHOTO_PICKER
@@ -272,20 +275,6 @@ public final class ReferenceListCaptureActivity
                 selectedUri.toString(),
                 DocumentImageSource.PHOTO_PICKER
         );
-    }
-
-    private boolean canOpenUri(Uri uri) {
-        try (
-                InputStream inputStream =
-                        getContentResolver()
-                                .openInputStream(uri)
-        ) {
-            return inputStream != null;
-        } catch (
-                Exception exception
-        ) {
-            return false;
-        }
     }
 
     private void changeImage() {
@@ -392,7 +381,10 @@ public final class ReferenceListCaptureActivity
         previewExecutor.execute(
                 () -> {
                     Bitmap preview =
-                            decodeScaledBitmap(imageUri);
+                            imageLoader.loadPreview(
+                                    imageUri.toString(),
+                                    PREVIEW_MAX_SIZE
+                            );
 
                     runOnUiThread(
                             () -> {
@@ -436,91 +428,6 @@ public final class ReferenceListCaptureActivity
                     );
                 }
         );
-    }
-
-    private Bitmap decodeScaledBitmap(
-            Uri imageUri
-    ) {
-        if (android.os.Build.VERSION.SDK_INT >= 29) {
-            try {
-                return getContentResolver()
-                        .loadThumbnail(
-                                imageUri,
-                                new Size(
-                                        PREVIEW_MAX_SIZE,
-                                        PREVIEW_MAX_SIZE
-                                ),
-                                null
-                        );
-            } catch (Exception ignored) {
-                // Fallback for providers without thumbnail support.
-            }
-        }
-
-        try {
-            BitmapFactory.Options bounds =
-                    new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-
-            try (
-                    InputStream stream =
-                            getContentResolver()
-                                    .openInputStream(imageUri)
-            ) {
-                BitmapFactory.decodeStream(
-                        stream,
-                        null,
-                        bounds
-                );
-            }
-
-            if (bounds.outWidth <= 0
-                    || bounds.outHeight <= 0) {
-                return null;
-            }
-
-            BitmapFactory.Options options =
-                    new BitmapFactory.Options();
-
-            options.inSampleSize =
-                    calculateSampleSize(
-                            bounds.outWidth,
-                            bounds.outHeight,
-                            PREVIEW_MAX_SIZE
-                    );
-
-            try (
-                    InputStream stream =
-                            getContentResolver()
-                                    .openInputStream(imageUri)
-            ) {
-                return BitmapFactory.decodeStream(
-                        stream,
-                        null,
-                        options
-                );
-            }
-        } catch (
-                Exception
-                | OutOfMemoryError error
-        ) {
-            return null;
-        }
-    }
-
-    private int calculateSampleSize(
-            int width,
-            int height,
-            int targetSize
-    ) {
-        int sampleSize = 1;
-
-        while (width / sampleSize > targetSize
-                || height / sampleSize > targetSize) {
-            sampleSize *= 2;
-        }
-
-        return Math.max(1, sampleSize);
     }
 
     private void renderError(

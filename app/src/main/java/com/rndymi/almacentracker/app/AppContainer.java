@@ -1,12 +1,14 @@
 package com.rndymi.almacentracker.app;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 
 import androidx.room.Room;
 
 import com.rndymi.almacentracker.app.di.DataManagementModule;
 import com.rndymi.almacentracker.app.di.InventoryModule;
 import com.rndymi.almacentracker.app.di.ReferenceListModule;
+import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
@@ -100,5 +102,11 @@ public final class AppContainer {
     provideReferenceListCaptureViewModelFactory() {
         return referenceListModule
                 .provideReferenceListCaptureViewModelFactory();
+    }
+
+    public DocumentImageLoader<Bitmap>
+    provideDocumentImageLoader() {
+        return referenceListModule
+                .provideDocumentImageLoader();
     }
 }
