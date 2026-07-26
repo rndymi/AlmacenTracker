@@ -1668,4 +1668,130 @@ public class WarehouseItemDaoTest {
         assertEquals(1, result.size());
         assertEquals("1050", result.get(0).getCode());
     }
+
+    @Test
+    public void findByCategoryAndCodeReturnsExactMatch() {
+        WarehouseItemEntity expected =
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        "2"
+                );
+
+        dao.insert(expected);
+
+        WarehouseItemEntity result =
+                dao
+                        .findByCategoryAndCode(
+                                "MR",
+                                "1050"
+                        );
+
+        assertNotNull(result);
+        assertEquals("MR", result.getCategory());
+        assertEquals("1050", result.getCode());
+    }
+
+    @Test
+    public void findByCategoryAndCodeUsesCategoryAndCode() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "1050",
+                        "A1",
+                        null
+                )
+        );
+
+        dao.insert(
+                createEntity(
+                        "MD",
+                        "1050",
+                        "B1",
+                        null
+                )
+        );
+
+        WarehouseItemEntity result =
+                dao
+                        .findByCategoryAndCode(
+                                "MD",
+                                "1050"
+                        );
+
+        assertNotNull(result);
+        assertEquals("MD", result.getCategory());
+        assertEquals("B1", result.getSite());
+    }
+
+    @Test
+    public void findByCategoryAndCodeIgnoresCase() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "AB10A",
+                        "A1",
+                        null
+                )
+        );
+
+        WarehouseItemEntity result =
+                dao
+                        .findByCategoryAndCode(
+                                "mr",
+                                "ab10a"
+                        );
+
+        assertNotNull(result);
+    }
+
+    @Test
+    public void findByCategoryAndCodeDoesNotUsePartialMatch() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "10501",
+                        "A1",
+                        null
+                )
+        );
+
+        WarehouseItemEntity result =
+                dao
+                        .findByCategoryAndCode(
+                                "MR",
+                                "1050"
+                        );
+
+        assertNull(result);
+    }
+
+    @Test
+    public void findByCategoryAndCodePreservesLeadingZeros() {
+        dao.insert(
+                createEntity(
+                        "MR",
+                        "001050",
+                        "A1",
+                        null
+                )
+        );
+
+        assertNotNull(
+                dao
+                        .findByCategoryAndCode(
+                                "MR",
+                                "001050"
+                        )
+        );
+
+        assertNull(
+                dao
+                        .findByCategoryAndCode(
+                                "MR",
+                                "1050"
+                        )
+        );
+    }
 }

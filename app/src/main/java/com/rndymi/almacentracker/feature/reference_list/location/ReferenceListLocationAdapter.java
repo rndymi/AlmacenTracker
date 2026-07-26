@@ -150,10 +150,6 @@ public final class ReferenceListLocationAdapter
                         formatLocation(location)
                 );
 
-                binding.statusText.setTextAppearance(
-                        R.style.TextAppearance_Material3_BodyMedium
-                );
-
                 binding.openDetailIcon.setVisibility(
                         View.VISIBLE
                 );
