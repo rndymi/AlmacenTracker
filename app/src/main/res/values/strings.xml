@@ -423,29 +423,30 @@
     <string name="scanner_action">Escanear</string>
     <string name="scanner_title">Escanear código</string>
     <string name="scanner_help">Apunta la cámara al código.</string>
-    <string name="scanner_initializing">Inicializando cámara</string>
-
+    <string name="scanner_initializing"> Inicializando cámara </string>
     <string name="scanner_permission_denied">
         La cámara es necesaria para escanear códigos.
+        Puedes volver a solicitar el permiso o continuar introduciendo el código manualmente.
     </string>
-
     <string name="scanner_permission_permanently_denied">
-        El permiso de cámara está desactivado. Puedes habilitarlo desde los ajustes de la aplicación.
+        El permiso de cámara está desactivado.
+        Puedes habilitarlo desde los ajustes de AlmacenTracker o continuar manualmente.
     </string>
-
     <string name="scanner_camera_unavailable">
-        No hay una cámara disponible para escanear códigos.
+        Este dispositivo no dispone de una cámara compatible para escanear.
+        Puedes continuar introduciendo el código manualmente.
     </string>
-
-    <string name="scanner_camera_error">
-        No se pudo iniciar la cámara.
+    <string name="scanner_camera_error"> No se pudo iniciar el escáner. </string>
+    <string name="scanner_analysis_error"> No se pudo analizar el código. </string>
+    <string name="scanner_continue_manually_action"> Continuar manualmente </string>
+    <string name="scanner_retry_description"> Volver a intentar iniciar el escáner </string>
+    <string name="scanner_open_settings_description">
+        Abrir los ajustes de AlmacenTracker
     </string>
-
-    <string name="scanner_analysis_error">
-        No se pudo analizar la imagen.
+    <string name="scanner_continue_manually_description">
+        Cerrar el escáner y continuar introduciendo el código manualmente
     </string>
-
-    <string name="open_settings_action">Abrir ajustes</string>
+    <string name="open_settings_action"> Abrir ajustes </string>
 
 
     <string name="scanned_code_invalid">
@@ -522,4 +523,7 @@
     <string name="replace_edit_code_action">
         Sustituir
     </string>
+
+
+
 </resources>
