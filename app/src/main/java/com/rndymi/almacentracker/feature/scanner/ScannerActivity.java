@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.core.scanner.ScannedCode;
+import com.rndymi.almacentracker.data.scanner.CameraPermissionHistory;
 import com.rndymi.almacentracker.data.scanner.MlKitBarcodeMapper;
 import com.rndymi.almacentracker.data.scanner.MlKitCodeScanner;
 import com.rndymi.almacentracker.databinding.ActivityScannerBinding;
@@ -46,12 +47,21 @@ public final class ScannerActivity
 
     private ActivityScannerBinding binding;
     private ScannerViewModel viewModel;
+    private CameraPermissionHistory permissionHistory;
 
     private ProcessCameraProvider cameraProvider;
     private MlKitCodeScanner codeScanner;
     private ExecutorService analysisExecutor;
 
-    private boolean permissionRequestedInCurrentFlow;
+    private boolean permissionRequestInProgress;
+    private boolean permissionWasRequestedBeforeLaunch;
+    private boolean waitingForApplicationSettings;
+    private boolean cameraStartInProgress;
+    private boolean cameraBound;
+    private boolean retryInProgress;
+
+    @Nullable
+    private ScannerUiState.Status lastAnnouncedStatus;
 
     private final ActivityResultLauncher<String>
             cameraPermissionLauncher =
@@ -105,6 +115,9 @@ public final class ScannerActivity
         analysisExecutor =
                 Executors.newSingleThreadExecutor();
 
+        permissionHistory =
+                new CameraPermissionHistory(this);
+
         viewModel = new ViewModelProvider(this)
                 .get(ScannerViewModel.class);
 
@@ -135,9 +148,9 @@ public final class ScannerActivity
                         ignored -> openApplicationSettings()
                 );
 
-        binding.scannerCancelButton
+        binding.scannerManualButton
                 .setOnClickListener(
-                        ignored -> cancelScanner()
+                        ignored -> continueManually()
                 );
     }
 
@@ -154,17 +167,40 @@ public final class ScannerActivity
     }
 
     private void prepareScanner() {
+        if (viewModel.hasAcceptedResult()) {
+            return;
+        }
+
         if (!hasCameraFeature()) {
+            releaseCamera();
             viewModel.onCameraUnavailable();
             return;
         }
 
         if (hasCameraPermission()) {
-            startCamera();
+            startCameraOnce();
             return;
         }
 
-        requestCameraPermission();
+        classifyMissingPermission();
+    }
+
+    private void classifyMissingPermission() {
+        releaseCamera();
+
+        if (!permissionHistory.wasRequestedBefore()) {
+            requestCameraPermission();
+            return;
+        }
+
+        if (shouldShowRequestPermissionRationale(
+                Manifest.permission.CAMERA
+        )) {
+            viewModel.onPermissionDenied(false);
+            return;
+        }
+
+        viewModel.onPermissionDenied(true);
     }
 
     private boolean hasCameraFeature() {
@@ -181,7 +217,18 @@ public final class ScannerActivity
     }
 
     private void requestCameraPermission() {
-        permissionRequestedInCurrentFlow = true;
+        if (permissionRequestInProgress
+                || viewModel.hasAcceptedResult()) {
+            return;
+        }
+
+        permissionRequestInProgress = true;
+
+        permissionWasRequestedBeforeLaunch =
+                permissionHistory.wasRequestedBefore();
+
+        permissionHistory.markAsRequested();
+
         viewModel.onPermissionRequestStarted();
 
         cameraPermissionLauncher.launch(
@@ -192,27 +239,38 @@ public final class ScannerActivity
     private void handleCameraPermissionResult(
             boolean granted
     ) {
+        permissionRequestInProgress = false;
+        retryInProgress = false;
+
         if (granted) {
-            startCamera();
+            startCameraOnce();
             return;
         }
 
-        boolean permanentlyDenied =
-                permissionRequestedInCurrentFlow
-                        && !shouldShowRequestPermissionRationale(
+        boolean canShowRationale =
+                shouldShowRequestPermissionRationale(
                         Manifest.permission.CAMERA
                 );
+
+        boolean permanentlyDenied =
+                permissionWasRequestedBeforeLaunch
+                        && !canShowRationale;
 
         viewModel.onPermissionDenied(
                 permanentlyDenied
         );
     }
 
-    private void startCamera() {
-        if (viewModel.hasAcceptedResult()) {
+    private void startCameraOnce() {
+        if (viewModel.hasAcceptedResult()
+                || viewModel.hasAcceptedFatalError()
+                || cameraBound
+                || cameraStartInProgress
+                || !hasCameraPermission()) {
             return;
         }
 
+        cameraStartInProgress = true;
         viewModel.onCameraInitializing();
 
         ListenableFuture<ProcessCameraProvider>
@@ -229,8 +287,22 @@ public final class ScannerActivity
             ListenableFuture<ProcessCameraProvider>
                     providerFuture
     ) {
+        if (isFinishing() || isDestroyed()) {
+            cameraStartInProgress = false;
+            return;
+        }
+
         try {
             cameraProvider = providerFuture.get();
+
+            if (!cameraProvider.hasCamera(
+                    CameraSelector.DEFAULT_BACK_CAMERA
+            )) {
+                cameraStartInProgress = false;
+                releaseCamera();
+                viewModel.onCameraUnavailable();
+                return;
+            }
 
             Preview preview =
                     new Preview.Builder().build();
@@ -250,32 +322,7 @@ public final class ScannerActivity
 
             closeCodeScanner();
 
-            codeScanner = new MlKitCodeScanner(
-                    new MlKitBarcodeMapper(),
-                    new MlKitCodeScanner.Listener() {
-                        @Override
-                        public void onCodeDetected(
-                                ScannedCode scannedCode
-                        ) {
-                            viewModel.onCodeDetected(
-                                    scannedCode
-                            );
-                        }
-
-                        @Override
-                        public void onScannerError(
-                                Throwable cause
-                        ) {
-                            Log.e(
-                                    TAG,
-                                    "Barcode analysis failed",
-                                    cause
-                            );
-
-                            viewModel.onScannerError();
-                        }
-                    }
-            );
+            codeScanner = createCodeScanner();
 
             imageAnalysis.setAnalyzer(
                     analysisExecutor,
@@ -284,14 +331,6 @@ public final class ScannerActivity
 
             cameraProvider.unbindAll();
 
-            if (!cameraProvider.hasCamera(
-                    CameraSelector.DEFAULT_BACK_CAMERA
-            )) {
-                closeCodeScanner();
-                viewModel.onCameraUnavailable();
-                return;
-            }
-
             cameraProvider.bindToLifecycle(
                     this,
                     CameraSelector.DEFAULT_BACK_CAMERA,
@@ -299,28 +338,119 @@ public final class ScannerActivity
                     imageAnalysis
             );
 
+            cameraBound = true;
+            cameraStartInProgress = false;
+            retryInProgress = false;
+
             viewModel.onCameraReady();
         } catch (Exception exception) {
+            cameraStartInProgress = false;
+
             Log.e(
                     TAG,
                     "Camera initialization failed",
                     exception
             );
 
-            releaseCamera();
-            viewModel.onScannerError();
+            handleFatalScannerError(
+                    R.string.scanner_camera_error
+            );
         }
     }
 
+    private MlKitCodeScanner createCodeScanner() {
+        return new MlKitCodeScanner(
+                new MlKitBarcodeMapper(),
+                new MlKitCodeScanner.Listener() {
+                    @Override
+                    public void onCodeDetected(
+                            ScannedCode scannedCode
+                    ) {
+                        viewModel.onCodeDetected(
+                                scannedCode
+                        );
+                    }
+
+                    @Override
+                    public void onScannerError(
+                            Throwable cause
+                    ) {
+                        Log.e(
+                                TAG,
+                                "Barcode analysis failed",
+                                cause
+                        );
+
+                        runOnUiThread(
+                                () -> handleFatalScannerError(
+                                        R.string
+                                                .scanner_analysis_error
+                                )
+                        );
+                    }
+                }
+        );
+    }
+
+    private void handleFatalScannerError(
+            int messageResource
+    ) {
+        if (viewModel.hasAcceptedResult()) {
+            return;
+        }
+
+        releaseCamera();
+
+        boolean accepted =
+                viewModel.onScannerErrorOnce(
+                        getString(messageResource)
+                );
+
+        if (!accepted) {
+            return;
+        }
+
+        retryInProgress = false;
+    }
+
     private void retryScanner() {
+        if (retryInProgress
+                || permissionRequestInProgress
+                || cameraStartInProgress
+                || viewModel.hasAcceptedResult()) {
+            return;
+        }
+
+        retryInProgress = true;
+
+        releaseCamera();
         viewModel.retry();
 
-        if (!hasCameraPermission()) {
+        if (!hasCameraFeature()) {
+            retryInProgress = false;
+            viewModel.onCameraUnavailable();
+            return;
+        }
+
+        if (hasCameraPermission()) {
+            startCameraOnce();
+            return;
+        }
+
+        if (shouldShowRequestPermissionRationale(
+                Manifest.permission.CAMERA
+        )) {
             requestCameraPermission();
             return;
         }
 
-        startCamera();
+        if (!permissionHistory.wasRequestedBefore()) {
+            requestCameraPermission();
+            return;
+        }
+
+        retryInProgress = false;
+        viewModel.onPermissionDenied(true);
     }
 
     private void handleScannedCodeEvent(
@@ -356,6 +486,10 @@ public final class ScannerActivity
     }
 
     private void render(ScannerUiState state) {
+        if (state == null || binding == null) {
+            return;
+        }
+
         binding.scannerProgress.setVisibility(
                 state.showsProgress()
                         ? View.VISIBLE
@@ -368,32 +502,20 @@ public final class ScannerActivity
                         : View.INVISIBLE
         );
 
-        binding.scannerFrame.setVisibility(
+        boolean scanning =
                 state.getStatus()
-                        == ScannerUiState.Status.SCANNING
-                        ? View.VISIBLE
-                        : View.GONE
+                        == ScannerUiState.Status.SCANNING;
+
+        binding.scannerFrame.setVisibility(
+                scanning ? View.VISIBLE : View.GONE
         );
 
         binding.scannerHelpText.setVisibility(
-                state.getStatus()
-                        == ScannerUiState.Status.SCANNING
-                        ? View.VISIBLE
-                        : View.GONE
+                scanning ? View.VISIBLE : View.GONE
         );
 
         boolean showError =
-                state.getStatus()
-                        == ScannerUiState.Status
-                        .PERMISSION_DENIED
-                        || state.getStatus()
-                        == ScannerUiState.Status
-                        .PERMISSION_DENIED_PERMANENTLY
-                        || state.getStatus()
-                        == ScannerUiState.Status
-                        .CAMERA_UNAVAILABLE
-                        || state.getStatus()
-                        == ScannerUiState.Status.ERROR;
+                state.isBlockingError();
 
         binding.scannerErrorCard.setVisibility(
                 showError ? View.VISIBLE : View.GONE
@@ -403,9 +525,9 @@ public final class ScannerActivity
             return;
         }
 
-        binding.scannerErrorText.setText(
-                getMessageForState(state)
-        );
+        String message = getMessageForState(state);
+
+        binding.scannerErrorText.setText(message);
 
         binding.scannerRetryButton.setVisibility(
                 state.canRetryPermission()
@@ -418,6 +540,39 @@ public final class ScannerActivity
                 state.canOpenSettings()
                         ? View.VISIBLE
                         : View.GONE
+        );
+
+        binding.scannerManualButton.setVisibility(
+                state.canContinueManually()
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        announceStateIfNeeded(
+                state.getStatus(),
+                message
+        );
+    }
+
+    private void announceStateIfNeeded(
+            ScannerUiState.Status status,
+            String message
+    ) {
+        if (lastAnnouncedStatus == status) {
+            return;
+        }
+
+        lastAnnouncedStatus = status;
+
+        binding.scannerErrorCard.post(
+                () -> {
+                    if (binding != null) {
+                        binding.scannerErrorCard
+                                .announceForAccessibility(
+                                        message
+                                );
+                    }
+                }
         );
     }
 
@@ -454,6 +609,12 @@ public final class ScannerActivity
     }
 
     private void openApplicationSettings() {
+        if (waitingForApplicationSettings) {
+            return;
+        }
+
+        waitingForApplicationSettings = true;
+
         Intent intent = new Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS
         );
@@ -473,16 +634,34 @@ public final class ScannerActivity
     protected void onResume() {
         super.onResume();
 
-        ScannerUiState state =
-                viewModel.getUiState().getValue();
-
-        if (state != null
-                && state.getStatus()
-                == ScannerUiState.Status
-                .PERMISSION_DENIED_PERMANENTLY
-                && hasCameraPermission()) {
-            startCamera();
+        if (binding == null
+                || viewModel == null
+                || viewModel.hasAcceptedResult()) {
+            return;
         }
+
+        if (waitingForApplicationSettings) {
+            waitingForApplicationSettings = false;
+
+            if (hasCameraPermission()) {
+                viewModel.retry();
+                startCameraOnce();
+            } else {
+                releaseCamera();
+                viewModel.onPermissionDenied(true);
+            }
+
+            return;
+        }
+
+        if (cameraBound && !hasCameraPermission()) {
+            releaseCamera();
+            classifyMissingPermission();
+        }
+    }
+
+    private void continueManually() {
+        cancelScanner();
     }
 
     private void cancelScanner() {
@@ -492,6 +671,9 @@ public final class ScannerActivity
     }
 
     private void releaseCamera() {
+        cameraStartInProgress = false;
+        cameraBound = false;
+
         if (cameraProvider != null) {
             cameraProvider.unbindAll();
             cameraProvider = null;

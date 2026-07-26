@@ -93,26 +93,30 @@
                 android:id="@+id/scannerRetryButton"
                 style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginTop="16dp"
+                android:contentDescription="@string/scanner_retry_description"
                 android:text="@string/retry_action" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/scannerSettingsButton"
                 style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginTop="8dp"
+                android:contentDescription="@string/scanner_open_settings_description"
                 android:text="@string/open_settings_action"
                 android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/scannerCancelButton"
+                android:id="@+id/scannerManualButton"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:text="@string/cancel_action" />
+                android:contentDescription="@string/scanner_continue_manually_description"
+                android:text="@string/scanner_continue_manually_action"
+                android:visibility="gone" />
 
         </LinearLayout>
 

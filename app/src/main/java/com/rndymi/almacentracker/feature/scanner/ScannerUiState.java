@@ -96,8 +96,8 @@ public final class ScannerUiState {
     }
 
     public boolean showsPreview() {
-        return status == Status.SCANNING
-                || status == Status.INITIALIZING;
+        return status == Status.INITIALIZING
+                || status == Status.SCANNING;
     }
 
     public boolean showsProgress() {
@@ -116,5 +116,23 @@ public final class ScannerUiState {
 
     public boolean canRetryScanner() {
         return status == Status.ERROR;
+    }
+
+    public boolean canContinueManually() {
+        return status == Status.INITIALIZING
+                || status == Status.SCANNING
+                || status == Status.PERMISSION_DENIED
+                || status
+                == Status.PERMISSION_DENIED_PERMANENTLY
+                || status == Status.CAMERA_UNAVAILABLE
+                || status == Status.ERROR;
+    }
+
+    public boolean isBlockingError() {
+        return status == Status.PERMISSION_DENIED
+                || status
+                == Status.PERMISSION_DENIED_PERMANENTLY
+                || status == Status.CAMERA_UNAVAILABLE
+                || status == Status.ERROR;
     }
 }
