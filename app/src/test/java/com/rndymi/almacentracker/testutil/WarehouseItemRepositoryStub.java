@@ -9,6 +9,8 @@ import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
 import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
 import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceLocation;
 
 import java.util.List;
 
@@ -66,6 +68,18 @@ public class WarehouseItemRepositoryStub
             RepositoryCallback<List<WarehouseItem>> callback
     ) {
         throw unexpected("findAllByCode");
+    }
+
+    @Override
+    public void findAllByReferences(
+            List<WarehouseReference> references,
+            RepositoryCallback<
+                    List<WarehouseReferenceLocation>
+                    > callback
+    ) {
+        throw new UnsupportedOperationException(
+                "Not implemented"
+        );
     }
 
     @Override

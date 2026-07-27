@@ -9,9 +9,12 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorSurface"
-        android:navigationIcon="@drawable/ic_arrow_back"
+        android:background="?attr/colorPrimary"
         android:title="@string/reference_list_capture_title"
+        app:navigationContentDescription="@string/navigate_back_action"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="?attr/colorOnPrimary"
+        app:titleTextColor="?attr/colorOnPrimary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -220,12 +223,18 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/cancelButton"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:backgroundTint="?attr/colorErrorContainer"
                 android:minHeight="48dp"
-                android:text="@string/cancel_action" />
+                android:text="@string/cancel_action"
+                android:textColor="?attr/colorOnErrorContainer"
+                app:icon="@drawable/ic_close"
+                app:iconGravity="textStart"
+                app:iconTint="?attr/colorOnErrorContainer" />
 
         </LinearLayout>
 

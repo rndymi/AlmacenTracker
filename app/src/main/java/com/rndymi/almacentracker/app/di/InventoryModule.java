@@ -8,6 +8,8 @@ import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemFormViewMod
 import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemSaveService;
 import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemCodeSearchService;
 import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemListViewModelFactory;
+import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationService;
+import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationViewModelFactory;
 
 import java.util.Objects;
 
@@ -18,6 +20,7 @@ public final class InventoryModule {
     private final WarehouseItemDeleteService deleteService;
     private final WarehouseItemCodeSearchService codeSearchService;
     private final WarehouseItemNormalizer normalizer;
+    private final ReferenceListLocationService referenceListLocationService;
 
     public InventoryModule(
             WarehouseItemRepository warehouseItemRepository
@@ -41,6 +44,10 @@ public final class InventoryModule {
                 new WarehouseItemCodeSearchService(
                         repository,
                         normalizer
+                );
+        referenceListLocationService =
+                new ReferenceListLocationService(
+                        repository
                 );
     }
 
@@ -73,6 +80,13 @@ public final class InventoryModule {
                 repository,
                 normalizer,
                 warehouseItemId
+        );
+    }
+
+    public ReferenceListLocationViewModelFactory
+    provideReferenceListLocationViewModelFactory() {
+        return new ReferenceListLocationViewModelFactory(
+                referenceListLocationService
         );
     }
 }

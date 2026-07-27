@@ -9,13 +9,9 @@ import androidx.lifecycle.Transformations;
 import com.rndymi.almacentracker.data.local.room.dao.WarehouseItemDao;
 import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
-import com.rndymi.almacentracker.data.repository.PositionFilter;
-import com.rndymi.almacentracker.data.repository.WarehouseItemFilterCriteria;
-import com.rndymi.almacentracker.data.repository.WarehouseItemDetailResult;
-import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
-import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptionsResult;
-import com.rndymi.almacentracker.data.repository.WarehouseItemsResult;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceLocation;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -241,6 +237,76 @@ public final class RoomWarehouseItemRepository
 
                 callback.onSuccess(
                         mapper.toDomainList(entities)
+                );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void findAllByReferences(
+            List<WarehouseReference> references,
+            RepositoryCallback<
+                    List<WarehouseReferenceLocation>
+                    > callback
+    ) {
+        Objects.requireNonNull(references);
+        Objects.requireNonNull(callback);
+
+        List<WarehouseReference> referencesCopy =
+                Collections.unmodifiableList(
+                        new ArrayList<>(references)
+                );
+
+        executor.execute(() -> {
+            try {
+                List<WarehouseReferenceLocation> locations =
+                        new ArrayList<>(
+                                referencesCopy.size()
+                        );
+
+                for (
+                        WarehouseReference reference
+                        : referencesCopy
+                ) {
+                    if (reference == null) {
+                        continue;
+                    }
+
+                    WarehouseItemEntity entity =
+                            warehouseItemDao
+                                    .findByCategoryAndCode(
+                                            reference.getCategory(),
+                                            reference.getCode()
+                                    );
+
+                    if (entity == null) {
+                        locations.add(
+                                WarehouseReferenceLocation
+                                        .notFound(reference)
+                        );
+
+                        continue;
+                    }
+
+                    WarehouseItem warehouseItem =
+                            mapper.toDomain(entity);
+
+                    locations.add(
+                            WarehouseReferenceLocation.found(
+                                    reference,
+                                    warehouseItem.getId(),
+                                    warehouseItem.getSite(),
+                                    warehouseItem.getPosition()
+                            )
+                    );
+                }
+
+                callback.onSuccess(
+                        Collections.unmodifiableList(
+                                locations
+                        )
                 );
             } catch (RuntimeException exception) {
                 callback.onError(exception);

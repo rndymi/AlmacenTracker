@@ -37,6 +37,9 @@
             android:name=".feature.data_management.common.DataManagementActivity"
             android:exported="false" />
         <activity
+            android:name=".feature.reference_list.location.ReferenceListLocationActivity"
+            android:exported="false" />
+        <activity
             android:name=".feature.reference_list.review.ReferenceListReviewActivity"
             android:exported="false" />
         <activity
