@@ -58,7 +58,7 @@ public final class ReferenceListLocationAdapter
                         WarehouseReferenceLocation newItem
                 ) {
                     return oldItem.getStatus()
-                            == newItem.getStatus()
+                            .equals(newItem.getStatus())
                             && oldItem.getWarehouseItemId()
                             == newItem.getWarehouseItemId()
                             && equalValues(
