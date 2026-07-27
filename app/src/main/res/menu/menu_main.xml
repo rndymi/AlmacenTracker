@@ -10,7 +10,7 @@
 
     <item
         android:id="@+id/action_process_reference_list"
-        android:icon="@drawable/ic_reference_list"
+        android:icon="@drawable/ic_document_scan"
         android:title="@string/reference_list_action"
         app:showAsAction="ifRoom" />
 
