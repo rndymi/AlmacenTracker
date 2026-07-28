@@ -433,6 +433,28 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
+    public void applyInitialLinesDoesNotTreatAttachedUnitAsSuffix() {
+        viewModel.applyInitialLines(
+                Collections.singletonList(
+                        "M2 21511pcs"
+                )
+        );
+
+        ReferenceProposal proposal =
+                viewModel.getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                "M2 21511",
+                proposal.getReference()
+                        .displayValue()
+        );
+        assertTrue(proposal.requiresCorrection());
+    }
+
+    @Test
     public void editReference_clearsRequiredCorrectionState() {
         viewModel.applyInitialLines(
                 Arrays.asList(

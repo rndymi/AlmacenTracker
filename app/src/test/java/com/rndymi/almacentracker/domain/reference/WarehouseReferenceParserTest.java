@@ -443,6 +443,68 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
+    public void parseLineStopsAtHyphenBeforeQuantityDetails() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseLine(
+                        0,
+                        "MR 21570 - 5 pcs MS 5008"
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "MR 21570",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseLineDoesNotTreatUnitsAsOptionalSuffixes() {
+        String[] unitSuffixes = {
+                "PCS",
+                "PQTS",
+                "PZAS",
+                "CAJAS",
+                "PAQUETES"
+        };
+
+        for (String unitSuffix : unitSuffixes) {
+            List<WarehouseReferenceMatch> matches =
+                    parser.parseLine(
+                            0,
+                            "MR 21570 " + unitSuffix
+                    );
+
+            assertEquals(1, matches.size());
+            assertEquals(
+                    "MR 21570",
+                    matches.get(0)
+                            .getReference()
+                            .displayValue()
+            );
+        }
+    }
+
+    @Test
+    public void parseOcrLineDropsAttachedUnitWhenHyphenIsMissing() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M2 21511pcs",
+                        java.util.Collections.emptyList()
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M2 21511",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
     public void parseInput_rejectsInvalidCategory() {
         assertNull(
                 parser.parseInput(

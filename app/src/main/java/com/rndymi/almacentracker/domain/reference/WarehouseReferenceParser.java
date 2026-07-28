@@ -96,6 +96,13 @@ public final class WarehouseReferenceParser {
             );
 
             occurrenceIndex++;
+
+            if (hasQuantityDelimiterAfter(
+                    searchableText,
+                    matcher.end()
+            )) {
+                break;
+            }
         }
 
         return Collections.unmodifiableList(
@@ -240,6 +247,13 @@ public final class WarehouseReferenceParser {
                             occurrenceIndex++
                     )
             );
+
+            if (hasQuantityDelimiterAfter(
+                    searchableText,
+                    matcher.end()
+            )) {
+                break;
+            }
         }
 
         return candidates.isEmpty()
@@ -328,9 +342,43 @@ public final class WarehouseReferenceParser {
             return numericPart;
         }
 
+        String normalizedSuffix =
+                normalizeSpaces(suffix);
+
+        if (isQuantityUnit(
+                normalizedSuffix
+        )) {
+            return numericPart;
+        }
+
         return numericPart
                 + " "
-                + normalizeSpaces(suffix);
+                + normalizedSuffix;
+    }
+
+    private boolean hasQuantityDelimiterAfter(
+            String text,
+            int matchEnd
+    ) {
+        for (int index = matchEnd;
+             index < text.length();
+             index++) {
+            char character = text.charAt(index);
+
+            if (Character.isWhitespace(character)
+                    || Character.isSpaceChar(character)) {
+                continue;
+            }
+
+            return character == '-'
+                    || character == '\u2010'
+                    || character == '\u2011'
+                    || character == '\u2012'
+                    || character == '\u2013'
+                    || character == '\u2014';
+        }
+
+        return false;
     }
 
     private String canonicalOcrCode(
@@ -621,20 +669,66 @@ public final class WarehouseReferenceParser {
                         : normalizeSpaces(suffix)
                         .toUpperCase(Locale.ROOT);
 
+        return isQuantityUnit(normalized)
+                ? ""
+                : normalized;
+    }
+
+    private boolean isQuantityUnit(
+            String value
+    ) {
+        String normalized =
+                value == null
+                        ? ""
+                        : normalizeSpaces(value)
+                        .toUpperCase(Locale.ROOT);
+
         switch (normalized) {
             case "PC":
             case "PCS":
             case "PES":
+            case "PZ":
+            case "PZS":
             case "PZA":
             case "PZAS":
+            case "PIEZA":
+            case "PIEZAS":
             case "PQT":
             case "PQTS":
             case "PAT":
             case "PATS":
-                return "";
+            case "PAQ":
+            case "PAQS":
+            case "PAQUETE":
+            case "PAQUETES":
+            case "UD":
+            case "UDS":
+            case "UN":
+            case "UNS":
+            case "UND":
+            case "UNDS":
+            case "UNIDAD":
+            case "UNIDADES":
+            case "CJ":
+            case "CJS":
+            case "CJA":
+            case "CJAS":
+            case "CAJA":
+            case "CAJAS":
+            case "BTO":
+            case "BTOS":
+            case "BULTO":
+            case "BULTOS":
+            case "PACK":
+            case "PACKS":
+            case "BOX":
+            case "BOXES":
+            case "CTN":
+            case "CTNS":
+                return true;
 
             default:
-                return normalized;
+                return false;
         }
     }
 
