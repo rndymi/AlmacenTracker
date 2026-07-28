@@ -552,10 +552,16 @@
     <string name="reference_list_process_action"> Procesar imagen </string>
     <string name="reference_list_processing"> Reconociendo texto… </string>
     <string name="reference_list_change_image_action"> Cambiar imagen </string>
-    <string name="reference_list_recognized_text_title"> Texto detectado (sin corregir) </string>
-    <!--<string name="reference_list_review_pending">
-        La validación y corrección de referencias se incorporará en la siguiente historia.
-    </string>-->
+    <string name="reference_list_preliminary_result_title"> Resultado preliminar </string>
+    <string name="reference_list_reconstructed_text_description">
+        Texto reorganizado según la posición detectada en la imagen.
+    </string>
+    <string name="reference_list_show_raw_text_action">
+        Ver texto original detectado
+    </string>
+    <string name="reference_list_hide_raw_text_action">
+        Ocultar texto original
+    </string>
     <string name="reference_list_no_text_error">
         No se encontró texto legible en la imagen.
     </string>
@@ -577,6 +583,14 @@
         </item>
         <item quantity="other">
             Se reconocieron %1$d líneas.
+        </item>
+    </plurals>
+    <plurals name="reference_list_reconstructed_lines">
+        <item quantity="one">
+            %1$d línea reorganizada
+        </item>
+        <item quantity="other">
+            %1$d líneas reorganizadas
         </item>
     </plurals>
 

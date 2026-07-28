@@ -4,8 +4,11 @@ import android.content.Context;
 import android.graphics.Bitmap;
 
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessor;
 import com.rndymi.almacentracker.core.document.DocumentTextRecognizer;
 import com.rndymi.almacentracker.data.document.AndroidDocumentImageLoader;
+import com.rndymi.almacentracker.data.document.AndroidDocumentImageProcessor;
+import com.rndymi.almacentracker.data.document.DocumentLineReconstructor;
 import com.rndymi.almacentracker.data.document.MlKitDocumentTextRecognizer;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
@@ -34,6 +37,7 @@ public final class ReferenceListModule {
                 new AndroidDocumentImageLoader(
                         applicationContext
                 );
+
         this.repository =
                 Objects.requireNonNull(
                         repository,
@@ -43,12 +47,18 @@ public final class ReferenceListModule {
 
     public ReferenceListCaptureViewModelFactory
     provideReferenceListCaptureViewModelFactory() {
-        DocumentTextRecognizer recognizer =
-                new MlKitDocumentTextRecognizer(
+        DocumentImageProcessor imageProcessor =
+                new AndroidDocumentImageProcessor(
                         applicationContext
                 );
 
+        DocumentTextRecognizer recognizer =
+                new MlKitDocumentTextRecognizer(
+                        new DocumentLineReconstructor()
+                );
+
         return new ReferenceListCaptureViewModelFactory(
+                imageProcessor,
                 recognizer
         );
     }

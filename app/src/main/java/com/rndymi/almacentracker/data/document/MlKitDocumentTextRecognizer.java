@@ -1,23 +1,20 @@
 package com.rndymi.almacentracker.data.document;
 
-import android.content.Context;
 import android.graphics.Rect;
-import android.net.Uri;
-
-import androidx.annotation.NonNull;
 
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.rndymi.almacentracker.core.document.DocumentImage;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.DocumentRecognitionCallback;
 import com.rndymi.almacentracker.core.document.DocumentTextRecognizer;
 import com.rndymi.almacentracker.core.document.RecognizedDocument;
+import com.rndymi.almacentracker.core.document.RecognizedTextElement;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,19 +23,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class MlKitDocumentTextRecognizer
         implements DocumentTextRecognizer {
 
-    private final Context applicationContext;
     private final TextRecognizer textRecognizer;
+
+    private final DocumentLineReconstructor
+            lineReconstructor;
+
     private final AtomicBoolean closed =
             new AtomicBoolean(false);
 
+    public MlKitDocumentTextRecognizer() {
+        this(new DocumentLineReconstructor());
+    }
+
     public MlKitDocumentTextRecognizer(
-            Context context
+            DocumentLineReconstructor lineReconstructor
     ) {
-        applicationContext =
+        this.lineReconstructor =
                 Objects.requireNonNull(
-                        context,
-                        "context"
-                ).getApplicationContext();
+                        lineReconstructor,
+                        "lineReconstructor"
+                );
 
         textRecognizer =
                 TextRecognition.getClient(
@@ -48,13 +52,13 @@ public final class MlKitDocumentTextRecognizer
 
     @Override
     public void recognize(
-            String imageUri,
+            DocumentImage documentImage,
             DocumentImageSource sourceType,
             DocumentRecognitionCallback callback
     ) {
         Objects.requireNonNull(
-                imageUri,
-                "imageUri"
+                documentImage,
+                "documentImage"
         );
         Objects.requireNonNull(
                 sourceType,
@@ -65,7 +69,19 @@ public final class MlKitDocumentTextRecognizer
                 "callback"
         );
 
-        if (closed.get()) {
+        if (!(documentImage
+                instanceof AndroidDocumentImage)) {
+            documentImage.close();
+            callback.onRecognitionError();
+            return;
+        }
+
+        AndroidDocumentImage androidDocumentImage =
+                (AndroidDocumentImage) documentImage;
+
+        if (closed.get()
+                || androidDocumentImage.isClosed()) {
+            androidDocumentImage.close();
             callback.onRecognitionError();
             return;
         }
@@ -74,15 +90,16 @@ public final class MlKitDocumentTextRecognizer
 
         try {
             inputImage =
-                    InputImage.fromFilePath(
-                            applicationContext,
-                            Uri.parse(imageUri)
+                    InputImage.fromBitmap(
+                            androidDocumentImage
+                                    .getRecognitionBitmap(),
+                            0
                     );
         } catch (
-                IOException
-                | IllegalArgumentException
-                | SecurityException exception
+                IllegalArgumentException
+                | IllegalStateException exception
         ) {
+            androidDocumentImage.close();
             callback.onImageOpenError();
             return;
         }
@@ -90,71 +107,137 @@ public final class MlKitDocumentTextRecognizer
         textRecognizer
                 .process(inputImage)
                 .addOnSuccessListener(
-                        text -> callback.onSuccess(
-                                mapDocument(
-                                        text,
-                                        sourceType
-                                )
-                        )
+                        text -> {
+                            try {
+                                callback.onSuccess(
+                                        mapDocument(
+                                                text,
+                                                sourceType
+                                        )
+                                );
+                            } finally {
+                                androidDocumentImage.close();
+                            }
+                        }
                 )
                 .addOnFailureListener(
-                        exception ->
-                                callback.onRecognitionError()
+                        exception -> {
+                            androidDocumentImage.close();
+                            callback.onRecognitionError();
+                        }
                 );
     }
 
-    @NonNull
     private RecognizedDocument mapDocument(
             Text recognizedText,
             DocumentImageSource sourceType
     ) {
-        List<RecognizedTextLine> lines =
+        List<RecognizedTextElement> elements =
                 new ArrayList<>();
 
-        int index = 0;
+        List<RecognizedTextLine> fallbackLines =
+                new ArrayList<>();
+
+        int fallbackIndex = 0;
 
         for (Text.TextBlock block
                 : recognizedText.getTextBlocks()) {
 
             for (Text.Line line : block.getLines()) {
-                String rawText = line.getText();
+                String rawLine =
+                        safeText(line.getText());
 
-                if (rawText == null) {
-                    rawText = "";
-                }
-
-                Rect boundingBox =
+                Rect lineBox =
                         line.getBoundingBox();
 
-                if (boundingBox == null) {
-                    lines.add(
-                            new RecognizedTextLine(
-                                    index,
-                                    rawText
-                            )
-                    );
-                } else {
-                    lines.add(
-                            new RecognizedTextLine(
-                                    index,
-                                    rawText,
-                                    boundingBox.left,
-                                    boundingBox.top,
-                                    boundingBox.right,
-                                    boundingBox.bottom
+                if (!rawLine.trim().isEmpty()) {
+                    fallbackLines.add(
+                            createFallbackLine(
+                                    fallbackIndex++,
+                                    rawLine,
+                                    lineBox
                             )
                     );
                 }
 
-                index++;
+                for (Text.Element element
+                        : line.getElements()) {
+                    Rect elementBox =
+                            element.getBoundingBox();
+
+                    String elementText =
+                            safeText(
+                                    element.getText()
+                            );
+
+                    if (elementBox == null
+                            || elementText
+                            .trim()
+                            .isEmpty()) {
+                        continue;
+                    }
+
+                    elements.add(
+                            new RecognizedTextElement(
+                                    elementText,
+                                    elementBox.left,
+                                    elementBox.top,
+                                    elementBox.right,
+                                    elementBox.bottom
+                            )
+                    );
+                }
             }
         }
 
+        List<RecognizedTextLine> reconstructed =
+                lineReconstructor.reconstruct(
+                        elements
+                );
+
+        /*
+         * Algunos proveedores o versiones de ML Kit pueden
+         * entregar líneas sin elementos válidos. No se pierde
+         * entonces el comportamiento anterior.
+         */
+        List<RecognizedTextLine> finalLines =
+                reconstructed.isEmpty()
+                        ? fallbackLines
+                        : reconstructed;
+
         return new RecognizedDocument(
                 sourceType,
-                lines,
+                finalLines,
                 System.currentTimeMillis()
         );
+    }
+
+    private RecognizedTextLine createFallbackLine(
+            int index,
+            String rawText,
+            Rect boundingBox
+    ) {
+        if (boundingBox == null) {
+            return new RecognizedTextLine(
+                    index,
+                    rawText
+            );
+        }
+
+        return new RecognizedTextLine(
+                index,
+                rawText,
+                boundingBox.left,
+                boundingBox.top,
+                boundingBox.right,
+                boundingBox.bottom
+        );
+    }
+
+    private String safeText(String text) {
+        return text == null
+                ? ""
+                : text.trim();
     }
 
     @Override

@@ -19,26 +19,31 @@ public final class ReferenceListCaptureUiState {
     private final String imageUri;
     private final DocumentImageSource imageSource;
     private final RecognizedDocument recognizedDocument;
+    private final boolean rawTextExpanded;
 
     private ReferenceListCaptureUiState(
             Status status,
             String imageUri,
             DocumentImageSource imageSource,
-            RecognizedDocument recognizedDocument
+            RecognizedDocument recognizedDocument,
+            boolean rawTextExpanded
     ) {
         this.status = status;
         this.imageUri = imageUri;
         this.imageSource = imageSource;
         this.recognizedDocument =
                 recognizedDocument;
+        this.rawTextExpanded =
+                rawTextExpanded;
     }
 
     public static ReferenceListCaptureUiState empty() {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.EMPTY,
                 null,
                 null,
-                null
+                null,
+                false
         );
     }
 
@@ -47,11 +52,12 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource
     ) {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.IMAGE_SELECTED,
                 imageUri,
                 imageSource,
-                null
+                null,
+                false
         );
     }
 
@@ -60,11 +66,12 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource
     ) {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.PROCESSING,
                 imageUri,
                 imageSource,
-                null
+                null,
+                false
         );
     }
 
@@ -74,11 +81,12 @@ public final class ReferenceListCaptureUiState {
             DocumentImageSource imageSource,
             RecognizedDocument document
     ) {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.TEXT_RECOGNIZED,
                 imageUri,
                 imageSource,
-                document
+                document,
+                false
         );
     }
 
@@ -87,11 +95,12 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource
     ) {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.NO_TEXT_FOUND,
                 imageUri,
                 imageSource,
-                null
+                null,
+                false
         );
     }
 
@@ -100,11 +109,12 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource
     ) {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.IMAGE_ERROR,
                 imageUri,
                 imageSource,
-                null
+                null,
+                false
         );
     }
 
@@ -113,11 +123,43 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource
     ) {
-        return new ReferenceListCaptureUiState(
+        return create(
                 Status.RECOGNITION_ERROR,
                 imageUri,
                 imageSource,
-                null
+                null,
+                false
+        );
+    }
+
+    private static ReferenceListCaptureUiState create(
+            Status status,
+            String imageUri,
+            DocumentImageSource imageSource,
+            RecognizedDocument recognizedDocument,
+            boolean rawTextExpanded
+    ) {
+        return new ReferenceListCaptureUiState(
+                status,
+                imageUri,
+                imageSource,
+                recognizedDocument,
+                rawTextExpanded
+        );
+    }
+
+    public ReferenceListCaptureUiState
+    withRawTextExpanded(boolean expanded) {
+        if (!shouldShowRecognizedText()) {
+            return this;
+        }
+
+        return create(
+                status,
+                imageUri,
+                imageSource,
+                recognizedDocument,
+                expanded
         );
     }
 
@@ -135,6 +177,10 @@ public final class ReferenceListCaptureUiState {
 
     public RecognizedDocument getRecognizedDocument() {
         return recognizedDocument;
+    }
+
+    public boolean isRawTextExpanded() {
+        return rawTextExpanded;
     }
 
     public boolean hasImage() {
@@ -173,5 +219,13 @@ public final class ReferenceListCaptureUiState {
         return status == Status.TEXT_RECOGNIZED
                 && recognizedDocument != null
                 && recognizedDocument.hasLines();
+    }
+
+    public int getRecognizedLineCount() {
+        if (!shouldShowRecognizedText()) {
+            return 0;
+        }
+
+        return recognizedDocument.getLineCount();
     }
 }
