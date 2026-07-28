@@ -112,7 +112,10 @@ public final class MlKitDocumentTextRecognizer
                                 callback.onSuccess(
                                         mapDocument(
                                                 text,
-                                                sourceType
+                                                sourceType,
+                                                androidDocumentImage
+                                                        .getRecognitionBitmap()
+                                                        .getWidth()
                                         )
                                 );
                             } finally {
@@ -130,7 +133,8 @@ public final class MlKitDocumentTextRecognizer
 
     private RecognizedDocument mapDocument(
             Text recognizedText,
-            DocumentImageSource sourceType
+            DocumentImageSource sourceType,
+            int documentWidth
     ) {
         List<RecognizedTextElement> elements =
                 new ArrayList<>();
@@ -192,14 +196,10 @@ public final class MlKitDocumentTextRecognizer
 
         List<RecognizedTextLine> reconstructed =
                 lineReconstructor.reconstruct(
-                        elements
+                        elements,
+                        documentWidth
                 );
 
-        /*
-         * Algunos proveedores o versiones de ML Kit pueden
-         * entregar líneas sin elementos válidos. No se pierde
-         * entonces el comportamiento anterior.
-         */
         List<RecognizedTextLine> finalLines =
                 reconstructed.isEmpty()
                         ? fallbackLines

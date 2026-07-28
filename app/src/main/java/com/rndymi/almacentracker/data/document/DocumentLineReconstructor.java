@@ -6,19 +6,84 @@ import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 public final class DocumentLineReconstructor {
 
-    private static final float MINIMUM_VERTICAL_OVERLAP = 0.35f;
-    private static final float MAXIMUM_CENTER_DISTANCE_FACTOR = 0.65f;
+    private static final float MINIMUM_VERTICAL_OVERLAP =
+            0.35f;
+
+    private static final float
+            MAXIMUM_CENTER_DISTANCE_FACTOR =
+            0.65f;
+
+    private static final float
+            MINIMUM_ROW_SPLIT_GAP_FACTOR =
+            0.10f;
+
+    private static final float
+            CHARACTER_GAP_SPLIT_FACTOR =
+            4.5f;
+
+    private final DocumentColumnDetector columnDetector;
+
+    public DocumentLineReconstructor() {
+        this(new DocumentColumnDetector());
+    }
+
+    public DocumentLineReconstructor(
+            DocumentColumnDetector columnDetector
+    ) {
+        if (columnDetector == null) {
+            throw new IllegalArgumentException(
+                    "columnDetector cannot be null"
+            );
+        }
+
+        this.columnDetector = columnDetector;
+    }
 
     public List<RecognizedTextLine> reconstruct(
             List<RecognizedTextElement> sourceElements
     ) {
+        return reconstruct(
+                sourceElements,
+                calculateDocumentWidth(
+                        sourceElements
+                )
+        );
+    }
+
+    public List<RecognizedTextLine> reconstruct(
+            List<RecognizedTextElement> sourceElements,
+            int documentWidth
+    ) {
         List<RecognizedTextElement> elements =
                 cleanAndSort(sourceElements);
 
+        List<SpatialRow> initialRows =
+                groupVertically(elements);
+
+        List<SpatialRow> separatedRows =
+                splitRowsByLargeHorizontalGaps(
+                        initialRows,
+                        documentWidth
+                );
+
+        List<RecognizedTextLine> reconstructed =
+                mapLines(separatedRows);
+
+        List<RecognizedTextLine> ordered =
+                columnDetector.orderByColumns(
+                        reconstructed,
+                        documentWidth
+                );
+
+        return reindex(ordered);
+    }
+
+    private List<SpatialRow> groupVertically(
+            List<RecognizedTextElement> elements
+    ) {
         List<SpatialRow> rows =
                 new ArrayList<>();
 
@@ -43,6 +108,33 @@ public final class DocumentLineReconstructor {
                 )
         );
 
+        return rows;
+    }
+
+    private List<SpatialRow>
+    splitRowsByLargeHorizontalGaps(
+            List<SpatialRow> rows,
+            int documentWidth
+    ) {
+        List<SpatialRow> result =
+                new ArrayList<>();
+
+        for (SpatialRow row : rows) {
+            row.sortHorizontally();
+
+            result.addAll(
+                    row.splitByLargeGaps(
+                            documentWidth
+                    )
+            );
+        }
+
+        return result;
+    }
+
+    private List<RecognizedTextLine> mapLines(
+            List<SpatialRow> rows
+    ) {
         List<RecognizedTextLine> result =
                 new ArrayList<>();
 
@@ -71,6 +163,36 @@ public final class DocumentLineReconstructor {
         return result;
     }
 
+    private List<RecognizedTextLine> reindex(
+            List<RecognizedTextLine> lines
+    ) {
+        List<RecognizedTextLine> result =
+                new ArrayList<>();
+
+        for (int index = 0;
+             index < lines.size();
+             index++) {
+
+            RecognizedTextLine line =
+                    lines.get(index);
+
+            result.add(
+                    new RecognizedTextLine(
+                            index,
+                            line.getRawText(),
+                            line.getReconstructedText(),
+                            line.getLeft(),
+                            line.getTop(),
+                            line.getRight(),
+                            line.getBottom(),
+                            line.getElements()
+                    )
+            );
+        }
+
+        return result;
+    }
+
     private List<RecognizedTextElement> cleanAndSort(
             List<RecognizedTextElement> sourceElements
     ) {
@@ -83,6 +205,7 @@ public final class DocumentLineReconstructor {
 
         for (RecognizedTextElement element
                 : sourceElements) {
+
             if (element != null
                     && element.hasText()
                     && element.getHeight() > 0) {
@@ -108,7 +231,8 @@ public final class DocumentLineReconstructor {
             RecognizedTextElement element
     ) {
         SpatialRow bestRow = null;
-        float bestScore = Float.NEGATIVE_INFINITY;
+        float bestScore =
+                Float.NEGATIVE_INFINITY;
 
         for (SpatialRow row : rows) {
             float overlap =
@@ -125,7 +249,7 @@ public final class DocumentLineReconstructor {
 
             float referenceHeight =
                     Math.max(
-                            1f,
+                            1.0f,
                             Math.min(
                                     row.getAverageHeight(),
                                     element.getHeight()
@@ -146,10 +270,7 @@ public final class DocumentLineReconstructor {
             float score =
                     overlap
                             - centerDistance
-                            / Math.max(
-                            1f,
-                            referenceHeight
-                    );
+                            / referenceHeight;
 
             if (score > bestScore) {
                 bestScore = score;
@@ -191,7 +312,33 @@ public final class DocumentLineReconstructor {
                         )
                 );
 
-        return overlap / (float) minimumHeight;
+        return overlap
+                / (float) minimumHeight;
+    }
+
+    private int calculateDocumentWidth(
+            List<RecognizedTextElement> elements
+    ) {
+        if (elements == null
+                || elements.isEmpty()) {
+            return 0;
+        }
+
+        int maximumRight = 0;
+
+        for (RecognizedTextElement element
+                : elements) {
+
+            if (element != null) {
+                maximumRight =
+                        Math.max(
+                                maximumRight,
+                                element.getRight()
+                        );
+            }
+        }
+
+        return maximumRight;
     }
 
     private static final class SpatialRow {
@@ -209,13 +356,111 @@ public final class DocumentLineReconstructor {
         ) {
             elements.add(element);
 
-            left = Math.min(left, element.getLeft());
-            top = Math.min(top, element.getTop());
-            right = Math.max(right, element.getRight());
-            bottom = Math.max(
-                    bottom,
-                    element.getBottom()
-            );
+            left =
+                    Math.min(
+                            left,
+                            element.getLeft()
+                    );
+
+            top =
+                    Math.min(
+                            top,
+                            element.getTop()
+                    );
+
+            right =
+                    Math.max(
+                            right,
+                            element.getRight()
+                    );
+
+            bottom =
+                    Math.max(
+                            bottom,
+                            element.getBottom()
+                    );
+        }
+
+        private List<SpatialRow> splitByLargeGaps(
+                int documentWidth
+        ) {
+            List<SpatialRow> result =
+                    new ArrayList<>();
+
+            if (elements.isEmpty()) {
+                return result;
+            }
+
+            if (elements.size() == 1) {
+                result.add(copy());
+                return result;
+            }
+
+            float averageCharacterWidth =
+                    calculateAverageCharacterWidth();
+
+            float widthThreshold =
+                    documentWidth > 0
+                            ? documentWidth
+                              * MINIMUM_ROW_SPLIT_GAP_FACTOR
+                            : 0.0f;
+
+            float characterThreshold =
+                    averageCharacterWidth
+                            * CHARACTER_GAP_SPLIT_FACTOR;
+
+            float splitThreshold =
+                    Math.max(
+                            widthThreshold,
+                            characterThreshold
+                    );
+
+            SpatialRow current =
+                    new SpatialRow();
+
+            RecognizedTextElement previous = null;
+
+            for (RecognizedTextElement element
+                    : elements) {
+
+                if (previous != null) {
+                    int horizontalGap =
+                            element.getLeft()
+                                    - previous.getRight();
+
+                    if (horizontalGap
+                            >= splitThreshold) {
+
+                        if (!current.elements.isEmpty()) {
+                            result.add(current);
+                        }
+
+                        current =
+                                new SpatialRow();
+                    }
+                }
+
+                current.add(element);
+                previous = element;
+            }
+
+            if (!current.elements.isEmpty()) {
+                result.add(current);
+            }
+
+            return result;
+        }
+
+        private SpatialRow copy() {
+            SpatialRow copy =
+                    new SpatialRow();
+
+            for (RecognizedTextElement element
+                    : elements) {
+                copy.add(element);
+            }
+
+            return copy;
         }
 
         private void sortHorizontally() {
@@ -232,6 +477,7 @@ public final class DocumentLineReconstructor {
 
             for (RecognizedTextElement element
                     : elements) {
+
                 if (result.length() > 0) {
                     result.append(' ');
                 }
@@ -261,17 +507,15 @@ public final class DocumentLineReconstructor {
 
             for (RecognizedTextElement current
                     : elements) {
+
                 if (previous != null) {
                     int horizontalGap =
                             current.getLeft()
                                     - previous.getRight();
 
-                    /*
-                     * Se introduce un único espacio para evitar
-                     * producir columnas visuales artificiales.
-                     */
                     if (horizontalGap
-                            > averageCharacterWidth * 0.20f) {
+                            > averageCharacterWidth
+                            * 0.20f) {
                         result.append(' ');
                     }
                 }
@@ -289,11 +533,12 @@ public final class DocumentLineReconstructor {
         }
 
         private float calculateAverageCharacterWidth() {
-            float totalWidth = 0f;
+            float totalWidth = 0.0f;
             int characterCount = 0;
 
             for (RecognizedTextElement element
                     : elements) {
+
                 String text =
                         element.getRawText();
 
@@ -306,11 +551,11 @@ public final class DocumentLineReconstructor {
             }
 
             if (characterCount <= 0) {
-                return 1f;
+                return 1.0f;
             }
 
             return Math.max(
-                    1f,
+                    1.0f,
                     totalWidth / characterCount
             );
         }
@@ -344,15 +589,16 @@ public final class DocumentLineReconstructor {
         }
 
         private float getCenterY() {
-            return top + getHeight() / 2.0f;
+            return top
+                    + getHeight() / 2.0f;
         }
 
         private float getAverageHeight() {
             if (elements.isEmpty()) {
-                return 1f;
+                return 1.0f;
             }
 
-            float total = 0f;
+            float total = 0.0f;
 
             for (RecognizedTextElement element
                     : elements) {
@@ -360,7 +606,7 @@ public final class DocumentLineReconstructor {
             }
 
             return Math.max(
-                    1f,
+                    1.0f,
                     total / elements.size()
             );
         }

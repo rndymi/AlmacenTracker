@@ -266,6 +266,233 @@ public final class DocumentLineReconstructorTest {
         );
     }
 
+    @Test
+    public void reconstructSeparatesReferencesFromTwoColumns() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "MA",
+                                40,
+                                100,
+                                80,
+                                130
+                        ),
+                        element(
+                                "710",
+                                95,
+                                100,
+                                150,
+                                130
+                        ),
+                        element(
+                                "-",
+                                165,
+                                100,
+                                175,
+                                130
+                        ),
+                        element(
+                                "4pcs",
+                                190,
+                                100,
+                                250,
+                                130
+                        ),
+                        element(
+                                "MR",
+                                650,
+                                100,
+                                700,
+                                130
+                        ),
+                        element(
+                                "21502",
+                                720,
+                                100,
+                                810,
+                                130
+                        ),
+                        element(
+                                "-",
+                                825,
+                                100,
+                                835,
+                                130
+                        ),
+                        element(
+                                "2pqts",
+                                850,
+                                100,
+                                930,
+                                130
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        1000
+                );
+
+        assertEquals(2, result.size());
+
+        assertEquals(
+                "MA 710 - 4pcs",
+                result.get(0)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR 21502 - 2pqts",
+                result.get(1)
+                        .getReconstructedText()
+        );
+    }
+
+    @Test
+    public void reconstructReadsLeftColumnBeforeRightColumn() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "MA",
+                                40,
+                                100,
+                                80,
+                                130
+                        ),
+                        element(
+                                "710",
+                                95,
+                                100,
+                                150,
+                                130
+                        ),
+                        element(
+                                "MA",
+                                40,
+                                170,
+                                80,
+                                200
+                        ),
+                        element(
+                                "900",
+                                95,
+                                170,
+                                150,
+                                200
+                        ),
+                        element(
+                                "MR",
+                                650,
+                                105,
+                                700,
+                                135
+                        ),
+                        element(
+                                "21502",
+                                720,
+                                105,
+                                810,
+                                135
+                        ),
+                        element(
+                                "MR",
+                                650,
+                                175,
+                                700,
+                                205
+                        ),
+                        element(
+                                "21505",
+                                720,
+                                175,
+                                810,
+                                205
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        1000
+                );
+
+        assertEquals(4, result.size());
+
+        assertEquals(
+                "MA 710",
+                result.get(0)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MA 900",
+                result.get(1)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR 21502",
+                result.get(2)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR 21505",
+                result.get(3)
+                        .getReconstructedText()
+        );
+    }
+
+    @Test
+    public void reconstructDoesNotSplitNormalSingleColumnRow() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "MR",
+                                40,
+                                100,
+                                80,
+                                130
+                        ),
+                        element(
+                                "21231",
+                                100,
+                                100,
+                                190,
+                                130
+                        ),
+                        element(
+                                "-",
+                                210,
+                                100,
+                                220,
+                                130
+                        ),
+                        element(
+                                "4pqts",
+                                240,
+                                100,
+                                320,
+                                130
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        1000
+                );
+
+        assertEquals(1, result.size());
+
+        assertEquals(
+                "MR 21231 - 4pqts",
+                result.get(0)
+                        .getReconstructedText()
+        );
+    }
+
     private RecognizedTextElement element(
             String text,
             int left,

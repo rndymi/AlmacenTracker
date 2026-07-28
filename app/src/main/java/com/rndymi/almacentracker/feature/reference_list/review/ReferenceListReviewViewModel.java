@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -243,20 +244,40 @@ public final class ReferenceListReviewViewModel
         }
     }
 
-    private boolean isCategoryFragment(String rawLine) {
+    private boolean isCategoryFragment(
+            String rawLine
+    ) {
         if (rawLine == null) {
             return false;
         }
 
         String compact =
                 rawLine.replaceAll(
-                        "[\\p{Z}\\s]+",
-                        ""
-                );
+                                "[\\p{Z}\\s]+",
+                                ""
+                        )
+                        .toUpperCase(Locale.ROOT);
 
-        return OCR_CATEGORY_FRAGMENT
+        if (!OCR_CATEGORY_FRAGMENT
                 .matcher(compact)
-                .matches();
+                .matches()) {
+            return false;
+        }
+
+        int digitCount = 0;
+
+        for (int index = 0;
+             index < compact.length();
+             index++) {
+
+            if (Character.isDigit(
+                    compact.charAt(index)
+            )) {
+                digitCount++;
+            }
+        }
+
+        return digitCount <= 1;
     }
 
     private boolean isValidReference(

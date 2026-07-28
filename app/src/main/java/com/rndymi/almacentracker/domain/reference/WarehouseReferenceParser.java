@@ -20,7 +20,7 @@ public final class WarehouseReferenceParser {
                     "(?<![A-Z0-9])"
                             + "([A-Z]{2})"
                             + "\\s*"
-                            + "([0-9]{4,5})"
+                            + "([0-9]{3,5})"
                             + "(?:\\s*"
                             + "(\\p{L}+(?:\\s+\\p{L}+)*))?"
                             + "(?![A-Z0-9])"
@@ -31,7 +31,7 @@ public final class WarehouseReferenceParser {
                     "(?<![A-Z0-9])"
                             + "([A-Z0-9]{2})"
                             + "[\\p{Z}\\s:._-]*"
-                            + "([A-Z0-9]{4,})"
+                            + "([A-Z0-9]{3,})"
                             + "(?:[\\p{Z}\\s]+"
                             + "(\\p{L}+(?:[\\p{Z}\\s]+"
                             + "\\p{L}+)*))?"
@@ -45,12 +45,19 @@ public final class WarehouseReferenceParser {
 
     private static final Pattern CODE_PATTERN =
             Pattern.compile(
-                    "^[0-9]{4,5}(?: \\p{L}+)*$"
+                    "^[0-9]{3,5}(?: \\p{L}+)*$"
             );
 
     private static final Pattern UNICODE_SPACES =
             Pattern.compile(
                     "[\\p{Z}\\s]+"
+            );
+
+    private static final Pattern
+            ATTACHED_QUANTITY_UNIT_PATTERN =
+            Pattern.compile(
+                    "^([A-Z0-9]{3,5})"
+                            + "(PCS?|PES|PQTS?|PATS?|PZAS?)$"
             );
 
     public List<WarehouseReferenceMatch> parseLine(
@@ -233,13 +240,28 @@ public final class WarehouseReferenceParser {
         int occurrenceIndex = 0;
 
         while (matcher.find()) {
+            String observedCategory =
+                    matcher.group(1);
+
+            String observedCode =
+                    matcher.group(2);
+
+            String observedSuffix =
+                    matcher.group(3);
+
+            if (!hasMinimumNumericContent(
+                    observedCode
+            )) {
+                continue;
+            }
+
             candidates.add(
                     new WarehouseReferenceMatch(
                             new WarehouseReference(
-                                    matcher.group(1),
+                                    observedCategory,
                                     canonicalOcrCode(
-                                            matcher.group(2),
-                                            matcher.group(3)
+                                            observedCode,
+                                            observedSuffix
                                     )
                             ),
                             lineIndex,
@@ -385,40 +407,84 @@ public final class WarehouseReferenceParser {
             String observedCode,
             String separatedSuffix
     ) {
-        String code = observedCode;
-        String suffix = separatedSuffix;
+        String normalizedObservedCode =
+                observedCode == null
+                        ? ""
+                        : observedCode
+                        .toUpperCase(Locale.ROOT);
 
-        if (observedCode.length() > 5) {
-            int codeLength =
-                    Character.isDigit(
-                            observedCode.charAt(4)
-                    )
-                            ? 5
-                            : 4;
+        String normalizedSeparatedSuffix =
+                separatedSuffix == null
+                        ? ""
+                        : normalizeSpaces(
+                        separatedSuffix
+                ).toUpperCase(Locale.ROOT);
+
+        Matcher attachedQuantityMatcher =
+                ATTACHED_QUANTITY_UNIT_PATTERN
+                        .matcher(
+                                normalizedObservedCode
+                        );
+
+        if (attachedQuantityMatcher.matches()) {
+            normalizedObservedCode =
+                    attachedQuantityMatcher.group(1);
+
+            String attachedQuantityUnit =
+                    attachedQuantityMatcher.group(2);
+
+            if (normalizedSeparatedSuffix.isEmpty()) {
+                normalizedSeparatedSuffix =
+                        attachedQuantityUnit;
+            }
+        } else if (normalizedObservedCode.length() > 5) {
+            int codeLength;
+
+            if (Character.isDigit(
+                    normalizedObservedCode.charAt(4)
+            )) {
+                codeLength = 5;
+            } else if (Character.isDigit(
+                    normalizedObservedCode.charAt(3)
+            )) {
+                codeLength = 4;
+            } else {
+                codeLength = 3;
+            }
 
             String attachedSuffix =
-                    observedCode.substring(codeLength);
+                    normalizedObservedCode.substring(
+                            codeLength
+                    );
 
             if (attachedSuffix
                     .codePoints()
                     .allMatch(Character::isLetter)) {
-                code =
-                        observedCode.substring(
+                normalizedObservedCode =
+                        normalizedObservedCode.substring(
                                 0,
                                 codeLength
                         );
 
-                suffix =
-                        suffix == null
-                                || suffix.trim().isEmpty()
+                normalizedSeparatedSuffix =
+                        normalizedSeparatedSuffix.isEmpty()
                                 ? attachedSuffix
                                 : attachedSuffix
                                 + " "
-                                + suffix;
+                                + normalizedSeparatedSuffix;
             }
         }
 
-        return canonicalCode(code, suffix);
+        if (isQuantityUnit(
+                normalizedSeparatedSuffix
+        )) {
+            normalizedSeparatedSuffix = "";
+        }
+
+        return canonicalCode(
+                normalizedObservedCode,
+                normalizedSeparatedSuffix
+        );
     }
 
     private int suggestionScore(
@@ -792,5 +858,28 @@ public final class WarehouseReferenceParser {
         private int getScore() {
             return score;
         }
+    }
+
+    private boolean hasMinimumNumericContent(
+            String observedCode
+    ) {
+        if (observedCode == null) {
+            return false;
+        }
+
+        int digitCount = 0;
+
+        for (int index = 0;
+             index < observedCode.length();
+             index++) {
+
+            if (Character.isDigit(
+                    observedCode.charAt(index)
+            )) {
+                digitCount++;
+            }
+        }
+
+        return digitCount >= 1;
     }
 }

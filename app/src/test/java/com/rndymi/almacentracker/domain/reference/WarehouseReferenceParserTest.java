@@ -232,7 +232,7 @@ public final class WarehouseReferenceParserTest {
     @Test
     public void parseInput_rejectsCodesOutsideCompanyFormat() {
         assertFalse(
-                parser.isValidCode("123")
+                parser.isValidCode("12")
         );
         assertFalse(
                 parser.isValidCode("123456")
@@ -768,5 +768,86 @@ public final class WarehouseReferenceParserTest {
                 );
 
         assertEquals(1, suggestions.size());
+    }
+
+    @Test
+    public void parseLineAcceptsThreeDigitCodes() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseLine(
+                        0,
+                        "MA 710 - 4pcs"
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MA 710",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseLineAcceptsFourAndFiveDigitCodes() {
+        List<WarehouseReferenceMatch> fourDigits =
+                parser.parseLine(
+                        0,
+                        "MA 5008 - 3pcs"
+                );
+
+        List<WarehouseReferenceMatch> fiveDigits =
+                parser.parseLine(
+                        1,
+                        "MR 21502 - 2pqts"
+                );
+
+        assertEquals(1, fourDigits.size());
+        assertEquals(1, fiveDigits.size());
+
+        assertEquals(
+                "MA 5008",
+                fourDigits.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                "MR 21502",
+                fiveDigits.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineIgnoresTitleWithoutNumericCode() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "UT OPYA",
+                        java.util.Collections.emptyList()
+                );
+
+        assertTrue(matches.isEmpty());
+    }
+
+    @Test
+    public void parseOcrLineRemovesAttachedQuantityUnit() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "MA 710PCS",
+                        java.util.Collections.emptyList()
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MA 710",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
     }
 }

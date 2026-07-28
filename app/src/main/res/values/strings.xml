@@ -170,7 +170,7 @@
     </string>
 
     <string name="deleting_action">
-        Eliminando...
+        Eliminando…
     </string>
 
     <string name="selected_items_count">
@@ -232,7 +232,7 @@
     <string name="export_csv_description">Guarda todos los registros en un archivo CSV.</string>
     <string name="export_csv_action">Exportar</string>
     <string name="export_csv_selecting_destination">Selecciona el destino del archivo.</string>
-    <string name="export_csv_in_progress">Exportando mercadería...</string>
+    <string name="export_csv_in_progress">Exportando mercadería…</string>
     <string name="retry_action">Reintentar</string>
 
     <plurals name="export_csv_success">
@@ -254,7 +254,7 @@
     </string>
 
     <string name="share_csv_preparing">
-        Preparando archivo para compartir...
+        Preparando archivo para compartir…
     </string>
 
     <string name="share_csv_chooser_title">
@@ -279,7 +279,7 @@
     </string>
 
     <string name="import_csv_in_progress">
-        Importando mercadería...
+        Importando mercadería…
     </string>
 
     <string name="import_csv_invalid_format">
@@ -343,7 +343,7 @@
     </string>
 
     <string name="create_backup_in_progress">
-        Creando copia de seguridad...
+        Creando copia de seguridad…
     </string>
 
     <string name="create_backup_empty_success">
