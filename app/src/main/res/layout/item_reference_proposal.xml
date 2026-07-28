@@ -29,6 +29,25 @@
             android:maxLines="2"
             android:textAppearance="?attr/textAppearanceBodySmall" />
 
+        <TextView
+            android:id="@+id/suggestionsTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/reference_list_review_suggestions_title"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:visibility="gone" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/suggestionsGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:visibility="gone"
+            app:chipSpacingHorizontal="8dp"
+            app:chipSpacingVertical="4dp"
+            app:singleLine="false" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

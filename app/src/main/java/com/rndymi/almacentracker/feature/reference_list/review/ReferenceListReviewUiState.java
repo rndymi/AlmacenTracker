@@ -54,9 +54,19 @@ public final class ReferenceListReviewUiState {
     }
 
     public boolean canConfirm() {
-        return initialized
-                && !confirming
-                && !proposals.isEmpty();
+        if (!initialized
+                || confirming
+                || proposals.isEmpty()) {
+            return false;
+        }
+
+        for (ReferenceProposal proposal : proposals) {
+            if (proposal.requiresCorrection()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public int getReferenceCount() {

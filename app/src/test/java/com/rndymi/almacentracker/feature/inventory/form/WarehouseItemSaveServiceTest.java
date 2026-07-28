@@ -69,6 +69,32 @@ public final class WarehouseItemSaveServiceTest {
     }
 
     @Test
+    public void createStoresCodeSuffixWithCanonicalSpace() {
+        AtomicReference<WarehouseItem> inserted =
+                new AtomicReference<>();
+
+        WarehouseItemRepositoryStub repository =
+                repositoryForCreate(inserted);
+
+        service(repository).create(
+                new WarehouseItemFormData(
+                        "MD",
+                        "1010dark   blue",
+                        "A1",
+                        null,
+                        null
+                ),
+                ignored -> {
+                }
+        );
+
+        assertEquals(
+                "1010 DARK BLUE",
+                inserted.get().getCode()
+        );
+    }
+
+    @Test
     public void createTurnsEmptyOptionalFieldsIntoNull() {
         AtomicReference<WarehouseItem> inserted =
                 new AtomicReference<>();

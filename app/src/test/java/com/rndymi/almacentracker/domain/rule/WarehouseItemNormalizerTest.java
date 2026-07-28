@@ -47,6 +47,36 @@ public final class WarehouseItemNormalizerTest {
     }
 
     @Test
+    public void codeSuffixIsSeparatedFromNumericPart() {
+        assertEquals(
+                "1010 A",
+                normalizer.normalizeCode("1010a")
+        );
+        assertEquals(
+                "21571 ABC",
+                normalizer.normalizeCode("21571ABC")
+        );
+    }
+
+    @Test
+    public void codeSuffixWordsUseCanonicalSpacing() {
+        assertEquals(
+                "1010 DARK BLUE",
+                normalizer.normalizeCode(
+                        " 1010   dark   blue "
+                )
+        );
+    }
+
+    @Test
+    public void numericCodeDoesNotReceiveTrailingSpace() {
+        assertEquals(
+                "1010",
+                normalizer.normalizeCode(" 1010 ")
+        );
+    }
+
+    @Test
     public void optionalNullEmptyAndWhitespaceBecomeNull() {
         assertNull(normalizer.normalizeOptional(null));
         assertNull(normalizer.normalizeOptional(""));

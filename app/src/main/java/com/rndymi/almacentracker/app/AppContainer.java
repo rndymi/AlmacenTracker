@@ -64,7 +64,8 @@ public final class AppContainer {
                 );
         referenceListModule =
                 new ReferenceListModule(
-                        applicationContext
+                        applicationContext,
+                        warehouseItemRepository
                 );
     }
 
