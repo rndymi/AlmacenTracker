@@ -32,6 +32,9 @@ public final class WarehouseReferenceParser {
                             + "([A-Z0-9]{2})"
                             + "[\\p{Z}\\s:._-]*"
                             + "([A-Z0-9]{4,})"
+                            + "(?:[\\p{Z}\\s]+"
+                            + "(\\p{L}+(?:[\\p{Z}\\s]+"
+                            + "\\p{L}+)*))?"
                             + "(?![A-Z0-9])"
             );
 
@@ -227,7 +230,10 @@ public final class WarehouseReferenceParser {
                     new WarehouseReferenceMatch(
                             new WarehouseReference(
                                     matcher.group(1),
-                                    matcher.group(2)
+                                    canonicalOcrCode(
+                                            matcher.group(2),
+                                            matcher.group(3)
+                                    )
                             ),
                             lineIndex,
                             rawText,
@@ -327,6 +333,46 @@ public final class WarehouseReferenceParser {
                 + normalizeSpaces(suffix);
     }
 
+    private String canonicalOcrCode(
+            String observedCode,
+            String separatedSuffix
+    ) {
+        String code = observedCode;
+        String suffix = separatedSuffix;
+
+        if (observedCode.length() > 5) {
+            int codeLength =
+                    Character.isDigit(
+                            observedCode.charAt(4)
+                    )
+                            ? 5
+                            : 4;
+
+            String attachedSuffix =
+                    observedCode.substring(codeLength);
+
+            if (attachedSuffix
+                    .codePoints()
+                    .allMatch(Character::isLetter)) {
+                code =
+                        observedCode.substring(
+                                0,
+                                codeLength
+                        );
+
+                suffix =
+                        suffix == null
+                                || suffix.trim().isEmpty()
+                                ? attachedSuffix
+                                : attachedSuffix
+                                + " "
+                                + suffix;
+            }
+        }
+
+        return canonicalCode(code, suffix);
+    }
+
     private int suggestionScore(
             WarehouseReference observed,
             WarehouseReference expected
@@ -347,9 +393,11 @@ public final class WarehouseReferenceParser {
                         expected.getCode()
                 );
 
-        return codeScore < 0
-                ? -1
-                : categoryScore + codeScore;
+        if (codeScore < 0) {
+            return -1;
+        }
+
+        return categoryScore + codeScore;
     }
 
     private int categorySuggestionScore(
@@ -366,8 +414,10 @@ public final class WarehouseReferenceParser {
         for (int index = 0;
              index < expected.length();
              index++) {
+
             char observedCharacter =
                     observed.charAt(index);
+
             char expectedCharacter =
                     expected.charAt(index);
 
@@ -382,12 +432,51 @@ public final class WarehouseReferenceParser {
                 return -1;
             }
 
-            score += Character.isDigit(
-                    observedCharacter
-            ) ? 1 : 2;
+            int confusionScore =
+                    categoryConfusionScore(
+                            observedCharacter,
+                            expectedCharacter
+                    );
+
+            if (confusionScore < 0) {
+                return -1;
+            }
+
+            score += confusionScore;
         }
 
         return score;
+    }
+
+    private int categoryConfusionScore(
+            char observed,
+            char expected
+    ) {
+
+        if ((observed == '5'
+                && expected == 'S')
+                || (observed == '2'
+                && expected == 'Z')
+                || (observed == '0'
+                && expected == 'O')
+                || (observed == '8'
+                && expected == 'B')
+                || (observed == '1'
+                && (
+                expected == 'I'
+                        || expected == 'L'
+        ))) {
+            return 1;
+        }
+
+        if ((observed == 'E'
+                && expected == 'R')
+                || (observed == '2'
+                && expected == 'R')) {
+            return 3;
+        }
+
+        return -1;
     }
 
     private int codeSuggestionScore(
@@ -396,6 +485,7 @@ public final class WarehouseReferenceParser {
     ) {
         CodeParts observedParts =
                 codeParts(observed);
+
         CodeParts expectedParts =
                 codeParts(expected);
 
@@ -404,14 +494,16 @@ public final class WarehouseReferenceParser {
             return -1;
         }
 
-        int differences = 0;
+        int digitDifferences = 0;
         int score = 0;
 
         for (int index = 0;
              index < expectedParts.numeric.length();
              index++) {
+
             char observedCharacter =
                     observedParts.numeric.charAt(index);
+
             char expectedCharacter =
                     expectedParts.numeric.charAt(index);
 
@@ -420,39 +512,135 @@ public final class WarehouseReferenceParser {
                 continue;
             }
 
-            differences++;
+            int confusionScore =
+                    codeConfusionScore(
+                            observedCharacter,
+                            expectedCharacter
+                    );
 
-            if (differences > 3) {
+            if (confusionScore < 0) {
                 return -1;
             }
 
-            score += Character.isLetter(
+            if (Character.isDigit(
                     observedCharacter
-            ) ? 1 : 3;
+            )) {
+                digitDifferences++;
+
+                if (digitDifferences > 1) {
+                    return -1;
+                }
+            }
+
+            score += confusionScore;
         }
 
-        if (observedParts.suffix.equals(
-                expectedParts.suffix
-        )) {
-            return score;
-        }
-
-        if (observedParts.suffix.isEmpty()
-                || expectedParts.suffix.isEmpty()) {
-            return score + 2;
-        }
-
-        return score
-                + Math.min(
-                4,
-                levenshteinDistance(
+        int suffixScore =
+                suffixSuggestionScore(
                         observedParts.suffix,
                         expectedParts.suffix
-                )
-        );
+                );
+
+        if (suffixScore < 0) {
+            return -1;
+        }
+
+        return score + suffixScore;
     }
 
-    private CodeParts codeParts(String code) {
+    private int codeConfusionScore(
+            char observed,
+            char expected
+    ) {
+
+        if ((
+                observed == 'I'
+                        || observed == 'L'
+        ) && (
+                expected == '1'
+                        || expected == '7'
+        )) {
+            return 1;
+        }
+
+        if ((observed == 'O'
+                && expected == '0')
+                || (observed == 'S'
+                && expected == '5')
+                || (observed == 'Z'
+                && expected == '2')
+                || (observed == 'B'
+                && expected == '8')
+                || (observed == 'G'
+                && expected == '6')) {
+            return 1;
+        }
+
+
+        if ((observed == '1'
+                && expected == '7')
+                || (observed == '9'
+                && expected == '7')) {
+            return 3;
+        }
+
+
+        return -1;
+    }
+
+    private int suffixSuggestionScore(
+            String observed,
+            String expected
+    ) {
+        String normalizedObserved =
+                normalizeOcrSuffix(observed);
+
+        String normalizedExpected =
+                normalizeOcrSuffix(expected);
+
+        if (normalizedObserved.equals(
+                normalizedExpected
+        )) {
+            return 0;
+        }
+
+        if (normalizedObserved.isEmpty()
+                && !normalizedExpected.isEmpty()) {
+            return 2;
+        }
+
+        return -1;
+    }
+
+    private String normalizeOcrSuffix(
+            String suffix
+    ) {
+        String normalized =
+                suffix == null
+                        ? ""
+                        : normalizeSpaces(suffix)
+                        .toUpperCase(Locale.ROOT);
+
+        switch (normalized) {
+            case "PC":
+            case "PCS":
+            case "PES":
+            case "PZA":
+            case "PZAS":
+            case "PQT":
+            case "PQTS":
+            case "PAT":
+            case "PATS":
+                return "";
+
+            default:
+                return normalized;
+        }
+    }
+
+    private CodeParts codeParts(
+            String code
+    ) {
         String normalized =
                 code == null
                         ? ""
@@ -478,54 +666,6 @@ public final class WarehouseReferenceParser {
                         separatorIndex + 1
                 )
         );
-    }
-
-    private int levenshteinDistance(
-            String left,
-            String right
-    ) {
-        int[] previous =
-                new int[right.length() + 1];
-        int[] current =
-                new int[right.length() + 1];
-
-        for (int column = 0;
-             column <= right.length();
-             column++) {
-            previous[column] = column;
-        }
-
-        for (int row = 1;
-             row <= left.length();
-             row++) {
-            current[0] = row;
-
-            for (int column = 1;
-                 column <= right.length();
-                 column++) {
-                int substitutionCost =
-                        left.charAt(row - 1)
-                                == right.charAt(column - 1)
-                                ? 0
-                                : 1;
-
-                current[column] =
-                        Math.min(
-                                Math.min(
-                                        current[column - 1] + 1,
-                                        previous[column] + 1
-                                ),
-                                previous[column - 1]
-                                        + substitutionCost
-                        );
-            }
-
-            int[] swap = previous;
-            previous = current;
-            current = swap;
-        }
-
-        return previous[right.length()];
     }
 
     private static final class CodeParts {

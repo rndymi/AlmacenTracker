@@ -20,6 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public final class ReferenceListReviewViewModelTest {
@@ -407,6 +408,28 @@ public final class ReferenceListReviewViewModelTest {
                         .get(3)
                         .requiresCorrection()
         );
+    }
+
+    @Test
+    public void applyInitialLinesSeparatesOcrCodeAndOptionalSuffix() {
+        viewModel.applyInitialLines(
+                Collections.singletonList(
+                        "M2 215L1POS"
+                )
+        );
+
+        ReferenceProposal proposal =
+                viewModel.getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                "M2 215L1 POS",
+                proposal.getReference()
+                        .displayValue()
+        );
+        assertTrue(proposal.requiresCorrection());
     }
 
     @Test

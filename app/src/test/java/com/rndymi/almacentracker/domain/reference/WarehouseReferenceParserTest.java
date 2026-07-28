@@ -319,30 +319,13 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void suggestReferencesWorksForAnyCategoryMismatch() {
-        List<WarehouseReferenceMatch> matches =
-                parser.parseOcrLine(
-                        0,
-                        "MP 21571",
-                        java.util.Collections.singletonList(
-                                new WarehouseReference(
-                                        "MR",
-                                        "21571"
-                                )
-                        )
-                );
-
-        assertEquals(1, matches.size());
-        assertEquals(
-                "MP 21571",
-                matches.get(0)
-                        .getReference()
-                        .displayValue()
-        );
-
+    public void suggestReferencesRejectsUnrelatedCategoryChanges() {
         List<WarehouseReference> suggestions =
                 parser.suggestReferences(
-                        matches.get(0).getReference(),
+                        new WarehouseReference(
+                                "MP",
+                                "21571"
+                        ),
                         java.util.Collections.singletonList(
                                 new WarehouseReference(
                                         "MR",
@@ -352,11 +335,7 @@ public final class WarehouseReferenceParserTest {
                         5
                 );
 
-        assertEquals(1, suggestions.size());
-        assertEquals(
-                "MR 21571",
-                suggestions.get(0).displayValue()
-        );
+        assertTrue(suggestions.isEmpty());
     }
 
     @Test
@@ -403,6 +382,42 @@ public final class WarehouseReferenceParserTest {
         assertEquals(1, matches.size());
         assertEquals(
                 "M2 215I1",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineSeparatesSuffixFromAmbiguousNumericCode() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M2 215L1POS",
+                        java.util.Collections.emptyList()
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M2 215L1 POS",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineSeparatesSuffixFromFourCharacterCode() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M5 SOO8POS",
+                        java.util.Collections.emptyList()
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M5 SOO8 POS",
                 matches.get(0)
                         .getReference()
                         .displayValue()
@@ -457,5 +472,239 @@ public final class WarehouseReferenceParserTest {
                         "12AB"
                 )
         );
+    }
+
+    @Test
+    public void suggestReferencesOnlyCorrectsCategoryWhenCodeIsReliable() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "ME",
+                                "21570"
+                        ),
+                        java.util.Arrays.asList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21570"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21070"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21370"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21470"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21510"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MR 21570",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesRecoversSevenWithoutChangingReliableDigits() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "M2",
+                                "21511 PCS"
+                        ),
+                        java.util.Arrays.asList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21571"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21511"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "20511"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21011"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21211"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(2, suggestions.size());
+
+        assertEquals(
+                "MR 21511",
+                suggestions.get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                "MR 21571",
+                suggestions.get(1)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesKeepsCodeWhenCategoryFiveMeansS() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "M5",
+                                "5008"
+                        ),
+                        java.util.Arrays.asList(
+                                new WarehouseReference(
+                                        "MS",
+                                        "5008"
+                                ),
+                                new WarehouseReference(
+                                        "MS",
+                                        "5038"
+                                ),
+                                new WarehouseReference(
+                                        "MW",
+                                        "0008"
+                                ),
+                                new WarehouseReference(
+                                        "MH",
+                                        "7508"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "9000"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MS 5008",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesAllowsOnlyOnePlausibleCodeCorrection() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "ML",
+                                "3923"
+                        ),
+                        java.util.Arrays.asList(
+                                new WarehouseReference(
+                                        "ML",
+                                        "3723"
+                                ),
+                                new WarehouseReference(
+                                        "ML",
+                                        "3724"
+                                ),
+                                new WarehouseReference(
+                                        "ML",
+                                        "3902"
+                                ),
+                                new WarehouseReference(
+                                        "ML",
+                                        "4913"
+                                ),
+                                new WarehouseReference(
+                                        "ML",
+                                        "4925"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "ML 3723",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesDoesNotReplaceARecognizedSeven() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MR",
+                                "21570"
+                        ),
+                        java.util.Arrays.asList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21510"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "21590"
+                                )
+                        ),
+                        5
+                );
+
+        assertTrue(suggestions.isEmpty());
+    }
+
+    @Test
+    public void suggestReferencesDoesNotFillTheMaximumWithUnrelatedItems() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "M5",
+                                "5008"
+                        ),
+                        java.util.Arrays.asList(
+                                new WarehouseReference(
+                                        "MS",
+                                        "5008"
+                                ),
+                                new WarehouseReference(
+                                        "MS",
+                                        "5038"
+                                ),
+                                new WarehouseReference(
+                                        "MW",
+                                        "0008"
+                                ),
+                                new WarehouseReference(
+                                        "MH",
+                                        "7508"
+                                ),
+                                new WarehouseReference(
+                                        "MR",
+                                        "9000"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
     }
 }

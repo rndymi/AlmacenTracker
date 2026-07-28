@@ -614,7 +614,7 @@
         Requiere corrección: categoría de 2 letras y código de 4 o 5 números seguidos; el texto adicional debe ir separado por un espacio.\nTexto original: %1$s
     </string>
     <string name="reference_list_review_suggestions_title">
-        Referencias posibles
+        Coincidencias sugeridas
     </string>
     <string name="reference_list_review_suggestion_description">
         Usar la referencia sugerida %1$s
