@@ -2,6 +2,9 @@ package com.rndymi.almacentracker.feature.reference_list.review;
 
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public final class ReferenceProposal {
@@ -10,12 +13,49 @@ public final class ReferenceProposal {
     private final WarehouseReference reference;
     private final String sourceRawText;
     private final boolean manuallyAdded;
+    private final boolean requiresCorrection;
+    private final List<WarehouseReference> suggestions;
 
     public ReferenceProposal(
             long id,
             WarehouseReference reference,
             String sourceRawText,
             boolean manuallyAdded
+    ) {
+        this(
+                id,
+                reference,
+                sourceRawText,
+                manuallyAdded,
+                false,
+                Collections.emptyList()
+        );
+    }
+
+    public ReferenceProposal(
+            long id,
+            WarehouseReference reference,
+            String sourceRawText,
+            boolean manuallyAdded,
+            boolean requiresCorrection
+    ) {
+        this(
+                id,
+                reference,
+                sourceRawText,
+                manuallyAdded,
+                requiresCorrection,
+                Collections.emptyList()
+        );
+    }
+
+    public ReferenceProposal(
+            long id,
+            WarehouseReference reference,
+            String sourceRawText,
+            boolean manuallyAdded,
+            boolean requiresCorrection,
+            List<WarehouseReference> suggestions
     ) {
         this.id = id;
 
@@ -30,6 +70,18 @@ public final class ReferenceProposal {
 
         this.manuallyAdded =
                 manuallyAdded;
+
+        this.requiresCorrection =
+                requiresCorrection;
+
+        this.suggestions =
+                Collections.unmodifiableList(
+                        new ArrayList<>(
+                                suggestions == null
+                                        ? Collections.emptyList()
+                                        : suggestions
+                        )
+                );
     }
 
     public long getId() {
@@ -48,6 +100,14 @@ public final class ReferenceProposal {
         return manuallyAdded;
     }
 
+    public boolean requiresCorrection() {
+        return requiresCorrection;
+    }
+
+    public List<WarehouseReference> getSuggestions() {
+        return suggestions;
+    }
+
     public ReferenceProposal withReference(
             WarehouseReference newReference
     ) {
@@ -55,7 +115,9 @@ public final class ReferenceProposal {
                 id,
                 newReference,
                 sourceRawText,
-                manuallyAdded
+                manuallyAdded,
+                false,
+                Collections.emptyList()
         );
     }
 }

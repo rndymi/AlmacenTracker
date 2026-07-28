@@ -10,9 +10,12 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.rndymi.almacentracker.R;
-import com.rndymi.almacentracker.databinding
-        .ItemReferenceProposalBinding;
+import com.rndymi.almacentracker.databinding.ItemReferenceProposalBinding;
+import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.google.android.material.color.MaterialColors;
+import com.google.android.material.chip.Chip;
 
+import java.util.List;
 import java.util.Objects;
 
 public final class ReferenceListReviewAdapter
@@ -29,6 +32,11 @@ public final class ReferenceListReviewAdapter
 
         void onDelete(
                 ReferenceProposal proposal
+        );
+
+        void onSuggestion(
+                ReferenceProposal proposal,
+                WarehouseReference suggestion
         );
     }
 
@@ -95,6 +103,18 @@ public final class ReferenceListReviewAdapter
                     displayValue
             );
 
+            boolean requiresCorrection =
+                    proposal.requiresCorrection();
+
+            binding.referenceValue.setTextColor(
+                    MaterialColors.getColor(
+                            binding.referenceValue,
+                            requiresCorrection
+                                    ? com.google.android.material.R.attr.colorError
+                                    : com.google.android.material.R.attr.colorOnSurface
+                    )
+            );
+
             String sourceRawText =
                     proposal.getSourceRawText();
 
@@ -111,17 +131,29 @@ public final class ReferenceListReviewAdapter
             );
 
             if (hasSource) {
+                binding.referenceSource.setTextColor(
+                        MaterialColors.getColor(
+                                binding.referenceSource,
+                                requiresCorrection
+                                        ? com.google.android.material.R.attr.colorError
+                                        : com.google.android.material.R.attr.colorOnSurfaceVariant
+                        )
+                );
+
                 binding.referenceSource.setText(
                         itemView.getContext()
                                 .getString(
-                                        R.string
-                                                .reference_list_review_source_format,
+                                        requiresCorrection
+                                                ? R.string.reference_list_review_invalid_source_format
+                                                : R.string.reference_list_review_source_format,
                                         sourceRawText
                                 )
                 );
             } else {
                 binding.referenceSource.setText("");
             }
+
+            bindSuggestions(proposal);
 
             binding.editReferenceButton
                     .setContentDescription(
@@ -159,6 +191,64 @@ public final class ReferenceListReviewAdapter
                                     )
                     );
         }
+
+        private void bindSuggestions(
+                ReferenceProposal proposal
+        ) {
+            List<WarehouseReference> suggestions =
+                    proposal.getSuggestions();
+
+            boolean hasSuggestions =
+                    !suggestions.isEmpty();
+
+            binding.suggestionsTitle.setVisibility(
+                    hasSuggestions
+                            ? View.VISIBLE
+                            : View.GONE
+            );
+            binding.suggestionsGroup.setVisibility(
+                    hasSuggestions
+                            ? View.VISIBLE
+                            : View.GONE
+            );
+            binding.suggestionsGroup.removeAllViews();
+
+            if (!hasSuggestions) {
+                return;
+            }
+
+            for (WarehouseReference suggestion
+                    : suggestions) {
+                Chip chip =
+                        new Chip(
+                                itemView.getContext()
+                        );
+
+                String displayValue =
+                        suggestion.displayValue();
+
+                chip.setText(displayValue);
+                chip.setCheckable(false);
+                chip.setClickable(true);
+                chip.setContentDescription(
+                        itemView.getContext()
+                                .getString(
+                                        R.string
+                                                .reference_list_review_suggestion_description,
+                                        displayValue
+                                )
+                );
+                chip.setOnClickListener(
+                        ignored ->
+                                listener.onSuggestion(
+                                        proposal,
+                                        suggestion
+                                )
+                );
+
+                binding.suggestionsGroup.addView(chip);
+            }
+        }
     }
 
     private static final DiffUtil
@@ -191,7 +281,13 @@ public final class ReferenceListReviewAdapter
                             newItem.getSourceRawText()
                     )
                             && oldItem.isManuallyAdded()
-                            == newItem.isManuallyAdded();
+                            == newItem.isManuallyAdded()
+                            && oldItem.requiresCorrection()
+                            == newItem.requiresCorrection()
+                            && oldItem.getSuggestions()
+                            .equals(
+                                    newItem.getSuggestions()
+                            );
                 }
             };
 }

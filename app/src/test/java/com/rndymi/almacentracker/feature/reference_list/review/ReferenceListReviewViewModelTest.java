@@ -9,8 +9,11 @@ import androidx.arch.core.executor.testing
         .InstantTaskExecutorRule;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
+import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
+import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -107,6 +110,350 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
+    public void applyInitialLines_offersCandidatesWithoutAutoCorrecting() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21571"
+                                                ),
+                                                warehouseItem(
+                                                        "MS",
+                                                        "5008"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "MR 2I57I - 1 pcs",
+                        "M5 SOO8 - 3 pcs"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(2, state.getReferenceCount());
+        assertEquals(
+                "MR 2I57I",
+                state.getProposals()
+                        .get(0)
+                        .getReference()
+                        .displayValue()
+        );
+        assertEquals(
+                "M5 SOO8",
+                state.getProposals()
+                        .get(1)
+                        .getReference()
+                        .displayValue()
+        );
+        assertTrue(
+                state.getProposals()
+                        .get(0)
+                        .requiresCorrection()
+        );
+        assertEquals(
+                "MR 21571",
+                state.getProposals()
+                        .get(0)
+                        .getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+        assertEquals(
+                "MS 5008",
+                state.getProposals()
+                        .get(1)
+                        .getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void applyInitialLines_joinsSplitInputAndOffersSuggestion() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MS",
+                                                        "5008"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "M5",
+                        "SOO8 - 3 pcs"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(1, state.getReferenceCount());
+        assertEquals(
+                "M5 SOO8",
+                state.getProposals()
+                        .get(0)
+                        .getReference()
+                        .displayValue()
+        );
+        assertEquals(
+                "MS 5008",
+                state.getProposals()
+                        .get(0)
+                        .getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void applySuggestionReplacesOnlySelectedProposal() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21511"
+                                                ),
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21571"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "MR 215I1"
+                )
+        );
+
+        ReferenceProposal proposal =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                2,
+                proposal.getSuggestions().size()
+        );
+
+        WarehouseReference selected =
+                proposal.getSuggestions().get(1);
+
+        ReferenceInputResult result =
+                resolvingViewModel.applySuggestion(
+                        proposal.getId(),
+                        selected
+                );
+
+        assertEquals(
+                ReferenceInputResult.Status.SUCCESS,
+                result.getStatus()
+        );
+
+        ReferenceProposal resolved =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                "MR 21571",
+                resolved.getReference().displayValue()
+        );
+        assertTrue(resolved.getSuggestions().isEmpty());
+        assertFalse(resolved.requiresCorrection());
+        assertTrue(
+                resolvingViewModel
+                        .getUiState()
+                        .getValue()
+                        .canConfirm()
+        );
+    }
+
+    @Test
+    public void applyInitialLinesDoesNotSuggestForExactKnownReference() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MD",
+                                                        "1010 YELLOW"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "MD 1010 Yellow"
+                )
+        );
+
+        ReferenceProposal proposal =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                "MD 1010 YELLOW",
+                proposal.getReference().displayValue()
+        );
+        assertTrue(proposal.getSuggestions().isEmpty());
+        assertFalse(proposal.requiresCorrection());
+    }
+
+    @Test
+    public void applyInitialLines_keepsAllOcrCandidatesForReview() {
+        viewModel.applyInitialLines(
+                Arrays.asList(
+                        "Me 21570 -5pcs",
+                        "M2 215I1 pcs",
+                        "M5 5008-3pcs",
+                        "ML 3923-4gts"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                viewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(4, state.getReferenceCount());
+        assertFalse(state.canConfirm());
+        assertTrue(
+                state.getProposals()
+                        .get(1)
+                        .requiresCorrection()
+        );
+        assertTrue(
+                state.getProposals()
+                        .get(2)
+                        .requiresCorrection()
+        );
+        assertFalse(
+                state.getProposals()
+                        .get(3)
+                        .requiresCorrection()
+        );
+    }
+
+    @Test
+    public void editReference_clearsRequiredCorrectionState() {
+        viewModel.applyInitialLines(
+                Arrays.asList(
+                        "M2 215I1"
+                )
+        );
+
+        ReferenceProposal proposal =
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertTrue(proposal.requiresCorrection());
+
+        ReferenceInputResult result =
+                viewModel.editReference(
+                        proposal.getId(),
+                        "MR",
+                        "21571"
+                );
+
+        assertEquals(
+                ReferenceInputResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertFalse(
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0)
+                        .requiresCorrection()
+        );
+        assertTrue(
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .canConfirm()
+        );
+    }
+
+    @Test
     public void applyInitialLines_isOnlyAppliedOnce() {
         viewModel.applyInitialLines(
                 Arrays.asList(
@@ -147,7 +494,7 @@ public final class ReferenceListReviewViewModelTest {
         ReferenceInputResult result =
                 viewModel.addReference(
                         " mz ",
-                        " 001300 c "
+                        " 01300 c "
                 );
 
         assertEquals(
@@ -169,7 +516,7 @@ public final class ReferenceListReviewViewModelTest {
         );
 
         assertEquals(
-                "001300C",
+                "01300 C",
                 added.getReference()
                         .getCode()
         );
@@ -370,6 +717,22 @@ public final class ReferenceListReviewViewModelTest {
                 viewModel
                         .getConfirmationEvent()
                         .getValue()
+        );
+    }
+
+    private WarehouseItem warehouseItem(
+            String category,
+            String code
+    ) {
+        return new WarehouseItem(
+                1L,
+                category,
+                code,
+                "A1",
+                null,
+                null,
+                1L,
+                1L
         );
     }
 }

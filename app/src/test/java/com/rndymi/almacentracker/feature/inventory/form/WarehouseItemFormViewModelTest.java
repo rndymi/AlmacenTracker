@@ -398,7 +398,7 @@ public final class WarehouseItemFormViewModelTest {
         viewModel.applyInitialCode(" 1210a ");
 
         assertEquals(
-                "1210A",
+                "1210 A",
                 viewModel.getUiState()
                         .getValue()
                         .getCode()

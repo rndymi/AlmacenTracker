@@ -552,7 +552,7 @@
     <string name="reference_list_process_action"> Procesar imagen </string>
     <string name="reference_list_processing"> Reconociendo texto… </string>
     <string name="reference_list_change_image_action"> Cambiar imagen </string>
-    <string name="reference_list_recognized_text_title"> Texto reconocido </string>
+    <string name="reference_list_recognized_text_title"> Texto detectado (sin corregir) </string>
     <!--<string name="reference_list_review_pending">
         La validación y corrección de referencias se incorporará en la siguiente historia.
     </string>-->
@@ -596,6 +596,15 @@
     <string name="reference_list_review_source_format">
         Texto original: %1$s
     </string>
+    <string name="reference_list_review_invalid_source_format">
+        Requiere corrección: categoría de 2 letras y código de 4 o 5 números seguidos; el texto adicional debe ir separado por un espacio.\nTexto original: %1$s
+    </string>
+    <string name="reference_list_review_suggestions_title">
+        Referencias posibles
+    </string>
+    <string name="reference_list_review_suggestion_description">
+        Usar la referencia sugerida %1$s
+    </string>
     <string name="reference_list_review_edit_description">
         Editar referencia %1$s
     </string>
@@ -606,7 +615,7 @@
         Introduce exactamente dos letras.
     </string>
     <string name="reference_list_review_code_error">
-        Introduce uno o más dígitos y, opcionalmente, una letra final.
+        Introduce 4 o 5 números seguidos y, opcionalmente, palabras después de ellos.
     </string>
     <string name="reference_list_review_duplicate">
         La referencia ya estaba incluida en la lista.

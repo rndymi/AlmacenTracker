@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 
 import java.util.Objects;
@@ -12,14 +13,21 @@ public final class ReferenceListReviewViewModelFactory
         implements ViewModelProvider.Factory {
 
     private final WarehouseReferenceParser parser;
+    private final WarehouseItemRepository repository;
 
     public ReferenceListReviewViewModelFactory(
-            WarehouseReferenceParser parser
+            WarehouseReferenceParser parser,
+            WarehouseItemRepository repository
     ) {
         this.parser =
                 Objects.requireNonNull(
                         parser,
                         "parser"
+                );
+        this.repository =
+                Objects.requireNonNull(
+                        repository,
+                        "repository"
                 );
     }
 
@@ -38,7 +46,8 @@ public final class ReferenceListReviewViewModelFactory
 
         return modelClass.cast(
                 new ReferenceListReviewViewModel(
-                        parser
+                        parser,
+                        repository
                 )
         );
     }

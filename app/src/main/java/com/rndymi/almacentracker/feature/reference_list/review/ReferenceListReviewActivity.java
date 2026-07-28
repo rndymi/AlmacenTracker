@@ -147,6 +147,29 @@ public final class ReferenceListReviewActivity
                                         Snackbar.LENGTH_SHORT
                                 ).show();
                             }
+
+                            @Override
+                            public void onSuggestion(
+                                    ReferenceProposal proposal,
+                                    WarehouseReference suggestion
+                            ) {
+                                ReferenceInputResult result =
+                                        viewModel.applySuggestion(
+                                                proposal.getId(),
+                                                suggestion
+                                        );
+
+                                if (result.getStatus()
+                                        == ReferenceInputResult
+                                        .Status.DUPLICATE) {
+                                    Snackbar.make(
+                                            binding.getRoot(),
+                                            R.string
+                                                    .reference_list_review_duplicate,
+                                            Snackbar.LENGTH_LONG
+                                    ).show();
+                                }
+                            }
                         }
                 );
 
