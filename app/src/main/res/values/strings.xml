@@ -610,8 +610,23 @@
     <string name="reference_list_review_source_format">
         Texto original: %1$s
     </string>
-    <string name="reference_list_review_invalid_source_format">
-        Requiere corrección: categoría de 2 letras y código de 4 o 5 números seguidos; el texto adicional debe ir separado por un espacio.\nTexto original: %1$s
+    <string name="reference_list_review_match_exact">
+        Coincidencia exacta en el inventario
+    </string>
+    <string name="reference_list_review_match_unique">
+        Una posible coincidencia; revísala antes de continuar
+    </string>
+    <string name="reference_list_review_match_ambiguous">
+        Varias coincidencias posibles; selecciona una
+    </string>
+    <string name="reference_list_review_match_none">
+        Sin coincidencias; corrige la referencia manualmente
+    </string>
+    <string name="reference_list_review_match_unverified">
+        No se pudo verificar con el inventario
+    </string>
+    <string name="reference_list_review_match_user_confirmed">
+        Referencia revisada manualmente
     </string>
     <string name="reference_list_review_suggestions_title">
         Coincidencias sugeridas
@@ -629,7 +644,7 @@
         Introduce exactamente dos letras.
     </string>
     <string name="reference_list_review_code_error">
-        Introduce 4 o 5 números seguidos y, opcionalmente, palabras después de ellos.
+        Introduce de 3 a 5 números seguidos y, opcionalmente, palabras después de ellos.
     </string>
     <string name="reference_list_review_duplicate">
         La referencia ya estaba incluida en la lista.

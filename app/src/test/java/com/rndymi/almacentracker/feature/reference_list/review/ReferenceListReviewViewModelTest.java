@@ -173,6 +173,13 @@ public final class ReferenceListReviewViewModelTest {
                         .requiresCorrection()
         );
         assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                state.getProposals()
+                        .get(0)
+                        .getMatchStatus()
+        );
+        assertEquals(
                 "MR 21571",
                 state.getProposals()
                         .get(0)
@@ -292,6 +299,10 @@ public final class ReferenceListReviewViewModelTest {
                 2,
                 proposal.getSuggestions().size()
         );
+        assertEquals(
+                ReferenceProposal.MatchStatus.AMBIGUOUS,
+                proposal.getMatchStatus()
+        );
 
         WarehouseReference selected =
                 proposal.getSuggestions().get(1);
@@ -320,6 +331,11 @@ public final class ReferenceListReviewViewModelTest {
         );
         assertTrue(resolved.getSuggestions().isEmpty());
         assertFalse(resolved.requiresCorrection());
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .USER_CONFIRMED,
+                resolved.getMatchStatus()
+        );
         assertTrue(
                 resolvingViewModel
                         .getUiState()
@@ -372,6 +388,62 @@ public final class ReferenceListReviewViewModelTest {
         );
         assertTrue(proposal.getSuggestions().isEmpty());
         assertFalse(proposal.requiresCorrection());
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                proposal.getMatchStatus()
+        );
+    }
+
+    @Test
+    public void applyInitialLinesMarksUnknownReferenceAsNoMatch() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Collections.singletonList(
+                                                warehouseItem(
+                                                        "MR",
+                                                        "1210"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Collections.singletonList(
+                        "MZ 9999"
+                )
+        );
+
+        ReferenceProposal proposal =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.NO_MATCH,
+                proposal.getMatchStatus()
+        );
+        assertTrue(proposal.requiresCorrection());
+        assertTrue(proposal.getSuggestions().isEmpty());
+        assertFalse(
+                resolvingViewModel
+                        .getUiState()
+                        .getValue()
+                        .canConfirm()
+        );
     }
 
     @Test
