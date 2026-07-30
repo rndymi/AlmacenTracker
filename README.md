@@ -23,19 +23,15 @@ Cada registro se identifica mediante una combinación única de categoría y có
 - Conservar los datos existentes cuando una restauración falla.
 - Funcionar completamente sin conexión a Internet.
 
-### Funcionalidades previstas para v1.2
+### Novedades de v1.2.0
 
-- Escanear códigos de barras mediante la cámara.
-- Escanear códigos QR compatibles.
-- Buscar mercancía utilizando el valor leído.
-- Abrir el detalle cuando exista una coincidencia única.
-- Mostrar varias coincidencias cuando un código pertenezca a categorías diferentes.
-- Rellenar el código del formulario de registro mediante escaneo.
-- Utilizar el escaneo durante la edición con confirmación antes de reemplazar el código.
-- Controlar permisos de cámara, cancelaciones, códigos no reconocidos y cámara no disponible.
-- Mantener siempre la introducción manual como alternativa.
-
-Estas funcionalidades están planificadas y no se consideran disponibles hasta completar y publicar v1.2.0.
+- Escanear códigos de barras y códigos QR mediante la cámara.
+- Buscar la mercancía escaneada y abrir su detalle o elegir entre varias coincidencias.
+- Rellenar el código al registrar mercancía y sustituirlo con confirmación durante la edición.
+- Mantener la introducción manual cuando no se conceda el permiso o la cámara no esté disponible.
+- Procesar de forma local fotografías e imágenes de listas de referencias mediante reconocimiento de texto experimental.
+- Revisar, corregir y confirmar las referencias detectadas antes de consultar sus ubicaciones en el inventario.
+- Reorganizar el proyecto en una arquitectura MVVM pragmática por funcionalidades.
 
 ## Gestión de archivos CSV
 
@@ -52,6 +48,8 @@ La aplicación utiliza el selector de documentos de Android sin solicitar acceso
 - Java
 - Android Views
 - Material Components
+- CameraX
+- ML Kit
 - ViewModel y LiveData
 - Room y SQLite
 - JUnit
@@ -76,11 +74,11 @@ Las Activities se encargan del renderizado, la interacción y la navegación, mi
 
 - Android 8.0 o superior.
 - No requiere conexión a Internet para gestionar mercancía o archivos CSV.
-- El escaneo previsto para v1.2 requiere una cámara disponible.
+- El escaneo directo requiere una cámara disponible; la introducción manual continúa disponible como alternativa.
 
 ## Versión
 
-**AlmacenTracker v1.2.0 — En desarrollo**
+**AlmacenTracker v1.2.0**
 
 ## Autor
 
