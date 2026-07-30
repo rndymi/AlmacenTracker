@@ -21,6 +21,13 @@
             android:textAppearance="?attr/textAppearanceTitleMedium" />
 
         <TextView
+            android:id="@+id/matchStatusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+        <TextView
             android:id="@+id/referenceSource"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -114,6 +114,23 @@
 
     <string name="edit_action">Editar</string>
     <string name="delete_action">Eliminar</string>
+    <string name="yes_action">Sí</string>
+
+    <string name="delete_verification_title">
+        Confirmar eliminación
+    </string>
+    <string name="delete_verification_message">
+        Para confirmar, escribe delete exactamente como aparece.
+    </string>
+    <string name="delete_verification_input_label">
+        Escribe delete
+    </string>
+    <string name="delete_verification_keyword" translatable="false">
+        delete
+    </string>
+    <string name="delete_verification_error">
+        El texto no coincide con delete.
+    </string>
 
     <string name="category_filter_label">Categoría</string>
     <string name="site_filter_label">Sitio</string>
@@ -170,7 +187,7 @@
     </string>
 
     <string name="deleting_action">
-        Eliminando...
+        Eliminando…
     </string>
 
     <string name="selected_items_count">
@@ -232,7 +249,7 @@
     <string name="export_csv_description">Guarda todos los registros en un archivo CSV.</string>
     <string name="export_csv_action">Exportar</string>
     <string name="export_csv_selecting_destination">Selecciona el destino del archivo.</string>
-    <string name="export_csv_in_progress">Exportando mercadería...</string>
+    <string name="export_csv_in_progress">Exportando mercadería…</string>
     <string name="retry_action">Reintentar</string>
 
     <plurals name="export_csv_success">
@@ -254,7 +271,7 @@
     </string>
 
     <string name="share_csv_preparing">
-        Preparando archivo para compartir...
+        Preparando archivo para compartir…
     </string>
 
     <string name="share_csv_chooser_title">
@@ -279,7 +296,7 @@
     </string>
 
     <string name="import_csv_in_progress">
-        Importando mercadería...
+        Importando mercadería…
     </string>
 
     <string name="import_csv_invalid_format">
@@ -343,7 +360,7 @@
     </string>
 
     <string name="create_backup_in_progress">
-        Creando copia de seguridad...
+        Creando copia de seguridad…
     </string>
 
     <string name="create_backup_empty_success">
@@ -531,6 +548,15 @@
 
     <string name="reference_list_action"> Procesar lista </string>
     <string name="reference_list_capture_title"> Procesar lista </string>
+    <string name="reference_list_experimental_notice_title">
+        Escáner experimental
+    </string>
+    <string name="reference_list_experimental_notice_message">
+        La extracción puede no ser precisa. Revisa el resultado antes de guardarlo; mejorará en futuras actualizaciones.
+    </string>
+    <string name="reference_list_experimental_notice_action">
+        Entendido
+    </string>
     <string name="reference_list_capture_description">
         Toma una fotografía o selecciona una imagen de la lista para reconocer su texto.
     </string>
@@ -552,10 +578,16 @@
     <string name="reference_list_process_action"> Procesar imagen </string>
     <string name="reference_list_processing"> Reconociendo texto… </string>
     <string name="reference_list_change_image_action"> Cambiar imagen </string>
-    <string name="reference_list_recognized_text_title"> Texto detectado (sin corregir) </string>
-    <!--<string name="reference_list_review_pending">
-        La validación y corrección de referencias se incorporará en la siguiente historia.
-    </string>-->
+    <string name="reference_list_preliminary_result_title"> Resultado preliminar </string>
+    <string name="reference_list_reconstructed_text_description">
+        Texto reorganizado según la posición detectada en la imagen.
+    </string>
+    <string name="reference_list_show_raw_text_action">
+        Ver texto original detectado
+    </string>
+    <string name="reference_list_hide_raw_text_action">
+        Ocultar texto original
+    </string>
     <string name="reference_list_no_text_error">
         No se encontró texto legible en la imagen.
     </string>
@@ -579,6 +611,14 @@
             Se reconocieron %1$d líneas.
         </item>
     </plurals>
+    <plurals name="reference_list_reconstructed_lines">
+        <item quantity="one">
+            %1$d línea reorganizada
+        </item>
+        <item quantity="other">
+            %1$d líneas reorganizadas
+        </item>
+    </plurals>
 
 
     <string name="reference_list_review_open_action"> Revisar referencias </string>
@@ -596,11 +636,26 @@
     <string name="reference_list_review_source_format">
         Texto original: %1$s
     </string>
-    <string name="reference_list_review_invalid_source_format">
-        Requiere corrección: categoría de 2 letras y código de 4 o 5 números seguidos; el texto adicional debe ir separado por un espacio.\nTexto original: %1$s
+    <string name="reference_list_review_match_exact">
+        Coincidencia exacta en el inventario
+    </string>
+    <string name="reference_list_review_match_unique">
+        Una posible coincidencia; revísala antes de continuar
+    </string>
+    <string name="reference_list_review_match_ambiguous">
+        Varias coincidencias posibles; selecciona una
+    </string>
+    <string name="reference_list_review_match_none">
+        Sin coincidencias; corrige la referencia manualmente
+    </string>
+    <string name="reference_list_review_match_unverified">
+        No se pudo verificar con el inventario
+    </string>
+    <string name="reference_list_review_match_user_confirmed">
+        Referencia revisada manualmente
     </string>
     <string name="reference_list_review_suggestions_title">
-        Referencias posibles
+        Coincidencias sugeridas
     </string>
     <string name="reference_list_review_suggestion_description">
         Usar la referencia sugerida %1$s
@@ -615,7 +670,7 @@
         Introduce exactamente dos letras.
     </string>
     <string name="reference_list_review_code_error">
-        Introduce 4 o 5 números seguidos y, opcionalmente, palabras después de ellos.
+        Introduce de 3 a 5 números seguidos y, opcionalmente, palabras después de ellos.
     </string>
     <string name="reference_list_review_duplicate">
         La referencia ya estaba incluida en la lista.

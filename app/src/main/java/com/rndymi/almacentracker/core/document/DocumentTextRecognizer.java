@@ -1,12 +1,10 @@
 package com.rndymi.almacentracker.core.document;
 
 public interface DocumentTextRecognizer {
-
     void recognize(
-            String imageUri,
+            DocumentImage documentImage,
             DocumentImageSource sourceType,
             DocumentRecognitionCallback callback
     );
-
     void close();
 }

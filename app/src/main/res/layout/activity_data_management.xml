@@ -12,13 +12,14 @@
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
-        android:title="@string/data_management_title"
-        android:titleTextColor="?attr/colorOnPrimary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:navigationContentDescription="@string/navigate_back_action"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="?attr/colorOnPrimary" />
+        app:navigationIconTint="?attr/colorOnPrimary"
+        app:title="@string/data_management_title"
+        app:titleTextColor="?attr/colorOnPrimary" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="0dp"

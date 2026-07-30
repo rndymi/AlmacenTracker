@@ -19,6 +19,7 @@ import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.databinding.ActivityItemDetailBinding;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.feature.inventory.common.DeleteConfirmationDialog;
 
 public final class ItemDetailActivity
         extends AppCompatActivity {
@@ -175,9 +176,14 @@ public final class ItemDetailActivity
                         null
                 )
                 .setPositiveButton(
-                        R.string.delete_action,
+                        R.string.yes_action,
                         (dialog, which) ->
-                                viewModel.deleteWarehouseItem()
+                                DeleteConfirmationDialog.show(
+                                        this,
+                                        () ->
+                                                viewModel
+                                                        .deleteWarehouseItem()
+                                )
                 )
                 .show();
     }

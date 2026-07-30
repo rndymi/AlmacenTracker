@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -202,21 +203,12 @@ public final class ReferenceListReviewViewModel
 
                     unique.put(
                             reference.identityKey(),
-                            new ReferenceProposal(
+                            createRecognizedProposal(
                                     nextProposalId++,
                                     reference,
                                     match.getSourceRawText(),
-                                    false,
-                                    requiresCorrection(
-                                            reference,
-                                            knownReferences,
-                                            knownReferencesAvailable
-                                    ),
-                                    suggestionsFor(
-                                            reference,
-                                            knownReferences,
-                                            knownReferencesAvailable
-                                    )
+                                    knownReferences,
+                                    knownReferencesAvailable
                             )
                     );
                 }
@@ -243,20 +235,40 @@ public final class ReferenceListReviewViewModel
         }
     }
 
-    private boolean isCategoryFragment(String rawLine) {
+    private boolean isCategoryFragment(
+            String rawLine
+    ) {
         if (rawLine == null) {
             return false;
         }
 
         String compact =
                 rawLine.replaceAll(
-                        "[\\p{Z}\\s]+",
-                        ""
-                );
+                                "[\\p{Z}\\s]+",
+                                ""
+                        )
+                        .toUpperCase(Locale.ROOT);
 
-        return OCR_CATEGORY_FRAGMENT
+        if (!OCR_CATEGORY_FRAGMENT
                 .matcher(compact)
-                .matches();
+                .matches()) {
+            return false;
+        }
+
+        int digitCount = 0;
+
+        for (int index = 0;
+             index < compact.length();
+             index++) {
+
+            if (Character.isDigit(
+                    compact.charAt(index)
+            )) {
+                digitCount++;
+            }
+        }
+
+        return digitCount <= 1;
     }
 
     private boolean isValidReference(
@@ -270,17 +282,65 @@ public final class ReferenceListReviewViewModel
         );
     }
 
-    private boolean requiresCorrection(
+    private ReferenceProposal createRecognizedProposal(
+            long proposalId,
             WarehouseReference reference,
+            String sourceRawText,
             List<WarehouseReference> knownReferences,
             boolean knownReferencesAvailable
     ) {
-        if (!isValidReference(reference)) {
-            return true;
+        List<WarehouseReference> suggestions =
+                suggestionsFor(
+                        reference,
+                        knownReferences,
+                        knownReferencesAvailable
+                );
+
+        ReferenceProposal.MatchStatus matchStatus =
+                matchStatusFor(
+                        reference,
+                        suggestions,
+                        knownReferences,
+                        knownReferencesAvailable
+                );
+
+        return new ReferenceProposal(
+                proposalId,
+                reference,
+                sourceRawText,
+                false,
+                matchStatus,
+                suggestions
+        );
+    }
+
+    private ReferenceProposal.MatchStatus matchStatusFor(
+            WarehouseReference reference,
+            List<WarehouseReference> suggestions,
+            List<WarehouseReference> knownReferences,
+            boolean knownReferencesAvailable
+    ) {
+        if (!knownReferencesAvailable) {
+            return isValidReference(reference)
+                    ? ReferenceProposal.MatchStatus.UNVERIFIED
+                    : ReferenceProposal.MatchStatus.NO_MATCH;
         }
 
-        return knownReferencesAvailable
-                && !knownReferences.contains(reference);
+        if (isValidReference(reference)
+                && knownReferences.contains(reference)) {
+            return ReferenceProposal.MatchStatus.EXACT;
+        }
+
+        if (suggestions.size() == 1) {
+            return ReferenceProposal.MatchStatus
+                    .UNIQUE_SUGGESTION;
+        }
+
+        if (suggestions.size() > 1) {
+            return ReferenceProposal.MatchStatus.AMBIGUOUS;
+        }
+
+        return ReferenceProposal.MatchStatus.NO_MATCH;
     }
 
     private List<WarehouseReference> suggestionsFor(

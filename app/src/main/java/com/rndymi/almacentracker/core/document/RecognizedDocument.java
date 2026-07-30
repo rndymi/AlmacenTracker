@@ -9,6 +9,7 @@ public final class RecognizedDocument {
 
     private final DocumentImageSource sourceType;
     private final List<RecognizedTextLine> lines;
+    private final List<String> rawLines;
     private final long recognizedAt;
 
     public RecognizedDocument(
@@ -16,16 +17,34 @@ public final class RecognizedDocument {
             List<RecognizedTextLine> lines,
             long recognizedAt
     ) {
-        this.sourceType = Objects.requireNonNull(
-                sourceType,
-                "sourceType"
+        this.sourceType =
+                Objects.requireNonNull(
+                        sourceType,
+                        "sourceType"
+                );
+
+        Objects.requireNonNull(
+                lines,
+                "lines"
         );
 
-        Objects.requireNonNull(lines, "lines");
+        this.lines =
+                Collections.unmodifiableList(
+                        new ArrayList<>(lines)
+                );
 
-        this.lines = Collections.unmodifiableList(
-                new ArrayList<>(lines)
-        );
+        List<String> rawTextLines =
+                new ArrayList<>();
+
+        for (RecognizedTextLine line : lines) {
+            rawTextLines.add(line.getRawText());
+        }
+
+        this.rawLines =
+                Collections.unmodifiableList(
+                        rawTextLines
+                );
+
         this.recognizedAt = recognizedAt;
     }
 
@@ -35,6 +54,26 @@ public final class RecognizedDocument {
 
     public List<RecognizedTextLine> getLines() {
         return lines;
+    }
+
+    public List<String> getRawLines() {
+        return rawLines;
+    }
+
+    public List<String> getReconstructedLines() {
+        List<String> result =
+                new ArrayList<>();
+
+        for (RecognizedTextLine line : lines) {
+            String text =
+                    line.getDisplayText().trim();
+
+            if (!text.isEmpty()) {
+                result.add(text);
+            }
+        }
+
+        return Collections.unmodifiableList(result);
     }
 
     public long getRecognizedAt() {

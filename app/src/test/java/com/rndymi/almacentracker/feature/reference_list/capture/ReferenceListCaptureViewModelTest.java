@@ -5,6 +5,9 @@ import static org.junit.Assert.assertNotNull;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
+import com.rndymi.almacentracker.core.document.DocumentImage;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessingCallback;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessor;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.DocumentRecognitionCallback;
 import com.rndymi.almacentracker.core.document.DocumentTextRecognizer;
@@ -27,6 +30,7 @@ public final class ReferenceListCaptureViewModelTest {
     public void startsEmpty() {
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        new FakeDocumentImageProcessor(),
                         new FakeRecognizer()
                 );
 
@@ -40,6 +44,7 @@ public final class ReferenceListCaptureViewModelTest {
     public void selectedImageBecomesReady() {
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        new FakeDocumentImageProcessor(),
                         new FakeRecognizer()
                 );
 
@@ -65,11 +70,15 @@ public final class ReferenceListCaptureViewModelTest {
 
     @Test
     public void recognizedLinesArePublished() {
+        FakeDocumentImageProcessor imageProcessor =
+                new FakeDocumentImageProcessor();
+
         FakeRecognizer recognizer =
                 new FakeRecognizer();
 
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        imageProcessor,
                         recognizer
                 );
 
@@ -79,6 +88,8 @@ public final class ReferenceListCaptureViewModelTest {
         );
 
         viewModel.processSelectedImage();
+
+        imageProcessor.completeWith(null);
 
         recognizer.completeWith(
                 new RecognizedDocument(
@@ -113,11 +124,15 @@ public final class ReferenceListCaptureViewModelTest {
 
     @Test
     public void emptyRecognitionProducesNoTextState() {
+        FakeDocumentImageProcessor imageProcessor =
+                new FakeDocumentImageProcessor();
+
         FakeRecognizer recognizer =
                 new FakeRecognizer();
 
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        imageProcessor,
                         recognizer
                 );
 
@@ -127,6 +142,8 @@ public final class ReferenceListCaptureViewModelTest {
         );
 
         viewModel.processSelectedImage();
+
+        imageProcessor.completeWith(null);
 
         recognizer.completeWith(
                 new RecognizedDocument(
@@ -145,11 +162,15 @@ public final class ReferenceListCaptureViewModelTest {
 
     @Test
     public void secondProcessingRequestIsIgnored() {
+        FakeDocumentImageProcessor imageProcessor =
+                new FakeDocumentImageProcessor();
+
         FakeRecognizer recognizer =
                 new FakeRecognizer();
 
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        imageProcessor,
                         recognizer
                 );
 
@@ -161,16 +182,20 @@ public final class ReferenceListCaptureViewModelTest {
         viewModel.processSelectedImage();
         viewModel.processSelectedImage();
 
-        assertEquals(1, recognizer.requestCount);
+        assertEquals(1, imageProcessor.requestCount);
     }
 
     @Test
     public void imageOpenErrorIsControlled() {
+        FakeDocumentImageProcessor imageProcessor =
+                new FakeDocumentImageProcessor();
+
         FakeRecognizer recognizer =
                 new FakeRecognizer();
 
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        imageProcessor,
                         recognizer
                 );
 
@@ -181,7 +206,7 @@ public final class ReferenceListCaptureViewModelTest {
 
         viewModel.processSelectedImage();
 
-        recognizer.failOpeningImage();
+        imageProcessor.failOpeningImage();
 
         assertEquals(
                 ReferenceListCaptureUiState
@@ -192,11 +217,15 @@ public final class ReferenceListCaptureViewModelTest {
 
     @Test
     public void recognitionErrorKeepsImageForRetry() {
+        FakeDocumentImageProcessor imageProcessor =
+                new FakeDocumentImageProcessor();
+
         FakeRecognizer recognizer =
                 new FakeRecognizer();
 
         ReferenceListCaptureViewModel viewModel =
                 new ReferenceListCaptureViewModel(
+                        imageProcessor,
                         recognizer
                 );
 
@@ -206,6 +235,8 @@ public final class ReferenceListCaptureViewModelTest {
         );
 
         viewModel.processSelectedImage();
+
+        imageProcessor.completeWith(null);
 
         recognizer.failRecognition();
 
@@ -234,6 +265,37 @@ public final class ReferenceListCaptureViewModelTest {
         return state;
     }
 
+    private static final class FakeDocumentImageProcessor
+            implements DocumentImageProcessor {
+
+        private DocumentImageProcessingCallback callback;
+        private int requestCount;
+
+        @Override
+        public void process(
+                String imageUri,
+                DocumentImageProcessingCallback callback
+        ) {
+            requestCount++;
+            this.callback = callback;
+        }
+
+        private void completeWith(
+                DocumentImage documentImage
+        ) {
+            callback.onSuccess(documentImage);
+        }
+
+        private void failOpeningImage() {
+            callback.onImageOpenError();
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
+
     private static final class FakeRecognizer
             implements DocumentTextRecognizer {
 
@@ -242,7 +304,7 @@ public final class ReferenceListCaptureViewModelTest {
 
         @Override
         public void recognize(
-                String imageUri,
+                DocumentImage documentImage,
                 DocumentImageSource sourceType,
                 DocumentRecognitionCallback callback
         ) {
@@ -254,10 +316,6 @@ public final class ReferenceListCaptureViewModelTest {
                 RecognizedDocument document
         ) {
             callback.onSuccess(document);
-        }
-
-        private void failOpeningImage() {
-            callback.onImageOpenError();
         }
 
         private void failRecognition() {

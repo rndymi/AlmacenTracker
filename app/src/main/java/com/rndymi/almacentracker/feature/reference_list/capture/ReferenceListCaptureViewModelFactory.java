@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.rndymi.almacentracker.core.document.DocumentImageProcessor;
 import com.rndymi.almacentracker.core.document.DocumentTextRecognizer;
 
 import java.util.Objects;
@@ -11,11 +12,19 @@ import java.util.Objects;
 public final class ReferenceListCaptureViewModelFactory
         implements ViewModelProvider.Factory {
 
+    private final DocumentImageProcessor imageProcessor;
     private final DocumentTextRecognizer textRecognizer;
 
     public ReferenceListCaptureViewModelFactory(
+            DocumentImageProcessor imageProcessor,
             DocumentTextRecognizer textRecognizer
     ) {
+        this.imageProcessor =
+                Objects.requireNonNull(
+                        imageProcessor,
+                        "imageProcessor"
+                );
+
         this.textRecognizer =
                 Objects.requireNonNull(
                         textRecognizer,
@@ -39,6 +48,7 @@ public final class ReferenceListCaptureViewModelFactory
 
         return modelClass.cast(
                 new ReferenceListCaptureViewModel(
+                        imageProcessor,
                         textRecognizer
                 )
         );

@@ -4,6 +4,7 @@ import android.app.Application;
 
 public final class AlmacenTrackerApplication extends Application {
     private AppContainer appContainer;
+    private boolean referenceListExperimentalNoticeShown;
 
     @Override
     public void onCreate() {
@@ -20,5 +21,18 @@ public final class AlmacenTrackerApplication extends Application {
         }
 
         return appContainer;
+    }
+
+    public void startUserSession() {
+        referenceListExperimentalNoticeShown = false;
+    }
+
+    public boolean consumeReferenceListExperimentalNotice() {
+        if (referenceListExperimentalNoticeShown) {
+            return false;
+        }
+
+        referenceListExperimentalNoticeShown = true;
+        return true;
     }
 }

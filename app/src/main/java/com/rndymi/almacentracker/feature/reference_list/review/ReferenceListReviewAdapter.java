@@ -103,6 +103,8 @@ public final class ReferenceListReviewAdapter
                     displayValue
             );
 
+            bindMatchStatus(proposal);
+
             boolean requiresCorrection =
                     proposal.requiresCorrection();
 
@@ -134,18 +136,16 @@ public final class ReferenceListReviewAdapter
                 binding.referenceSource.setTextColor(
                         MaterialColors.getColor(
                                 binding.referenceSource,
-                                requiresCorrection
-                                        ? com.google.android.material.R.attr.colorError
-                                        : com.google.android.material.R.attr.colorOnSurfaceVariant
+                                com.google.android.material.R.attr
+                                        .colorOnSurfaceVariant
                         )
                 );
 
                 binding.referenceSource.setText(
                         itemView.getContext()
                                 .getString(
-                                        requiresCorrection
-                                                ? R.string.reference_list_review_invalid_source_format
-                                                : R.string.reference_list_review_source_format,
+                                        R.string
+                                                .reference_list_review_source_format,
                                         sourceRawText
                                 )
                 );
@@ -190,6 +190,83 @@ public final class ReferenceListReviewAdapter
                                             proposal
                                     )
                     );
+        }
+
+        private void bindMatchStatus(
+                ReferenceProposal proposal
+        ) {
+            int textResource;
+            int colorAttribute;
+
+            switch (proposal.getMatchStatus()) {
+                case EXACT:
+                    textResource =
+                            R.string
+                                    .reference_list_review_match_exact;
+                    colorAttribute =
+                            com.google.android.material.R.attr
+                                    .colorPrimary;
+                    break;
+
+                case UNIQUE_SUGGESTION:
+                    textResource =
+                            R.string
+                                    .reference_list_review_match_unique;
+                    colorAttribute =
+                            com.google.android.material.R.attr
+                                    .colorSecondary;
+                    break;
+
+                case AMBIGUOUS:
+                    textResource =
+                            R.string
+                                    .reference_list_review_match_ambiguous;
+                    colorAttribute =
+                            com.google.android.material.R.attr
+                                    .colorError;
+                    break;
+
+                case NO_MATCH:
+                    textResource =
+                            R.string
+                                    .reference_list_review_match_none;
+                    colorAttribute =
+                            com.google.android.material.R.attr
+                                    .colorError;
+                    break;
+
+                case UNVERIFIED:
+                    textResource =
+                            R.string
+                                    .reference_list_review_match_unverified;
+                    colorAttribute =
+                            com.google.android.material.R.attr
+                                    .colorOnSurfaceVariant;
+                    break;
+
+                case USER_CONFIRMED:
+                    textResource =
+                            R.string
+                                    .reference_list_review_match_user_confirmed;
+                    colorAttribute =
+                            com.google.android.material.R.attr
+                                    .colorPrimary;
+                    break;
+
+                default:
+                    throw new IllegalStateException(
+                            "Unexpected match status: "
+                                    + proposal.getMatchStatus()
+                    );
+            }
+
+            binding.matchStatusText.setText(textResource);
+            binding.matchStatusText.setTextColor(
+                    MaterialColors.getColor(
+                            binding.matchStatusText,
+                            colorAttribute
+                    )
+            );
         }
 
         private void bindSuggestions(
@@ -284,6 +361,10 @@ public final class ReferenceListReviewAdapter
                             == newItem.isManuallyAdded()
                             && oldItem.requiresCorrection()
                             == newItem.requiresCorrection()
+                            && oldItem.getMatchStatus()
+                            .equals(
+                                    newItem.getMatchStatus()
+                            )
                             && oldItem.getSuggestions()
                             .equals(
                                     newItem.getSuggestions()

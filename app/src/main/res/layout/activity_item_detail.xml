@@ -10,9 +10,10 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
-        android:title="@string/warehouse_detail_title"
+        app:navigationContentDescription="@string/navigate_back_action"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:navigationIconTint="?attr/colorOnPrimary"
+        app:title="@string/warehouse_detail_title"
         app:titleTextColor="?attr/colorOnPrimary" />
 
     <FrameLayout

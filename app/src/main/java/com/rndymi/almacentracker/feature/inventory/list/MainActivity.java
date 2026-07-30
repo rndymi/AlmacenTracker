@@ -24,6 +24,7 @@ import com.rndymi.almacentracker.data.repository.PositionFilter;
 import com.rndymi.almacentracker.data.repository.WarehouseItemFilterOptions;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.feature.data_management.common.DataManagementActivity;
+import com.rndymi.almacentracker.feature.inventory.common.DeleteConfirmationDialog;
 import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
 import com.rndymi.almacentracker.feature.inventory.common.WarehouseItemDeleteResult;
 import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
@@ -51,6 +52,12 @@ public final class MainActivity extends AppCompatActivity {
             @Nullable Bundle savedInstanceState
     ) {
         super.onCreate(savedInstanceState);
+
+        if (savedInstanceState == null
+                && isTaskRoot()) {
+            ((AlmacenTrackerApplication) getApplication())
+                    .startUserSession();
+        }
 
         binding = ActivityMainBinding.inflate(
                 getLayoutInflater()
@@ -709,9 +716,14 @@ public final class MainActivity extends AppCompatActivity {
                         null
                 )
                 .setPositiveButton(
-                        R.string.delete_action,
+                        R.string.yes_action,
                         (dialog, which) ->
-                                viewModel.deleteSelectedItems()
+                                DeleteConfirmationDialog.show(
+                                        this,
+                                        () ->
+                                                viewModel
+                                                        .deleteSelectedItems()
+                                )
                 )
                 .show();
     }

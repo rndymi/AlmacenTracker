@@ -15,11 +15,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
-import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListCaptureBinding;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewActivity;
 
@@ -81,12 +81,39 @@ public final class ReferenceListCaptureActivity
         configureViewModel();
         configureActions();
         observeState();
+        showExperimentalNoticeIfNeeded();
     }
 
     private void configureToolbar() {
         binding.toolbar.setNavigationOnClickListener(
                 ignored -> finish()
         );
+    }
+
+    private void showExperimentalNoticeIfNeeded() {
+        AlmacenTrackerApplication application =
+                (AlmacenTrackerApplication) getApplication();
+
+        if (!application
+                .consumeReferenceListExperimentalNotice()) {
+            return;
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string
+                                .reference_list_experimental_notice_title
+                )
+                .setMessage(
+                        R.string
+                                .reference_list_experimental_notice_message
+                )
+                .setPositiveButton(
+                        R.string
+                                .reference_list_experimental_notice_action,
+                        null
+                )
+                .show();
     }
 
     private void configureActivityResults() {
@@ -159,6 +186,11 @@ public final class ReferenceListCaptureActivity
                 .setOnClickListener(
                         ignored ->
                                 openReferenceReview()
+                );
+        binding.toggleRawTextButton
+                .setOnClickListener(
+                        ignored ->
+                                viewModel.toggleRawText()
                 );
     }
 
@@ -526,27 +558,58 @@ public final class ReferenceListCaptureActivity
         if (!visible) {
             binding.recognizedLinesText
                     .setText(null);
+
+            binding.rawRecognizedLinesText
+                    .setText(null);
+
+            binding.rawRecognizedLinesText
+                    .setVisibility(View.GONE);
+
             return;
         }
 
-        List<RecognizedTextLine> lines =
-                state
-                        .getRecognizedDocument()
-                        .getLines();
+        List<String> reconstructedLines =
+                state.getRecognizedDocument()
+                        .getReconstructedLines();
 
-        StringBuilder result =
-                new StringBuilder();
+        List<String> rawLines =
+                state.getRecognizedDocument()
+                        .getRawLines();
 
-        for (RecognizedTextLine line : lines) {
-            if (result.length() > 0) {
-                result.append('\n');
-            }
-
-            result.append(line.getRawText());
-        }
+        binding.recognizedTextSummary.setText(
+                getResources().getQuantityString(
+                        R.plurals
+                                .reference_list_reconstructed_lines,
+                        reconstructedLines.size(),
+                        reconstructedLines.size()
+                )
+        );
 
         binding.recognizedLinesText.setText(
-                result.toString()
+                joinLines(reconstructedLines)
+        );
+
+        boolean rawTextExpanded =
+                state.isRawTextExpanded();
+
+        binding.rawRecognizedLinesText.setVisibility(
+                rawTextExpanded
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        binding.rawRecognizedLinesText.setText(
+                rawTextExpanded
+                        ? joinLines(rawLines)
+                        : null
+        );
+
+        binding.toggleRawTextButton.setText(
+                rawTextExpanded
+                        ? R.string
+                          .reference_list_hide_raw_text_action
+                        : R.string
+                          .reference_list_show_raw_text_action
         );
 
         binding.recognizedTextCard
@@ -554,10 +617,36 @@ public final class ReferenceListCaptureActivity
                         getResources().getQuantityString(
                                 R.plurals
                                         .reference_list_lines_recognized,
-                                lines.size(),
-                                lines.size()
+                                reconstructedLines.size(),
+                                reconstructedLines.size()
                         )
                 );
+    }
+
+    private String joinLines(
+            List<String> lines
+    ) {
+        StringBuilder result =
+                new StringBuilder();
+
+        if (lines == null) {
+            return "";
+        }
+
+        for (String line : lines) {
+            if (line == null
+                    || line.trim().isEmpty()) {
+                continue;
+            }
+
+            if (result.length() > 0) {
+                result.append('\n');
+            }
+
+            result.append(line.trim());
+        }
+
+        return result.toString();
     }
 
     private File createCaptureFile() {
@@ -674,18 +763,8 @@ public final class ReferenceListCaptureActivity
         }
 
         List<String> recognizedLines =
-                new java.util.ArrayList<>();
-
-        for (
-                RecognizedTextLine line
-                : state
-                .getRecognizedDocument()
-                .getLines()
-        ) {
-            recognizedLines.add(
-                    line.getRawText()
-            );
-        }
+                state.getRecognizedDocument()
+                        .getReconstructedLines();
 
         startActivity(
                 ReferenceListReviewActivity

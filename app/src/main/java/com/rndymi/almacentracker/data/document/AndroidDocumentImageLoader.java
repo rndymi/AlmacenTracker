@@ -4,9 +4,10 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
-import android.os.Build;
-import android.util.Size;
+
+import androidx.exifinterface.media.ExifInterface;
 
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 
@@ -23,9 +24,9 @@ public final class AndroidDocumentImageLoader
     ) {
         contentResolver =
                 Objects.requireNonNull(
-                        context,
-                        "context"
-                ).getApplicationContext()
+                                context,
+                                "context"
+                        ).getApplicationContext()
                         .getContentResolver();
     }
 
@@ -50,27 +51,20 @@ public final class AndroidDocumentImageLoader
     ) {
         Uri uri = Uri.parse(imageUri);
 
-        if (Build.VERSION.SDK_INT >= 29) {
-            try {
-                return contentResolver.loadThumbnail(
-                        uri,
-                        new Size(targetSize, targetSize),
-                        null
-                );
-            } catch (Exception ignored) {
-                // Fall back when a provider has no thumbnail support.
-            }
-        }
-
         try {
             BitmapFactory.Options bounds =
                     new BitmapFactory.Options();
+
             bounds.inJustDecodeBounds = true;
 
             try (
                     InputStream stream =
                             contentResolver.openInputStream(uri)
             ) {
+                if (stream == null) {
+                    return null;
+                }
+
                 BitmapFactory.decodeStream(
                         stream,
                         null,
@@ -85,6 +79,7 @@ public final class AndroidDocumentImageLoader
 
             BitmapFactory.Options options =
                     new BitmapFactory.Options();
+
             options.inSampleSize =
                     calculateSampleSize(
                             bounds.outWidth,
@@ -92,22 +87,113 @@ public final class AndroidDocumentImageLoader
                             targetSize
                     );
 
+            options.inPreferredConfig =
+                    Bitmap.Config.ARGB_8888;
+
+            Bitmap decoded;
+
             try (
                     InputStream stream =
                             contentResolver.openInputStream(uri)
             ) {
-                return BitmapFactory.decodeStream(
-                        stream,
-                        null,
-                        options
-                );
+                if (stream == null) {
+                    return null;
+                }
+
+                decoded =
+                        BitmapFactory.decodeStream(
+                                stream,
+                                null,
+                                options
+                        );
             }
+
+            if (decoded == null) {
+                return null;
+            }
+
+            int rotation =
+                    readExifRotation(uri);
+
+            if (rotation == 0) {
+                return decoded;
+            }
+
+            Bitmap rotated =
+                    rotateBitmap(
+                            decoded,
+                            rotation
+                    );
+
+            if (rotated != decoded
+                    && !decoded.isRecycled()) {
+                decoded.recycle();
+            }
+
+            return rotated;
         } catch (
                 Exception
                 | OutOfMemoryError error
         ) {
             return null;
         }
+    }
+
+    private int readExifRotation(Uri uri) {
+        try (
+                InputStream stream =
+                        contentResolver.openInputStream(uri)
+        ) {
+            if (stream == null) {
+                return 0;
+            }
+
+            ExifInterface exif =
+                    new ExifInterface(stream);
+
+            int orientation =
+                    exif.getAttributeInt(
+                            ExifInterface.TAG_ORIENTATION,
+                            ExifInterface.ORIENTATION_NORMAL
+                    );
+
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                case ExifInterface.ORIENTATION_TRANSPOSE:
+                    return 90;
+
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                    return 180;
+
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                case ExifInterface.ORIENTATION_TRANSVERSE:
+                    return 270;
+
+                default:
+                    return 0;
+            }
+        } catch (Exception exception) {
+            return 0;
+        }
+    }
+
+    private Bitmap rotateBitmap(
+            Bitmap source,
+            int rotation
+    ) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(rotation);
+
+        return Bitmap.createBitmap(
+                source,
+                0,
+                0,
+                source.getWidth(),
+                source.getHeight(),
+                matrix,
+                true
+        );
     }
 
     private int calculateSampleSize(
@@ -117,8 +203,12 @@ public final class AndroidDocumentImageLoader
     ) {
         int sampleSize = 1;
 
-        while (width / sampleSize > targetSize
-                || height / sampleSize > targetSize) {
+        while (
+                Math.max(
+                        width / sampleSize,
+                        height / sampleSize
+                ) > targetSize * 2
+        ) {
             sampleSize *= 2;
         }
 
