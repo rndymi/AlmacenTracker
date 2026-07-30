@@ -114,6 +114,23 @@
 
     <string name="edit_action">Editar</string>
     <string name="delete_action">Eliminar</string>
+    <string name="yes_action">Sí</string>
+
+    <string name="delete_verification_title">
+        Confirmar eliminación
+    </string>
+    <string name="delete_verification_message">
+        Para confirmar, escribe delete exactamente como aparece.
+    </string>
+    <string name="delete_verification_input_label">
+        Escribe delete
+    </string>
+    <string name="delete_verification_keyword" translatable="false">
+        delete
+    </string>
+    <string name="delete_verification_error">
+        El texto no coincide con delete.
+    </string>
 
     <string name="category_filter_label">Categoría</string>
     <string name="site_filter_label">Sitio</string>
@@ -531,6 +548,15 @@
 
     <string name="reference_list_action"> Procesar lista </string>
     <string name="reference_list_capture_title"> Procesar lista </string>
+    <string name="reference_list_experimental_notice_title">
+        Escáner experimental
+    </string>
+    <string name="reference_list_experimental_notice_message">
+        La extracción puede no ser precisa. Revisa el resultado antes de guardarlo; mejorará en futuras actualizaciones.
+    </string>
+    <string name="reference_list_experimental_notice_action">
+        Entendido
+    </string>
     <string name="reference_list_capture_description">
         Toma una fotografía o selecciona una imagen de la lista para reconocer su texto.
     </string>

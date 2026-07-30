@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
@@ -80,12 +81,39 @@ public final class ReferenceListCaptureActivity
         configureViewModel();
         configureActions();
         observeState();
+        showExperimentalNoticeIfNeeded();
     }
 
     private void configureToolbar() {
         binding.toolbar.setNavigationOnClickListener(
                 ignored -> finish()
         );
+    }
+
+    private void showExperimentalNoticeIfNeeded() {
+        AlmacenTrackerApplication application =
+                (AlmacenTrackerApplication) getApplication();
+
+        if (!application
+                .consumeReferenceListExperimentalNotice()) {
+            return;
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string
+                                .reference_list_experimental_notice_title
+                )
+                .setMessage(
+                        R.string
+                                .reference_list_experimental_notice_message
+                )
+                .setPositiveButton(
+                        R.string
+                                .reference_list_experimental_notice_action,
+                        null
+                )
+                .show();
     }
 
     private void configureActivityResults() {
