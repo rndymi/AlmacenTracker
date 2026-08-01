@@ -43,8 +43,14 @@ public final class RoomContractArchitectureTest {
                 )
         );
         assertTrue(
-                "Package refactors must not create a Room migration",
-                database.contains("version = 1")
+                "The database version must include the history schema",
+                database.contains("version = 2")
+        );
+        assertTrue(
+                "The history schema migration must remain registered",
+                appContainer.contains(
+                        "AlmacenTrackerMigrations.MIGRATION_1_2"
+                )
         );
     }
 

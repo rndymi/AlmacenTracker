@@ -4,15 +4,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
 import android.database.Cursor;
 
-import androidx.room.testing.MigrationTestHelper;
+import androidx.room.Room;
 import androidx.sqlite.db.SupportSQLiteDatabase;
+import androidx.sqlite.db.SupportSQLiteOpenHelper;
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import org.junit.Rule;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -24,25 +27,31 @@ public class AlmacenTrackerDatabaseMigrationTest {
     private static final String TEST_DATABASE =
             "almacen-tracker-migration-test";
 
-    @Rule
-    public MigrationTestHelper migrationTestHelper =
-            new MigrationTestHelper(
-                    InstrumentationRegistry
-                            .getInstrumentation(),
-                    AlmacenTrackerDatabase.class
-                            .getCanonicalName(),
-                    new FrameworkSQLiteOpenHelperFactory()
-            );
+    private Context context;
+    private AlmacenTrackerDatabase roomDatabase;
+
+    @Before
+    public void setUp() {
+        context = InstrumentationRegistry
+                .getInstrumentation()
+                .getTargetContext();
+        context.deleteDatabase(TEST_DATABASE);
+    }
+
+    @After
+    public void tearDown() {
+        if (roomDatabase != null) {
+            roomDatabase.close();
+        }
+        context.deleteDatabase(TEST_DATABASE);
+    }
 
     @Test
     public void migrationFrom1To2PreservesWarehouseItems()
             throws IOException {
 
         SupportSQLiteDatabase versionOneDatabase =
-                migrationTestHelper.createDatabase(
-                        TEST_DATABASE,
-                        1
-                );
+                createVersionOneDatabase();
 
         versionOneDatabase.execSQL(
                 "INSERT INTO `warehouse_items` ("
@@ -69,14 +78,7 @@ public class AlmacenTrackerDatabaseMigrationTest {
         versionOneDatabase.close();
 
         SupportSQLiteDatabase versionTwoDatabase =
-                migrationTestHelper
-                        .runMigrationsAndValidate(
-                                TEST_DATABASE,
-                                2,
-                                true,
-                                AlmacenTrackerMigrations
-                                        .MIGRATION_1_2
-                        );
+                migrateToVersionTwo();
 
         assertWarehouseItemWasPreserved(
                 versionTwoDatabase
@@ -100,7 +102,6 @@ public class AlmacenTrackerDatabaseMigrationTest {
                 "withdrawal_history_entries"
         );
 
-        versionTwoDatabase.close();
     }
 
     @Test
@@ -108,22 +109,12 @@ public class AlmacenTrackerDatabaseMigrationTest {
             throws IOException {
 
         SupportSQLiteDatabase versionOneDatabase =
-                migrationTestHelper.createDatabase(
-                        TEST_DATABASE,
-                        1
-                );
+                createVersionOneDatabase();
 
         versionOneDatabase.close();
 
         SupportSQLiteDatabase versionTwoDatabase =
-                migrationTestHelper
-                        .runMigrationsAndValidate(
-                                TEST_DATABASE,
-                                2,
-                                true,
-                                AlmacenTrackerMigrations
-                                        .MIGRATION_1_2
-                        );
+                migrateToVersionTwo();
 
         versionTwoDatabase.execSQL(
                 "INSERT INTO `withdrawal_history` ("
@@ -179,7 +170,74 @@ public class AlmacenTrackerDatabaseMigrationTest {
                 "withdrawal_history_entries"
         );
 
-        versionTwoDatabase.close();
+    }
+
+    private SupportSQLiteDatabase createVersionOneDatabase() {
+        SupportSQLiteOpenHelper.Configuration configuration =
+                SupportSQLiteOpenHelper.Configuration
+                        .builder(context)
+                        .name(TEST_DATABASE)
+                        .callback(
+                                new SupportSQLiteOpenHelper.Callback(1) {
+                                    @Override
+                                    public void onCreate(
+                                            SupportSQLiteDatabase database
+                                    ) {
+                                        createVersionOneSchema(database);
+                                    }
+
+                                    @Override
+                                    public void onUpgrade(
+                                            SupportSQLiteDatabase database,
+                                            int oldVersion,
+                                            int newVersion
+                                    ) {
+                                        // Version one is created directly.
+                                    }
+                                }
+                        )
+                        .build();
+
+        return new FrameworkSQLiteOpenHelperFactory()
+                .create(configuration)
+                .getWritableDatabase();
+    }
+
+    private void createVersionOneSchema(
+            SupportSQLiteDatabase database
+    ) {
+        database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `warehouse_items` ("
+                        + "`id` INTEGER PRIMARY KEY AUTOINCREMENT "
+                        + "NOT NULL, "
+                        + "`category` TEXT, "
+                        + "`code` TEXT, "
+                        + "`site` TEXT, "
+                        + "`position` TEXT, "
+                        + "`observations` TEXT, "
+                        + "`created_at` INTEGER NOT NULL, "
+                        + "`updated_at` INTEGER NOT NULL"
+                        + ")"
+        );
+        database.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                        + "`index_warehouse_items_category_code` "
+                        + "ON `warehouse_items` (`category`, `code`)"
+        );
+    }
+
+    private SupportSQLiteDatabase migrateToVersionTwo() {
+        roomDatabase = Room.databaseBuilder(
+                context,
+                AlmacenTrackerDatabase.class,
+                TEST_DATABASE
+        ).addMigrations(
+                AlmacenTrackerMigrations.MIGRATION_1_2
+        ).allowMainThreadQueries().build();
+
+        return roomDatabase
+                .getOpenHelper()
+                .getWritableDatabase();
     }
 
     private void assertWarehouseItemWasPreserved(

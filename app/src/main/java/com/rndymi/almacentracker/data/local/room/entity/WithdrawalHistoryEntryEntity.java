@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.data.local.room.entity;
 
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
@@ -39,9 +40,11 @@ public class WithdrawalHistoryEntryEntity {
     private final int orderIndex;
 
     @ColumnInfo(name = "category")
+    @NonNull
     private final String category;
 
     @ColumnInfo(name = "code")
+    @NonNull
     private final String code;
 
     @ColumnInfo(name = "quantity")
@@ -60,20 +63,21 @@ public class WithdrawalHistoryEntryEntity {
     private final String positionSnapshot;
 
     @ColumnInfo(name = "location_status")
+    @NonNull
     private final String locationStatus;
 
     public WithdrawalHistoryEntryEntity(
             long id,
             long historyId,
             int orderIndex,
-            String category,
-            String code,
+            @NonNull String category,
+            @NonNull String code,
             Integer quantity,
             String unit,
             Long warehouseItemIdSnapshot,
             String siteSnapshot,
             String positionSnapshot,
-            String locationStatus
+            @NonNull String locationStatus
     ) {
         this.id = id;
         this.historyId = historyId;
@@ -101,10 +105,12 @@ public class WithdrawalHistoryEntryEntity {
         return orderIndex;
     }
 
+    @NonNull
     public String getCategory() {
         return category;
     }
 
+    @NonNull
     public String getCode() {
         return code;
     }
@@ -129,6 +135,7 @@ public class WithdrawalHistoryEntryEntity {
         return positionSnapshot;
     }
 
+    @NonNull
     public String getLocationStatus() {
         return locationStatus;
     }
