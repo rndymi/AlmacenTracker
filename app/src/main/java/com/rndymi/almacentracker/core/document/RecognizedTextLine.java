@@ -109,9 +109,6 @@ public final class RecognizedTextLine {
         return reconstructedText;
     }
 
-    /**
-     * Texto que debe utilizar la interfaz y la revisión.
-     */
     public String getDisplayText() {
         if (!reconstructedText.trim().isEmpty()) {
             return reconstructedText;

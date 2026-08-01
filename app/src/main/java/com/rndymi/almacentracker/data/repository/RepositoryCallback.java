@@ -1,11 +1,5 @@
 package com.rndymi.almacentracker.data.repository;
 
-/**
- * Common asynchronous repository callback.
- *
- * @param <T> successful operation value; use {@link Void} when no value is
- *            produced
- */
 public interface RepositoryCallback<T> {
 
     void onSuccess(T value);

@@ -27,10 +27,6 @@ public final class AndroidDocumentImageProcessor
 
     private static final int OCR_MAXIMUM_SIDE = 2200;
 
-    /*
-     * Un contraste alto puede destruir trazos finos.
-     * El valor inicial debe mantenerse moderado.
-     */
     private static final float CONTRAST = 1.18f;
 
     private final ContentResolver contentResolver;
@@ -336,17 +332,11 @@ public final class AndroidDocumentImageProcessor
                         | Paint.FILTER_BITMAP_FLAG
         );
 
-        /*
-         * Escala de grises.
-         */
         ColorMatrix saturationMatrix =
                 new ColorMatrix();
 
         saturationMatrix.setSaturation(0.0f);
 
-        /*
-         * Contraste alrededor del punto medio.
-         */
         float translate =
                 (-0.5f * CONTRAST + 0.5f)
                         * 255.0f;

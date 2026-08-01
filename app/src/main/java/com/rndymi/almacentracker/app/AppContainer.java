@@ -11,8 +11,12 @@ import com.rndymi.almacentracker.app.di.ReferenceListModule;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
+import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerMigrations;
 import com.rndymi.almacentracker.data.local.room.mapper.WarehouseItemRoomMapper;
+import com.rndymi.almacentracker.data.local.room.mapper.WithdrawalHistoryRoomMapper;
 import com.rndymi.almacentracker.data.repository.RoomWarehouseItemRepository;
+import com.rndymi.almacentracker.data.repository.RoomWithdrawalHistoryRepository;
+import com.rndymi.almacentracker.data.repository.WithdrawalHistoryRepository;
 import com.rndymi.almacentracker.feature.data_management.common.DataManagementViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.detail.WarehouseItemDetailViewModelFactory;
 import com.rndymi.almacentracker.feature.inventory.form.WarehouseItemFormViewModelFactory;
@@ -30,6 +34,7 @@ public final class AppContainer {
     private final ExecutorService databaseExecutor;
     private final ExecutorService fileExecutor;
     private final WarehouseItemRepository warehouseItemRepository;
+    private final WithdrawalHistoryRepository withdrawalHistoryRepository;
     private final InventoryModule inventoryModule;
     private final DataManagementModule dataManagementModule;
     private final ReferenceListModule referenceListModule;
@@ -42,6 +47,8 @@ public final class AppContainer {
                 applicationContext,
                 AlmacenTrackerDatabase.class,
                 "almacen_tracker.db"
+        ).addMigrations(
+                AlmacenTrackerMigrations.MIGRATION_1_2
         ).build();
         databaseExecutor =
                 Executors.newSingleThreadExecutor();
@@ -51,6 +58,12 @@ public final class AppContainer {
                 new RoomWarehouseItemRepository(
                         database.warehouseItemDao(),
                         new WarehouseItemRoomMapper(),
+                        databaseExecutor
+                );
+        withdrawalHistoryRepository =
+                new RoomWithdrawalHistoryRepository(
+                        database.withdrawalHistoryDao(),
+                        new WithdrawalHistoryRoomMapper(),
                         databaseExecutor
                 );
 
@@ -67,6 +80,11 @@ public final class AppContainer {
                         applicationContext,
                         warehouseItemRepository
                 );
+    }
+
+    public WithdrawalHistoryRepository
+    provideWithdrawalHistoryRepository() {
+        return withdrawalHistoryRepository;
     }
 
     public WarehouseItemDetailViewModelFactory
