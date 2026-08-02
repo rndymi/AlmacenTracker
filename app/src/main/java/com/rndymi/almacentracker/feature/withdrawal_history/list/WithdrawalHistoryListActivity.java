@@ -13,6 +13,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityWithdrawalHistoryListBinding;
+import com.rndymi.almacentracker.feature.withdrawal_history.common.WithdrawalHistoryDetailIntentContract;
 
 public final class WithdrawalHistoryListActivity
         extends AppCompatActivity {
@@ -76,7 +77,9 @@ public final class WithdrawalHistoryListActivity
 
     private void configureRecyclerView() {
         adapter =
-                new WithdrawalHistoryListAdapter();
+                new WithdrawalHistoryListAdapter(
+                        this::openHistoryDetail
+                );
 
         binding.historyRecyclerView.setAdapter(adapter);
         binding.historyRecyclerView.setHasFixedSize(true);
@@ -161,5 +164,15 @@ public final class WithdrawalHistoryListActivity
                     ignored -> viewModel.retry()
             ).show();
         }
+    }
+
+    private void openHistoryDetail(long historyId) {
+        startActivity(
+                WithdrawalHistoryDetailIntentContract
+                        .createIntent(
+                                this,
+                                historyId
+                        )
+        );
     }
 }
