@@ -131,7 +131,6 @@ public final class WithdrawalHistoryListActivity
                             int count,
                             int after
                     ) {
-                        // No action required.
                     }
 
                     @Override
@@ -141,7 +140,6 @@ public final class WithdrawalHistoryListActivity
                             int before,
                             int count
                     ) {
-                        // No action required.
                     }
 
                     @Override

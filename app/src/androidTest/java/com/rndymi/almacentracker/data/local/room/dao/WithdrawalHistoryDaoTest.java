@@ -25,6 +25,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -418,6 +420,268 @@ public class WithdrawalHistoryDaoTest {
         assertEquals(thirdId, summaries.get(0).getId());
         assertEquals(secondId, summaries.get(1).getId());
         assertEquals(firstId, summaries.get(2).getId());
+    }
+
+    @Test
+    public void searchSummariesByTitleKeepsAllCounters() {
+        long historyId = insertHistory(
+                "Reposición tienda centro",
+                timestampFor(2026, 8, 2, 12, 0)
+        );
+
+        insertFoundEntry(
+                historyId,
+                0,
+                "MR",
+                "1210A"
+        );
+
+        insertNotFoundEntry(
+                historyId,
+                1,
+                "MZ",
+                "1300C"
+        );
+
+        List<WithdrawalHistorySummaryRow> rows =
+                historyDao.searchSummaries(
+                        1,
+                        "%centro%",
+                        null,
+                        null
+                );
+
+        assertEquals(1, rows.size());
+        assertEquals(2, rows.get(0).getEntryCount());
+        assertEquals(1, rows.get(0).getFoundCount());
+        assertEquals(1, rows.get(0).getNotFoundCount());
+    }
+
+    @Test
+    public void searchSummariesByCategoryUsesExistsAndKeepsAllEntries() {
+        long historyId = insertHistory(
+                "Lista documental",
+                timestampFor(2026, 8, 2, 12, 0)
+        );
+
+        insertFoundEntry(
+                historyId,
+                0,
+                "MR",
+                "1210A"
+        );
+
+        insertFoundEntry(
+                historyId,
+                1,
+                "MI",
+                "1300"
+        );
+
+        insertNotFoundEntry(
+                historyId,
+                2,
+                "MZ",
+                "900"
+        );
+
+        List<WithdrawalHistorySummaryRow> rows =
+                historyDao.searchSummaries(
+                        1,
+                        "%mr%",
+                        null,
+                        null
+                );
+
+        assertEquals(1, rows.size());
+        assertEquals(3, rows.get(0).getEntryCount());
+        assertEquals(2, rows.get(0).getFoundCount());
+        assertEquals(1, rows.get(0).getNotFoundCount());
+    }
+
+    @Test
+    public void searchSummariesByCodePreservesLeadingZeros() {
+        long historyId = insertHistory(
+                null,
+                timestampFor(2026, 8, 2, 12, 0)
+        );
+
+        insertFoundEntry(
+                historyId,
+                0,
+                "MR",
+                "001210A"
+        );
+
+        List<WithdrawalHistorySummaryRow> rows =
+                historyDao.searchSummaries(
+                        1,
+                        "%001210%",
+                        null,
+                        null
+                );
+
+        assertEquals(1, rows.size());
+        assertEquals(historyId, rows.get(0).getId());
+    }
+
+    @Test
+    public void searchSummariesIncludesWholeFinalDay() {
+        long firstHistoryId = insertHistory(
+                "Primera",
+                timestampFor(2026, 8, 2, 0, 0)
+        );
+
+        long secondHistoryId = insertHistory(
+                "Segunda",
+                timestampFor(2026, 8, 2, 23, 59)
+        );
+
+        insertFoundEntry(
+                firstHistoryId,
+                0,
+                "MR",
+                "1000"
+        );
+
+        insertFoundEntry(
+                secondHistoryId,
+                0,
+                "MR",
+                "2000"
+        );
+
+        long from =
+                timestampFor(
+                        2026,
+                        8,
+                        2,
+                        0,
+                        0
+                );
+
+        long toExclusive =
+                timestampFor(
+                        2026,
+                        8,
+                        3,
+                        0,
+                        0
+        );
+
+        List<WithdrawalHistorySummaryRow> rows =
+                historyDao.searchSummaries(
+                        0,
+                        "",
+                        from,
+                        toExclusive
+                );
+
+        assertEquals(2, rows.size());
+    }
+
+    @Test
+    public void searchSummariesTreatsPercentAsLiteral() {
+        long literalHistoryId = insertHistory(
+                "Lista 100% revisada",
+                timestampFor(2026, 8, 2, 12, 0)
+        );
+
+        long otherHistoryId = insertHistory(
+                "Lista normal",
+                timestampFor(2026, 8, 1, 12, 0)
+        );
+
+        insertFoundEntry(
+                literalHistoryId,
+                0,
+                "MR",
+                "1000"
+        );
+
+        insertFoundEntry(
+                otherHistoryId,
+                0,
+                "MI",
+                "2000"
+        );
+
+        List<WithdrawalHistorySummaryRow> rows =
+                historyDao.searchSummaries(
+                        1,
+                        "%\\%%",
+                        null,
+                        null
+                );
+
+        assertEquals(1, rows.size());
+        assertEquals(
+                literalHistoryId,
+                rows.get(0).getId()
+        );
+    }
+
+    private long insertHistory(
+            String title,
+            long registeredAt
+    ) {
+        return historyDao.insertHistory(
+                createHistoryEntity(
+                        0L,
+                        title,
+                        registeredAt
+                )
+        );
+    }
+
+    private void insertFoundEntry(
+            long historyId,
+            int orderIndex,
+            String category,
+            String code
+    ) {
+        historyDao.insertEntries(
+                Collections.singletonList(
+                        createFoundEntry(
+                                orderIndex,
+                                category,
+                                code
+                        ).withHistoryId(historyId)
+                )
+        );
+    }
+
+    private void insertNotFoundEntry(
+            long historyId,
+            int orderIndex,
+            String category,
+            String code
+    ) {
+        historyDao.insertEntries(
+                Collections.singletonList(
+                        createNotFoundEntry(
+                                orderIndex,
+                                category,
+                                code
+                        ).withHistoryId(historyId)
+                )
+        );
+    }
+
+    private static long timestampFor(
+            int year,
+            int month,
+            int day,
+            int hour,
+            int minute
+    ) {
+        return LocalDateTime.of(
+                year,
+                month,
+                day,
+                hour,
+                minute
+        ).toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     private WithdrawalHistoryEntity createHistory(
