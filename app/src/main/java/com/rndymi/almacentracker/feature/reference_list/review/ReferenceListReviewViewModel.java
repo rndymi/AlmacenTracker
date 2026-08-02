@@ -8,6 +8,8 @@ import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceMatch;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
@@ -34,6 +36,8 @@ public final class ReferenceListReviewViewModel
 
     private final WarehouseReferenceParser parser;
     private final WarehouseItemRepository repository;
+    private final DocumentReferenceDataParser
+            documentReferenceDataParser;
 
     private final MutableLiveData
             <ReferenceListReviewUiState> uiState =
@@ -43,7 +47,7 @@ public final class ReferenceListReviewViewModel
             );
 
     private final MutableLiveData
-            <UiEvent<List<WarehouseReference>>>
+            <UiEvent<List<DocumentReferenceData>>>
             confirmationEvent =
             new MutableLiveData<>();
 
@@ -58,12 +62,28 @@ public final class ReferenceListReviewViewModel
     public ReferenceListReviewViewModel(
             WarehouseReferenceParser parser
     ) {
-        this(parser, null);
+        this(
+                parser,
+                null,
+                new DocumentReferenceDataParser()
+        );
     }
 
     public ReferenceListReviewViewModel(
             WarehouseReferenceParser parser,
             WarehouseItemRepository repository
+    ) {
+        this(
+                parser,
+                repository,
+                new DocumentReferenceDataParser()
+        );
+    }
+
+    public ReferenceListReviewViewModel(
+            WarehouseReferenceParser parser,
+            WarehouseItemRepository repository,
+            DocumentReferenceDataParser documentReferenceDataParser
     ) {
         this.parser =
                 Objects.requireNonNull(
@@ -71,6 +91,11 @@ public final class ReferenceListReviewViewModel
                         "parser"
                 );
         this.repository = repository;
+        this.documentReferenceDataParser =
+                Objects.requireNonNull(
+                        documentReferenceDataParser,
+                        "documentReferenceDataParser"
+                );
     }
 
     public LiveData<ReferenceListReviewUiState>
@@ -79,7 +104,7 @@ public final class ReferenceListReviewViewModel
     }
 
     public LiveData
-            <UiEvent<List<WarehouseReference>>>
+            <UiEvent<List<DocumentReferenceData>>>
     getConfirmationEvent() {
         return confirmationEvent;
     }
@@ -205,8 +230,7 @@ public final class ReferenceListReviewViewModel
                             reference.identityKey(),
                             createRecognizedProposal(
                                     nextProposalId++,
-                                    reference,
-                                    match.getSourceRawText(),
+                                    match,
                                     knownReferences,
                                     knownReferencesAvailable
                             )
@@ -284,11 +308,13 @@ public final class ReferenceListReviewViewModel
 
     private ReferenceProposal createRecognizedProposal(
             long proposalId,
-            WarehouseReference reference,
-            String sourceRawText,
+            WarehouseReferenceMatch match,
             List<WarehouseReference> knownReferences,
             boolean knownReferencesAvailable
     ) {
+        WarehouseReference reference =
+                match.getReference();
+
         List<WarehouseReference> suggestions =
                 suggestionsFor(
                         reference,
@@ -307,10 +333,11 @@ public final class ReferenceListReviewViewModel
         return new ReferenceProposal(
                 proposalId,
                 reference,
-                sourceRawText,
+                match.getSourceRawText(),
                 false,
                 matchStatus,
-                suggestions
+                suggestions,
+                documentReferenceDataParser.parse(match)
         );
     }
 
@@ -423,7 +450,17 @@ public final class ReferenceListReviewViewModel
                         nextProposalId++,
                         reference,
                         null,
-                        true
+                        true,
+                        ReferenceProposal.MatchStatus
+                                .USER_CONFIRMED,
+                        Collections.emptyList(),
+                        new DocumentReferenceData(
+                                reference,
+                                null,
+                                null,
+                                proposals.size(),
+                                null
+                        )
                 )
         );
 
@@ -571,15 +608,15 @@ public final class ReferenceListReviewViewModel
             return;
         }
 
-        List<WarehouseReference> references =
+        List<DocumentReferenceData> confirmedValues =
                 new ArrayList<>();
 
         for (
                 ReferenceProposal proposal
                 : current.getProposals()
         ) {
-            references.add(
-                    proposal.getReference()
+            confirmedValues.add(
+                    proposal.getDocumentData()
             );
         }
 
@@ -593,7 +630,7 @@ public final class ReferenceListReviewViewModel
 
         confirmationEvent.setValue(
                 new UiEvent<>(
-                        references
+                        confirmedValues
                 )
         );
     }

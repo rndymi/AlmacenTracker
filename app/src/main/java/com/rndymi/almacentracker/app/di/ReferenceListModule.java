@@ -11,6 +11,7 @@ import com.rndymi.almacentracker.data.document.AndroidDocumentImageProcessor;
 import com.rndymi.almacentracker.data.document.DocumentLineReconstructor;
 import com.rndymi.almacentracker.data.document.MlKitDocumentTextRecognizer;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureViewModelFactory;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewViewModelFactory;
@@ -67,7 +68,8 @@ public final class ReferenceListModule {
     provideReferenceListReviewViewModelFactory() {
         return new ReferenceListReviewViewModelFactory(
                 new WarehouseReferenceParser(),
-                repository
+                repository,
+                new DocumentReferenceDataParser()
         );
     }
 

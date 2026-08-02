@@ -11,6 +11,7 @@ import androidx.arch.core.executor.testing
 import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
@@ -641,6 +642,20 @@ public final class ReferenceListReviewViewModelTest {
         assertTrue(
                 added.isManuallyAdded()
         );
+
+        assertEquals(
+                null,
+                added.getDocumentData().getQuantity()
+        );
+        assertEquals(
+                null,
+                added.getDocumentData().getUnit()
+        );
+        assertEquals(
+                1,
+                added.getDocumentData()
+                        .getSourceLineIndex()
+        );
     }
 
     @Test
@@ -741,6 +756,50 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
+    public void editReference_preservesDocumentQuantityAndUnit() {
+        viewModel.applyInitialLines(
+                Collections.singletonList(
+                        "MR 1210 - 20 PCS"
+                )
+        );
+
+        ReferenceProposal proposal =
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        viewModel.editReference(
+                proposal.getId(),
+                "AB",
+                "2026A"
+        );
+
+        DocumentReferenceData documentData =
+                viewModel
+                        .getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0)
+                        .getDocumentData();
+
+        assertEquals(
+                "AB",
+                documentData.getReference()
+                        .getCategory()
+        );
+        assertEquals(
+                Integer.valueOf(20),
+                documentData.getQuantity()
+        );
+        assertEquals(
+                "PCS",
+                documentData.getUnit()
+        );
+    }
+
+    @Test
     public void deleteReference_canLeaveEmptyState() {
         viewModel.applyInitialLines(
                 Arrays.asList(
@@ -775,41 +834,55 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
-    public void confirm_emitsOrderedReferencesOnlyOnce() {
+    public void confirm_emitsOrderedDocumentDataOnlyOnce() {
         viewModel.applyInitialLines(
                 Arrays.asList(
-                        "MR1210",
+                        "MR 1210 - 20 PCS",
                         "MZ1300C"
                 )
         );
 
         viewModel.confirm();
 
-        UiEvent<List<WarehouseReference>> event =
+        UiEvent<List<DocumentReferenceData>> event =
                 viewModel
                         .getConfirmationEvent()
                         .getValue();
 
         assertNotNull(event);
 
-        List<WarehouseReference> references =
+        List<DocumentReferenceData> confirmedValues =
                 event.getContentIfNotHandled();
 
-        assertNotNull(references);
+        assertNotNull(confirmedValues);
         assertEquals(
                 2,
-                references.size()
+                confirmedValues.size()
         );
 
         assertEquals(
                 "MR",
-                references.get(0)
+                confirmedValues.get(0)
+                        .getReference()
                         .getCategory()
         );
 
         assertEquals(
+                Integer.valueOf(20),
+                confirmedValues.get(0)
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                confirmedValues.get(0)
+                        .getUnit()
+        );
+
+        assertEquals(
                 "MZ",
-                references.get(1)
+                confirmedValues.get(1)
+                        .getReference()
                         .getCategory()
         );
 

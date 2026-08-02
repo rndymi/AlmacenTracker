@@ -17,6 +17,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListReviewBinding;
 import com.rndymi.almacentracker.databinding.DialogReferenceEditorBinding;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.feature.reference_list.common.WarehouseReferenceIntentContract;
 import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationActivity;
@@ -236,16 +237,18 @@ public final class ReferenceListReviewActivity
                 .observe(
                         this,
                         event -> {
-                            List<WarehouseReference>
-                                    references =
+                            List<DocumentReferenceData>
+                                    confirmedValues =
                                     event
                                             .getContentIfNotHandled();
 
-                            if (references == null) {
+                            if (confirmedValues == null) {
                                 return;
                             }
 
-                            openReferenceLocations(references);
+                            openReferenceLocations(
+                                    confirmedValues
+                            );
                         }
                 );
     }
@@ -471,8 +474,18 @@ public final class ReferenceListReviewActivity
     }
 
     private void openReferenceLocations(
-            List<WarehouseReference> references
+            List<DocumentReferenceData> confirmedValues
     ) {
+        List<WarehouseReference> references =
+                new ArrayList<>(
+                        confirmedValues.size()
+                );
+
+        for (DocumentReferenceData value
+                : confirmedValues) {
+            references.add(value.getReference());
+        }
+
         startActivity(
                 ReferenceListLocationActivity
                         .createIntent(

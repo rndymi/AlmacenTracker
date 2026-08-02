@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.feature.reference_list.review;
 
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ public final class ReferenceProposal {
     private final boolean manuallyAdded;
     private final MatchStatus matchStatus;
     private final List<WarehouseReference> suggestions;
+    private final DocumentReferenceData documentData;
 
     public ReferenceProposal(
             long id,
@@ -37,7 +39,8 @@ public final class ReferenceProposal {
                 sourceRawText,
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
-                Collections.emptyList()
+                Collections.emptyList(),
+                null
         );
     }
 
@@ -56,7 +59,8 @@ public final class ReferenceProposal {
                 requiresCorrection
                         ? MatchStatus.NO_MATCH
                         : MatchStatus.EXACT,
-                Collections.emptyList()
+                Collections.emptyList(),
+                null
         );
     }
 
@@ -76,7 +80,8 @@ public final class ReferenceProposal {
                 requiresCorrection
                         ? statusForSuggestions(suggestions)
                         : MatchStatus.EXACT,
-                suggestions
+                suggestions,
+                null
         );
     }
 
@@ -87,6 +92,26 @@ public final class ReferenceProposal {
             boolean manuallyAdded,
             MatchStatus matchStatus,
             List<WarehouseReference> suggestions
+    ) {
+        this(
+                id,
+                reference,
+                sourceRawText,
+                manuallyAdded,
+                matchStatus,
+                suggestions,
+                null
+        );
+    }
+
+    public ReferenceProposal(
+            long id,
+            WarehouseReference reference,
+            String sourceRawText,
+            boolean manuallyAdded,
+            MatchStatus matchStatus,
+            List<WarehouseReference> suggestions,
+            DocumentReferenceData documentData
     ) {
         this.id = id;
 
@@ -116,6 +141,17 @@ public final class ReferenceProposal {
                                         : suggestions
                         )
                 );
+
+        this.documentData =
+                documentData == null
+                        ? new DocumentReferenceData(
+                                reference,
+                                null,
+                                null,
+                                0,
+                                sourceRawText
+                        )
+                        : documentData;
     }
 
     public long getId() {
@@ -151,16 +187,30 @@ public final class ReferenceProposal {
         return suggestions;
     }
 
+    public DocumentReferenceData getDocumentData() {
+        return documentData;
+    }
+
     public ReferenceProposal withReference(
             WarehouseReference newReference
     ) {
+        DocumentReferenceData updatedDocumentData =
+                new DocumentReferenceData(
+                        newReference,
+                        documentData.getQuantity(),
+                        documentData.getUnit(),
+                        documentData.getSourceLineIndex(),
+                        documentData.getSourceText()
+                );
+
         return new ReferenceProposal(
                 id,
                 newReference,
                 sourceRawText,
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
-                Collections.emptyList()
+                Collections.emptyList(),
+                updatedDocumentData
         );
     }
 
