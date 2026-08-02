@@ -10,6 +10,7 @@ import com.rndymi.almacentracker.data.document.AndroidDocumentImageLoader;
 import com.rndymi.almacentracker.data.document.AndroidDocumentImageProcessor;
 import com.rndymi.almacentracker.data.document.DocumentLineReconstructor;
 import com.rndymi.almacentracker.data.document.MlKitDocumentTextRecognizer;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
@@ -23,10 +24,12 @@ public final class ReferenceListModule {
     private final Context applicationContext;
     private final DocumentImageLoader<Bitmap> imageLoader;
     private final WarehouseItemRepository repository;
+    private final PaddleOcrRuntimeProvider paddleOcrRuntimeProvider;
 
     public ReferenceListModule(
             Context context,
-            WarehouseItemRepository repository
+            WarehouseItemRepository repository,
+            PaddleOcrRuntimeProvider paddleOcrRuntimeProvider
     ) {
         applicationContext =
                 Objects.requireNonNull(
@@ -44,6 +47,17 @@ public final class ReferenceListModule {
                         repository,
                         "repository"
                 );
+
+        this.paddleOcrRuntimeProvider =
+                Objects.requireNonNull(
+                        paddleOcrRuntimeProvider,
+                        "paddleOcrRuntimeProvider"
+                );
+    }
+
+    public PaddleOcrRuntimeProvider
+    providePaddleOcrRuntimeProvider() {
+        return paddleOcrRuntimeProvider;
     }
 
     public ReferenceListCaptureViewModelFactory

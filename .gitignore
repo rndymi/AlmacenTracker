@@ -63,6 +63,7 @@ AGENTS.md
 # Local project notes that should not be versioned
 docs/md/
 
-# Project policy: do not version Markdown files except the root README
+# Project policy: do not version Markdown files except approved documentation
 *.md
 !README.md
+!**/NOTICE.md

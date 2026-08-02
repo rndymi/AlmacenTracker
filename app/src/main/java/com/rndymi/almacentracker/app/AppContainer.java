@@ -1,5 +1,7 @@
 package com.rndymi.almacentracker.app;
 
+import ai.onnxruntime.OrtEnvironment;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 
@@ -10,6 +12,11 @@ import com.rndymi.almacentracker.app.di.InventoryModule;
 import com.rndymi.almacentracker.app.di.ReferenceListModule;
 import com.rndymi.almacentracker.app.di.WithdrawalHistoryModule;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
+import com.rndymi.almacentracker.data.document.onnx.OnnxModelAssetLoader;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrModelConfiguration;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeInitializer;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrSessionMetadataValidator;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerMigrations;
@@ -43,6 +50,8 @@ public final class AppContainer {
     private final DataManagementModule dataManagementModule;
     private final ReferenceListModule referenceListModule;
     private final WithdrawalHistoryModule withdrawalHistoryModule;
+    private final ExecutorService ocrExecutor;
+    private final PaddleOcrRuntimeProvider paddleOcrRuntimeProvider;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -58,6 +67,8 @@ public final class AppContainer {
         databaseExecutor =
                 Executors.newSingleThreadExecutor();
         fileExecutor =
+                Executors.newSingleThreadExecutor();
+        ocrExecutor =
                 Executors.newSingleThreadExecutor();
         warehouseItemRepository =
                 new RoomWarehouseItemRepository(
@@ -80,10 +91,30 @@ public final class AppContainer {
                         warehouseItemRepository,
                         fileExecutor
                 );
+        OrtEnvironment ortEnvironment =
+                OrtEnvironment.getEnvironment();
+
+        PaddleOcrRuntimeInitializer
+                paddleOcrRuntimeInitializer =
+                new PaddleOcrRuntimeInitializer(
+                        ortEnvironment,
+                        new OnnxModelAssetLoader(
+                                applicationContext.getAssets()
+                        ),
+                        PaddleOcrModelConfiguration.bundled(),
+                        new PaddleOcrSessionMetadataValidator()
+                );
+
+        paddleOcrRuntimeProvider =
+                new PaddleOcrRuntimeProvider(
+                        ocrExecutor,
+                        paddleOcrRuntimeInitializer
+                );
         referenceListModule =
                 new ReferenceListModule(
                         applicationContext,
-                        warehouseItemRepository
+                        warehouseItemRepository,
+                        paddleOcrRuntimeProvider
                 );
         withdrawalHistoryModule =
                 new WithdrawalHistoryModule(
@@ -94,6 +125,11 @@ public final class AppContainer {
     public WithdrawalHistoryRepository
     provideWithdrawalHistoryRepository() {
         return withdrawalHistoryRepository;
+    }
+
+    public PaddleOcrRuntimeProvider
+    providePaddleOcrRuntimeProvider() {
+        return paddleOcrRuntimeProvider;
     }
 
     public WarehouseItemDetailViewModelFactory
