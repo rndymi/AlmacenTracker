@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.feature.withdrawal_history.list;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,6 +10,8 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -29,15 +32,38 @@ import java.time.format.FormatStyle;
 public final class WithdrawalHistoryListActivity
         extends AppCompatActivity {
 
-    private ActivityWithdrawalHistoryListBinding
-            binding;
-
+    private ActivityWithdrawalHistoryListBinding binding;
     private WithdrawalHistoryListViewModel viewModel;
-
     private WithdrawalHistoryListAdapter adapter;
-
     private boolean firstResume = true;
     private boolean renderingState;
+    private boolean skipNextResumeRefresh;
+
+    private final ActivityResultLauncher<Intent>
+            detailLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts
+                            .StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode()
+                                != Activity.RESULT_OK) {
+                            return;
+                        }
+
+                        long deletedHistoryId =
+                                WithdrawalHistoryDetailIntentContract
+                                        .readDeletedHistoryId(
+                                                result.getData()
+                                        );
+
+                        if (deletedHistoryId <= 0L) {
+                            return;
+                        }
+
+                        skipNextResumeRefresh = true;
+                        viewModel.refresh();
+                    }
+            );
 
     private final DateTimeFormatter dateFormatter =
             DateTimeFormatter.ofLocalizedDate(
@@ -78,6 +104,11 @@ public final class WithdrawalHistoryListActivity
 
         if (firstResume) {
             firstResume = false;
+            return;
+        }
+
+        if (skipNextResumeRefresh) {
+            skipNextResumeRefresh = false;
             return;
         }
 
@@ -498,7 +529,7 @@ public final class WithdrawalHistoryListActivity
     }
 
     private void openHistoryDetail(long historyId) {
-        startActivity(
+        detailLauncher.launch(
                 WithdrawalHistoryDetailIntentContract
                         .createIntent(
                                 this,

@@ -1,15 +1,21 @@
 package com.rndymi.almacentracker.feature.withdrawal_history.detail;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.databinding.ActivityWithdrawalHistoryDetailBinding;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistory;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
@@ -24,9 +30,39 @@ import java.util.Locale;
 public final class WithdrawalHistoryDetailActivity
         extends AppCompatActivity {
 
-    private ActivityWithdrawalHistoryDetailBinding binding;
-    private WithdrawalHistoryDetailViewModel viewModel;
-    private WithdrawalHistoryDetailAdapter adapter;
+    private ActivityWithdrawalHistoryDetailBinding
+            binding;
+
+    private WithdrawalHistoryDetailViewModel
+            viewModel;
+
+    private WithdrawalHistoryDetailAdapter
+            adapter;
+
+    private MenuItem deleteMenuItem;
+
+    private WithdrawalHistoryDetailUiState
+            currentState;
+
+    private final OnBackPressedCallback
+            backPressedCallback =
+            new OnBackPressedCallback(true) {
+
+                @Override
+                public void handleOnBackPressed() {
+                    if (currentState != null
+                            && currentState.isDeleting()) {
+                        return;
+                    }
+
+                    setEnabled(false);
+
+                    getOnBackPressedDispatcher()
+                            .onBackPressed();
+
+                    setEnabled(true);
+                }
+            };
 
     @Override
     protected void onCreate(
@@ -40,11 +76,18 @@ public final class WithdrawalHistoryDetailActivity
 
         setContentView(binding.getRoot());
 
+        getOnBackPressedDispatcher()
+                .addCallback(
+                        this,
+                        backPressedCallback
+                );
+
         configureToolbar();
         configureRecyclerView();
         configureViewModel();
         configureActions();
         observeState();
+        observeDeleteSuccess();
 
         long historyId =
                 WithdrawalHistoryDetailIntentContract
@@ -54,10 +97,32 @@ public final class WithdrawalHistoryDetailActivity
     }
 
     private void configureToolbar() {
+        binding.toolbar.inflateMenu(
+                R.menu.menu_withdrawal_history_detail
+        );
+
+        deleteMenuItem =
+                binding.toolbar.getMenu()
+                        .findItem(
+                                R.id.actionDeleteHistory
+                        );
+
         binding.toolbar.setNavigationOnClickListener(
                 ignored ->
                         getOnBackPressedDispatcher()
                                 .onBackPressed()
+        );
+
+        binding.toolbar.setOnMenuItemClickListener(
+                item -> {
+                    if (item.getItemId()
+                            != R.id.actionDeleteHistory) {
+                        return false;
+                    }
+
+                    showDeleteConfirmation();
+                    return true;
+                }
         );
     }
 
@@ -93,7 +158,7 @@ public final class WithdrawalHistoryDetailActivity
 
     private void configureActions() {
         binding.retryButton.setOnClickListener(
-                ignored -> viewModel.retry()
+                ignored -> viewModel.retryLoad()
         );
 
         binding.notFoundBackButton.setOnClickListener(
@@ -116,22 +181,71 @@ public final class WithdrawalHistoryDetailActivity
         );
     }
 
+    private void observeDeleteSuccess() {
+        viewModel.getDeleteSuccessEvent().observe(
+                this,
+                this::consumeDeleteSuccess
+        );
+    }
+
+    private void consumeDeleteSuccess(
+            UiEvent<Long> event
+    ) {
+        if (event == null) {
+            return;
+        }
+
+        Long deletedHistoryId =
+                event.getContentIfNotHandled();
+
+        if (deletedHistoryId == null
+                || deletedHistoryId <= 0L) {
+            return;
+        }
+
+        Intent result =
+                WithdrawalHistoryDetailIntentContract
+                        .createDeleteResult(
+                                deletedHistoryId
+                        );
+
+        setResult(
+                Activity.RESULT_OK,
+                result
+        );
+
+        finish();
+    }
+
     private void render(
             WithdrawalHistoryDetailUiState state
     ) {
+        currentState = state;
+
         boolean hasContent = state.hasContent();
 
         boolean initialLoading =
                 state.isLoading() && !hasContent;
 
-        boolean fullError =
-                state.hasError() && !hasContent;
+        boolean fullLoadError =
+                state.hasLoadError() && !hasContent;
 
         binding.progressIndicator.setVisibility(
-                initialLoading
+                initialLoading || state.isDeleting()
                         ? View.VISIBLE
                         : View.GONE
         );
+
+        binding.progressIndicator
+                .setContentDescription(
+                        getString(
+                                state.isDeleting()
+                                        ? R.string
+                                          .withdrawal_history_deleting
+                                        : R.string
+                                          .withdrawal_history_detail_loading
+                        )
+                );
 
         binding.contentContainer.setVisibility(
                 hasContent
@@ -146,10 +260,28 @@ public final class WithdrawalHistoryDetailActivity
         );
 
         binding.errorContainer.setVisibility(
-                fullError
+                fullLoadError
                         ? View.VISIBLE
                         : View.GONE
         );
+
+        binding.toolbar.setNavigationIcon(
+                state.isDeleting()
+                        ? null
+                        : getDrawable(
+                        R.drawable.ic_arrow_back
+                )
+        );
+
+        if (deleteMenuItem != null) {
+            deleteMenuItem.setVisible(
+                    hasContent
+            );
+
+            deleteMenuItem.setEnabled(
+                    state.canDelete()
+            );
+        }
 
         if (hasContent) {
             renderRecord(state.getRecord());
@@ -157,7 +289,7 @@ public final class WithdrawalHistoryDetailActivity
             adapter.submitList(null);
         }
 
-        if (state.hasError() && hasContent) {
+        if (state.hasLoadError() && hasContent) {
             Snackbar.make(
                     binding.getRoot(),
                     R.string
@@ -165,9 +297,65 @@ public final class WithdrawalHistoryDetailActivity
                     Snackbar.LENGTH_LONG
             ).setAction(
                     R.string.retry_action,
-                    ignored -> viewModel.retry()
+                    ignored -> viewModel.retryLoad()
             ).show();
         }
+
+        if (state.hasDeleteError()) {
+            Snackbar.make(
+                    binding.getRoot(),
+                    R.string
+                            .withdrawal_history_delete_error,
+                    Snackbar.LENGTH_LONG
+            ).setAction(
+                    R.string.retry_action,
+                    ignored -> viewModel.retryDelete()
+            ).show();
+        }
+    }
+
+    private void showDeleteConfirmation() {
+        WithdrawalHistoryDetailUiState state =
+                currentState;
+
+        if (state == null
+                || !state.canDelete()
+                || state.getRecord() == null) {
+            return;
+        }
+
+        WithdrawalHistory history =
+                state.getRecord()
+                        .getHistory();
+
+        String dialogTitle =
+                history.hasTitle()
+                        ? getString(
+                        R.string
+                        .withdrawal_history_delete_named_title,
+                        history.getTitle()
+                )
+                        : getString(
+                        R.string
+                        .withdrawal_history_delete_title
+                );
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(dialogTitle)
+                .setMessage(
+                        R.string
+                                .withdrawal_history_delete_message
+                )
+                .setNegativeButton(
+                        R.string.cancel_action,
+                        null
+                )
+                .setPositiveButton(
+                        R.string.delete_action,
+                        (dialog, which) ->
+                                viewModel.deleteHistory()
+                )
+                .show();
     }
 
     private void renderRecord(
