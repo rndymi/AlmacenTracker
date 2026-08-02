@@ -2,6 +2,7 @@ package com.rndymi.almacentracker.feature.withdrawal_history.list;
 
 import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +14,7 @@ public final class WithdrawalHistoryListUiState {
         LOADING,
         CONTENT,
         EMPTY,
+        NO_RESULTS,
         ERROR
     }
 
@@ -21,9 +23,20 @@ public final class WithdrawalHistoryListUiState {
     private final List<WithdrawalHistorySummary>
             summaries;
 
+    private final String query;
+    private final LocalDate fromDate;
+    private final LocalDate toDate;
+    private final boolean activeCriteria;
+    private final boolean invalidDateInterval;
+
     private WithdrawalHistoryListUiState(
             Status status,
-            List<WithdrawalHistorySummary> summaries
+            List<WithdrawalHistorySummary> summaries,
+            String query,
+            LocalDate fromDate,
+            LocalDate toDate,
+            boolean activeCriteria,
+            boolean invalidDateInterval
     ) {
         this.status = Objects.requireNonNull(
                 status,
@@ -39,47 +52,36 @@ public final class WithdrawalHistoryListUiState {
                                 )
                         )
                 );
+
+        this.query =
+                query == null
+                        ? ""
+                        : query;
+
+        this.fromDate = fromDate;
+        this.toDate = toDate;
+        this.activeCriteria = activeCriteria;
+        this.invalidDateInterval =
+                invalidDateInterval;
     }
 
-    public static WithdrawalHistoryListUiState loading(
-            List<WithdrawalHistorySummary>
-                    previousSummaries
+    public static WithdrawalHistoryListUiState create(
+            Status status,
+            List<WithdrawalHistorySummary> summaries,
+            String query,
+            LocalDate fromDate,
+            LocalDate toDate,
+            boolean activeCriteria,
+            boolean invalidDateInterval
     ) {
         return new WithdrawalHistoryListUiState(
-                Status.LOADING,
-                safeList(previousSummaries)
-        );
-    }
-
-    public static WithdrawalHistoryListUiState content(
-            List<WithdrawalHistorySummary> summaries
-    ) {
-        if (summaries == null || summaries.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Content state requires summaries"
-            );
-        }
-
-        return new WithdrawalHistoryListUiState(
-                Status.CONTENT,
-                summaries
-        );
-    }
-
-    public static WithdrawalHistoryListUiState empty() {
-        return new WithdrawalHistoryListUiState(
-                Status.EMPTY,
-                Collections.emptyList()
-        );
-    }
-
-    public static WithdrawalHistoryListUiState error(
-            List<WithdrawalHistorySummary>
-                    previousSummaries
-    ) {
-        return new WithdrawalHistoryListUiState(
-                Status.ERROR,
-                safeList(previousSummaries)
+                status,
+                safeList(summaries),
+                query,
+                fromDate,
+                toDate,
+                activeCriteria,
+                invalidDateInterval
         );
     }
 
@@ -92,6 +94,26 @@ public final class WithdrawalHistoryListUiState {
         return summaries;
     }
 
+    public String getQuery() {
+        return query;
+    }
+
+    public LocalDate getFromDate() {
+        return fromDate;
+    }
+
+    public LocalDate getToDate() {
+        return toDate;
+    }
+
+    public boolean hasActiveCriteria() {
+        return activeCriteria;
+    }
+
+    public boolean hasInvalidDateInterval() {
+        return invalidDateInterval;
+    }
+
     public boolean isLoading() {
         return status == Status.LOADING;
     }
@@ -102,6 +124,10 @@ public final class WithdrawalHistoryListUiState {
 
     public boolean isEmpty() {
         return status == Status.EMPTY;
+    }
+
+    public boolean hasNoResults() {
+        return status == Status.NO_RESULTS;
     }
 
     public boolean hasError() {
