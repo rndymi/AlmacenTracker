@@ -149,7 +149,7 @@ public final class WithdrawalHistoryCreateAdapter
 
             binding.quantityEditText
                     .addTextChangedListener(
-                            new SimpleTextWatcher(
+                            SimpleTextWatcher.afterTextChanged(
                                     value -> {
                                         if (!bindingValues) {
                                             listener.onQuantityChanged(
@@ -163,7 +163,7 @@ public final class WithdrawalHistoryCreateAdapter
 
             binding.unitEditText
                     .addTextChangedListener(
-                            new SimpleTextWatcher(
+                            SimpleTextWatcher.afterTextChanged(
                                     value -> {
                                         if (!bindingValues) {
                                             listener.onUnitChanged(

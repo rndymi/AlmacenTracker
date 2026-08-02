@@ -129,7 +129,7 @@ public final class WithdrawalHistoryCreateActivity
 
     private void configureInputs() {
         binding.titleEditText.addTextChangedListener(
-                new SimpleTextWatcher(
+                SimpleTextWatcher.afterTextChanged(
                         value -> {
                             if (!rendering) {
                                 viewModel.onTitleChanged(
@@ -253,7 +253,7 @@ public final class WithdrawalHistoryCreateActivity
         WithdrawalHistoryDraft draft =
                 event == null
                         ? null
-                        : event.consume();
+                        : event.getContentIfNotHandled();
 
         if (draft == null) {
             return;
