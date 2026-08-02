@@ -625,9 +625,9 @@ public class WithdrawalHistoryDaoTest {
     public void deleteByIdRemovesHistoryAndEntries() {
         long historyId =
                 historyDao.insertHistoryWithEntries(
-                        createHistoryEntity(),
+                        createHistory(null),
                         Collections.singletonList(
-                                createEntryEntity()
+                                createFoundEntry(0)
                         )
                 );
 
