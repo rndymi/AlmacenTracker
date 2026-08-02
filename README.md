@@ -6,9 +6,23 @@ Cada mercadería se identifica mediante una combinación única de categoría y 
 
 ---
 
+## Versión
+
+**AlmacenTracker v1.3.0**
+
+Novedades principales:
+
+```text
+Registro, consulta, búsqueda, filtrado y eliminación
+de historial documental de mercadería sacada
+a partir de listas procesadas
+```
+
+---
+
 ## Funcionalidades
 
-### Funcionalidades principales
+### Gestión de mercadería
 
 - Consultar el listado local de mercadería.
 - Registrar y visualizar el detalle de cada mercadería.
@@ -19,14 +33,24 @@ Cada mercadería se identifica mediante una combinación única de categoría y 
 - Validar y normalizar los datos introducidos.
 - Evitar combinaciones duplicadas de categoría y código.
 - Mostrar estados vacíos y búsquedas sin resultados.
+
+### Gestión de archivos CSV
+
 - Exportar, compartir e importar archivos CSV.
 - Informar filas inválidas o duplicadas durante la importación.
 - Crear y restaurar copias de seguridad CSV versionadas.
 - Conservar los datos existentes cuando una restauración falla.
+
+### Escaneo individual
+
 - Escanear códigos de barras y códigos QR.
 - Buscar mercadería mediante el código escaneado.
 - Utilizar el escáner durante el registro y la edición.
 - Mantener la introducción manual cuando la cámara no esté disponible.
+- Controlar permisos, cancelaciones y errores de cámara.
+
+### Procesamiento de listas
+
 - Capturar o seleccionar imágenes de listas.
 - Procesar listas localmente mediante reconocimiento de texto.
 - Corregir orientación, escala y contraste antes del OCR.
@@ -35,34 +59,34 @@ Cada mercadería se identifica mediante una combinación única de categoría y 
 - Corregir, añadir, eliminar y confirmar referencias.
 - Consultar conjuntamente la ubicación de las referencias confirmadas.
 - Identificar referencias no encontradas.
-- Funcionar completamente sin conexión a Internet.
 
-### Funcionalidades previstas para v1.3
+### Historial documental
 
 - Registrar una lista procesada como historial documental.
 - Añadir un título opcional.
-- Registrar automáticamente fecha y hora.
+- Seleccionar la fecha y hora documental.
 - Conservar categoría y código.
-- Conservar cantidades y unidades cuando estén disponibles.
-- Corregir o completar cantidad y unidad antes de guardar.
-- Permitir referencias sin cantidad.
+- Proponer, corregir o completar cantidad y unidad.
+- Permitir referencias sin cantidad ni unidad.
 - Guardar sitio y posición como instantánea histórica.
-- Conservar referencias no encontradas.
-- Diferenciar ubicación histórica y actual.
-- Consultar un listado de registros históricos.
-- Ver el detalle de cada lista guardada.
+- Conservar referencias encontradas y no encontradas.
+- Consultar el listado de registros históricos.
+- Mostrar título, fecha y resumen de referencias.
+- Abrir el detalle completo de cada lista.
+- Mostrar cantidades, unidades y ubicaciones históricas.
 - Buscar por título, categoría o código.
-- Filtrar por intervalo de fechas.
+- Filtrar por fecha inicial y fecha final.
+- Combinar búsqueda y filtros.
+- Conservar criterios al abrir y cerrar un detalle.
 - Eliminar un registro histórico con confirmación.
-- Mantener la mercadería principal sin modificaciones.
-- Mantener el historial completamente offline.
-- No descontar cantidades ni gestionar stock.
+- Eliminar sus líneas mediante cascada sin modificar la mercadería.
+- Funcionar completamente sin conexión a Internet.
 
 ---
 
-## Historial documental de v1.3
+## Historial documental
 
-La versión 1.3 ampliará el procesamiento de listas para conservar un registro local después de la revisión.
+El historial permite conservar localmente una lista después de revisarla y confirmar sus datos documentales.
 
 ```text
 fotografía o imagen
@@ -73,17 +97,17 @@ revisión de referencias
         ↓
 consulta de ubicaciones
         ↓
-título, cantidad y unidad
+título, fecha, cantidad y unidad
         ↓
 confirmación
         ↓
 historial en Room
 ```
 
-Cada registro histórico podrá conservar:
+Cada registro histórico puede conservar:
 
 - título opcional;
-- fecha y hora;
+- fecha y hora documental;
 - categoría;
 - código;
 - cantidad opcional;
@@ -92,9 +116,26 @@ Cada registro histórico podrá conservar:
 - posición histórica;
 - estado encontrado o no encontrado.
 
-La ubicación se almacenará como una instantánea. Si la mercadería cambia de sitio posteriormente, el historial conservará la ubicación que tenía cuando se registró la lista.
+La ubicación se guarda como una instantánea. Si la mercadería cambia de sitio o se elimina posteriormente, el historial conserva la información existente cuando se registró la lista.
 
-El historial será documental. Las cantidades no reducirán existencias ni convertirán AlmacenTracker en un sistema de stock.
+El historial es documental. Las cantidades no reducen existencias ni convierten AlmacenTracker en un sistema de gestión de stock.
+
+---
+
+## Búsqueda y filtros del historial
+
+El historial puede consultarse mediante:
+
+- título parcial;
+- categoría;
+- código;
+- fecha inicial;
+- fecha final;
+- combinación de texto e intervalo de fechas.
+
+Las búsquedas no distinguen mayúsculas y minúsculas y conservan los ceros iniciales de los códigos.
+
+Los registros se muestran por fecha documental descendente. Al eliminar un resultado, el listado vuelve a consultarse manteniendo los criterios activos.
 
 ---
 
@@ -102,42 +143,42 @@ El historial será documental. Las cantidades no reducirán existencias ni conve
 
 ### Escaneo individual
 
-Permite leer un código de barras o QR para:
+Permite leer un código de barras o QR mediante la cámara para:
 
 - buscar mercadería;
 - abrir su detalle;
 - rellenar el código durante un registro;
-- sustituir el código durante una edición.
+- sustituir el código durante una edición con confirmación.
 
-La entrada manual continuará disponible.
+La introducción manual continúa disponible cuando el permiso no se concede o la cámara no puede utilizarse.
 
 ### Procesamiento de listas
 
-Permite:
+Permite tomar una fotografía o seleccionar una imagen para:
 
-- tomar una fotografía o seleccionar una imagen;
 - procesar el texto localmente;
-- corregir orientación y mejorar la imagen;
-- reconstruir una o dos columnas;
-- revisar coincidencias;
+- reconstruir referencias de una o dos columnas;
+- revisar coincidencias exactas, sugeridas, ambiguas o no encontradas;
 - corregir, añadir o eliminar referencias;
-- consultar ubicaciones;
-- preparar el historial de v1.3.
+- consultar sus ubicaciones en el orden confirmado;
+- preparar y registrar el historial documental.
 
-El reconocimiento es experimental y deberá revisarse.
+El reconocimiento de listas es experimental y puede cometer errores. El usuario debe revisar el resultado antes de continuar.
 
-Las imágenes no se conservarán permanentemente ni se enviarán a servicios externos.
+Las imágenes y el texto se procesan en el dispositivo. Las fotografías no se conservan permanentemente ni se envían a servicios externos.
 
 ---
 
 ## Gestión de archivos CSV
 
-AlmacenTracker diferencia:
+AlmacenTracker diferencia dos formatos:
 
-- **CSV de intercambio:** exportación, compartición e importación de mercadería.
-- **CSV de copia de seguridad:** conservación y restauración de datos.
+- **CSV de intercambio:** permite exportar, compartir e importar mercadería.
+- **CSV de copia de seguridad:** conserva los datos y sus fechas para restaurar el estado de la mercadería.
 
-La versión 1.3 deberá revisar el formato versionado para decidir cómo incluir el historial manteniendo compatibilidad con copias anteriores.
+La aplicación utiliza el selector de documentos de Android sin solicitar acceso general al almacenamiento.
+
+El historial documental no forma parte actualmente de estos archivos CSV.
 
 ---
 
@@ -165,39 +206,25 @@ La versión 1.3 deberá revisar el formato versionado para decidir cómo incluir
 El proyecto aplica una arquitectura MVVM pragmática organizada por funcionalidades:
 
 - `feature` agrupa inventario, gestión de datos, escaneo, listas e historial.
-- `domain` contiene modelos y reglas.
-- `data` contiene Room, repositorios e infraestructura.
-- `core` reúne contratos compartidos.
-- `app` compone dependencias.
+- `domain` contiene modelos y reglas independientes de Android.
+- `data` contiene Room, repositorios e infraestructura técnica.
+- `core` reúne contratos y componentes compartidos.
+- `app` compone explícitamente las dependencias.
 
-Room continúa siendo la fuente local de verdad.
+Las Activities se encargan del renderizado, la interacción y la navegación. Los ViewModels mantienen el estado de cada pantalla. Room continúa siendo la fuente local de verdad.
 
-Se introducirán puertos o adaptadores adicionales únicamente cuando aporten una responsabilidad real.
+Se introducen servicios, puertos o adaptadores adicionales únicamente cuando representan una responsabilidad real.
 
 ---
 
 ## Requisitos
 
 - Android 8.0 o superior.
-- No requiere Internet para gestionar mercadería, CSV, escaneo, OCR o historial.
-- El escaneo requiere una cámara compatible.
-- La selección de imágenes utiliza Photo Picker.
-- El reconocimiento depende de la calidad y legibilidad de la imagen.
-- El historial de v1.3 permanecerá disponible offline.
-- Sus cantidades serán documentales y no representarán stock.
-
----
-
-## Versión
-
-**AlmacenTracker v1.3.0 — En desarrollo**
-
-Objetivo:
-
-```text
-registrar y consultar un historial documental
-de mercadería sacada a partir de listas procesadas
-```
+- No requiere conexión a Internet para gestionar mercadería, archivos CSV, escaneo, OCR o historial.
+- El escaneo individual requiere una cámara compatible.
+- La selección de imágenes utiliza el selector de fotos de Android.
+- El reconocimiento depende de la calidad, orientación y legibilidad de la imagen.
+- Las cantidades del historial son documentales y no representan stock.
 
 ---
 
