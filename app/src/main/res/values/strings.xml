@@ -818,4 +818,50 @@
         <item quantity="one">%d no encontrada</item>
         <item quantity="other">%d no encontradas</item>
     </plurals>
+
+
+
+    <string name="withdrawal_history_detail_title">
+        Detalle del historial
+    </string>
+    <string name="withdrawal_history_detail_loading">
+        Cargando detalle del historial
+    </string>
+    <string name="withdrawal_history_detail_not_found">
+        La lista histórica solicitada ya no existe.
+    </string>
+    <string name="withdrawal_history_detail_load_error">
+        No se pudo cargar el detalle del historial.
+    </string>
+    <string name="withdrawal_history_detail_refresh_error">
+        No se pudo actualizar el detalle del historial.
+    </string>
+    <string name="withdrawal_history_detail_reference">
+        %1$s · %2$s
+    </string>
+    <string name="withdrawal_history_detail_quantity_with_unit">
+        %1$d %2$s
+    </string>
+    <string name="withdrawal_history_detail_quantity_only">
+        Cantidad: %1$d
+    </string>
+    <string name="withdrawal_history_detail_without_quantity">
+        Sin cantidad documental
+    </string>
+    <string name="withdrawal_history_detail_historical_location_label">
+        Ubicación al registrar la lista
+    </string>
+    <string name="withdrawal_history_detail_site_and_position">
+        Sitio %1$s · Posición %2$s
+    </string>
+    <string name="withdrawal_history_detail_site_only">
+        Sitio %1$s
+    </string>
+    <string name="withdrawal_history_detail_not_found_location">
+        No encontrada al registrar la lista
+    </string>
+    <string name="withdrawal_history_detail_entry_description">
+        %1$s. %2$s. %3$s.
+    </string>
+    <string name="back_action"> Volver </string>
 </resources>
