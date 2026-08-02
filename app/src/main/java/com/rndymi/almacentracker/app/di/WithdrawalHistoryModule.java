@@ -4,6 +4,7 @@ import com.rndymi.almacentracker.data.repository.WithdrawalHistoryRepository;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidator;
 import com.rndymi.almacentracker.feature.withdrawal_history.create.WithdrawalHistoryCreateViewModelFactory;
 import com.rndymi.almacentracker.feature.withdrawal_history.create.WithdrawalHistorySaveService;
+import com.rndymi.almacentracker.feature.withdrawal_history.detail.WithdrawalHistoryDetailViewModelFactory;
 import com.rndymi.almacentracker.feature.withdrawal_history.list.WithdrawalHistoryListViewModelFactory;
 
 import java.util.Objects;
@@ -39,6 +40,13 @@ public final class WithdrawalHistoryModule {
     public WithdrawalHistoryListViewModelFactory
     provideWithdrawalHistoryListViewModelFactory() {
         return new WithdrawalHistoryListViewModelFactory(
+                repository
+        );
+    }
+
+    public WithdrawalHistoryDetailViewModelFactory
+    provideWithdrawalHistoryDetailViewModelFactory() {
+        return new WithdrawalHistoryDetailViewModelFactory(
                 repository
         );
     }

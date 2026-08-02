@@ -26,6 +26,7 @@ import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCap
 import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationViewModelFactory;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewViewModelFactory;
 import com.rndymi.almacentracker.feature.withdrawal_history.create.WithdrawalHistoryCreateViewModelFactory;
+import com.rndymi.almacentracker.feature.withdrawal_history.detail.WithdrawalHistoryDetailViewModelFactory;
 import com.rndymi.almacentracker.feature.withdrawal_history.list.WithdrawalHistoryListViewModelFactory;
 
 import java.util.concurrent.ExecutorService;
@@ -161,5 +162,11 @@ public final class AppContainer {
     provideWithdrawalHistoryListViewModelFactory() {
         return withdrawalHistoryModule
                 .provideWithdrawalHistoryListViewModelFactory();
+    }
+
+    public WithdrawalHistoryDetailViewModelFactory
+    provideWithdrawalHistoryDetailViewModelFactory() {
+        return withdrawalHistoryModule
+                .provideWithdrawalHistoryDetailViewModelFactory();
     }
 }
