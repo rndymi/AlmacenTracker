@@ -24,7 +24,7 @@ public final class PaddleOcrRuntimeProvider
 
     private final Object lock = new Object();
     private final ExecutorService executorService;
-    private final PaddleOcrRuntimeInitializer initializer;
+    private final PaddleOcrRuntimeFactory initializer;
 
     private final List<Callback> pendingCallbacks =
             new ArrayList<>();
@@ -34,7 +34,7 @@ public final class PaddleOcrRuntimeProvider
 
     public PaddleOcrRuntimeProvider(
             ExecutorService executorService,
-            PaddleOcrRuntimeInitializer initializer
+            PaddleOcrRuntimeFactory initializer
     ) {
         this.executorService =
                 Objects.requireNonNull(

@@ -9,7 +9,8 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Properties;
 
-public final class PaddleOcrRuntimeInitializer {
+public final class PaddleOcrRuntimeInitializer
+        implements PaddleOcrRuntimeFactory {
 
     private final OrtEnvironment environment;
     private final OnnxModelAssetLoader assetLoader;
@@ -44,6 +45,7 @@ public final class PaddleOcrRuntimeInitializer {
                 );
     }
 
+    @Override
     public PaddleOcrInitializationResult initialize() {
         OrtSession detectorSession = null;
         OrtSession recognizerSession = null;
