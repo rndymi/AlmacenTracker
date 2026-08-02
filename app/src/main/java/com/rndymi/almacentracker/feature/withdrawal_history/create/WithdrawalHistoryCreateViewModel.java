@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.core.common.event.UiEvent;
+import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraft;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftEntry;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidationResult;
@@ -20,6 +21,10 @@ import java.util.Objects;
 public final class WithdrawalHistoryCreateViewModel
         extends ViewModel {
 
+    private static final String SAVE_ERROR_MESSAGE =
+            "No se pudo guardar el historial.";
+
+    private final WithdrawalHistorySaveService saveService;
     private final WithdrawalHistoryDraftValidator validator;
 
     private final MutableLiveData<
@@ -31,14 +36,28 @@ public final class WithdrawalHistoryCreateViewModel
 
     private final MutableLiveData<
             UiEvent<WithdrawalHistoryDraft>>
-            continueEvent =
+            confirmationEvent =
+            new MutableLiveData<>();
+
+    private final MutableLiveData<
+            UiEvent<Long>> savedEvent =
             new MutableLiveData<>();
 
     private boolean initialized;
+    private boolean saveInProgress;
+    private boolean saveCompleted;
+    private long saveRequestToken;
 
     public WithdrawalHistoryCreateViewModel(
+            WithdrawalHistorySaveService saveService,
             WithdrawalHistoryDraftValidator validator
     ) {
+        this.saveService =
+                Objects.requireNonNull(
+                        saveService,
+                        "saveService"
+                );
+
         this.validator =
                 Objects.requireNonNull(
                         validator,
@@ -52,8 +71,13 @@ public final class WithdrawalHistoryCreateViewModel
     }
 
     public LiveData<UiEvent<WithdrawalHistoryDraft>>
-    getContinueEvent() {
-        return continueEvent;
+    getConfirmationEvent() {
+        return confirmationEvent;
+    }
+
+    public LiveData<UiEvent<Long>>
+    getSavedEvent() {
+        return savedEvent;
     }
 
     public void initialize(
@@ -66,10 +90,12 @@ public final class WithdrawalHistoryCreateViewModel
 
         initialized = true;
 
-        if (input == null || input.isEmpty()) {
+        if (input == null
+                || input.isEmpty()
+                || now <= 0L) {
             uiState.setValue(
                     WithdrawalHistoryCreateUiState
-                            .error()
+                            .invalidInitialInput()
             );
             return;
         }
@@ -121,7 +147,7 @@ public final class WithdrawalHistoryCreateViewModel
         if (entries.isEmpty()) {
             uiState.setValue(
                     WithdrawalHistoryCreateUiState
-                            .error()
+                            .invalidInitialInput()
             );
             return;
         }
@@ -178,9 +204,13 @@ public final class WithdrawalHistoryCreateViewModel
         );
     }
 
-    public void continueToConfirmation(
+    public void requestSaveConfirmation(
             long now
     ) {
+        if (saveInProgress || saveCompleted) {
+            return;
+        }
+
         WithdrawalHistoryCreateUiState current =
                 currentEditableState();
 
@@ -188,6 +218,157 @@ public final class WithdrawalHistoryCreateViewModel
             return;
         }
 
+        WithdrawalHistoryDraft draft =
+                buildValidatedDraft(
+                        current,
+                        now
+                );
+
+        if (draft == null) {
+            return;
+        }
+
+        confirmationEvent.setValue(
+                new UiEvent<>(draft)
+        );
+    }
+
+    public void confirmSave(
+            long now
+    ) {
+        if (saveInProgress || saveCompleted) {
+            return;
+        }
+
+        WithdrawalHistoryCreateUiState current =
+                currentEditableState();
+
+        if (current == null) {
+            return;
+        }
+
+        WithdrawalHistoryDraft draft =
+                buildValidatedDraft(
+                        current,
+                        now
+                );
+
+        if (draft == null) {
+            return;
+        }
+
+        saveInProgress = true;
+
+        long requestToken =
+                ++saveRequestToken;
+
+        uiState.setValue(
+                WithdrawalHistoryCreateUiState.saving(
+                        current.getTitle(),
+                        current.getRegisteredAt(),
+                        current.getEntries()
+                )
+        );
+
+        saveService.save(
+                draft,
+                new RepositoryCallback<Long>() {
+                    @Override
+                    public void onSuccess(
+                            Long generatedId
+                    ) {
+                        handleSaveSuccess(
+                                requestToken,
+                                generatedId
+                        );
+                    }
+
+                    @Override
+                    public void onError(
+                            Throwable cause
+                    ) {
+                        handleSaveError(
+                                requestToken
+                        );
+                    }
+                }
+        );
+    }
+
+    private void handleSaveSuccess(
+            long requestToken,
+            Long generatedId
+    ) {
+        if (!isActiveRequest(requestToken)
+                || generatedId == null
+                || generatedId <= 0L) {
+            if (isActiveRequest(requestToken)) {
+                handleSaveError(requestToken);
+            }
+            return;
+        }
+
+        saveInProgress = false;
+        saveCompleted = true;
+
+        WithdrawalHistoryCreateUiState current =
+                uiState.getValue();
+
+        if (current == null) {
+            return;
+        }
+
+        uiState.postValue(
+                WithdrawalHistoryCreateUiState.saved(
+                        current.getTitle(),
+                        current.getRegisteredAt(),
+                        current.getEntries()
+                )
+        );
+
+        savedEvent.postValue(
+                new UiEvent<>(generatedId)
+        );
+    }
+
+    private void handleSaveError(
+            long requestToken
+    ) {
+        if (!isActiveRequest(requestToken)) {
+            return;
+        }
+
+        saveInProgress = false;
+
+        WithdrawalHistoryCreateUiState current =
+                uiState.getValue();
+
+        if (current == null) {
+            return;
+        }
+
+        uiState.postValue(
+                WithdrawalHistoryCreateUiState.saveError(
+                        current.getTitle(),
+                        current.getRegisteredAt(),
+                        current.getEntries(),
+                        SAVE_ERROR_MESSAGE
+                )
+        );
+    }
+
+    private boolean isActiveRequest(
+            long requestToken
+    ) {
+        return saveInProgress
+                && !saveCompleted
+                && saveRequestToken == requestToken;
+    }
+
+    private WithdrawalHistoryDraft buildValidatedDraft(
+            WithdrawalHistoryCreateUiState current,
+            long now
+    ) {
         WithdrawalHistoryDraftValidationResult result =
                 validator.validate(
                         current.getTitle(),
@@ -205,7 +386,7 @@ public final class WithdrawalHistoryCreateViewModel
                             result
                     )
             );
-            return;
+            return null;
         }
 
         List<WithdrawalHistoryDraftEntry>
@@ -235,17 +416,12 @@ public final class WithdrawalHistoryCreateViewModel
             );
         }
 
-        WithdrawalHistoryDraft draft =
-                new WithdrawalHistoryDraft(
-                        validator.normalizeTitle(
-                                current.getTitle()
-                        ),
-                        current.getRegisteredAt(),
-                        draftEntries
-                );
-
-        continueEvent.setValue(
-                new UiEvent<>(draft)
+        return new WithdrawalHistoryDraft(
+                validator.normalizeTitle(
+                        current.getTitle()
+                ),
+                current.getRegisteredAt(),
+                draftEntries
         );
     }
 
@@ -280,10 +456,8 @@ public final class WithdrawalHistoryCreateViewModel
                             null
                     )
                             : entry.withErrors(
-                            entryErrors
-                                    .getQuantityError(),
-                            entryErrors
-                                    .getUnitError()
+                            entryErrors.getQuantityError(),
+                            entryErrors.getUnitError()
                     )
             );
         }
@@ -338,7 +512,7 @@ public final class WithdrawalHistoryCreateViewModel
                 uiState.getValue();
 
         if (current == null
-                || !current.canContinue()) {
+                || !current.isEditable()) {
             return null;
         }
 

@@ -8,6 +8,7 @@ import androidx.room.Room;
 import com.rndymi.almacentracker.app.di.DataManagementModule;
 import com.rndymi.almacentracker.app.di.InventoryModule;
 import com.rndymi.almacentracker.app.di.ReferenceListModule;
+import com.rndymi.almacentracker.app.di.WithdrawalHistoryModule;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase;
@@ -24,6 +25,7 @@ import com.rndymi.almacentracker.feature.inventory.list.WarehouseItemListViewMod
 import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureViewModelFactory;
 import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationViewModelFactory;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewViewModelFactory;
+import com.rndymi.almacentracker.feature.withdrawal_history.create.WithdrawalHistoryCreateViewModelFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +40,7 @@ public final class AppContainer {
     private final InventoryModule inventoryModule;
     private final DataManagementModule dataManagementModule;
     private final ReferenceListModule referenceListModule;
+    private final WithdrawalHistoryModule withdrawalHistoryModule;
 
     public AppContainer(Context context) {
         Context applicationContext =
@@ -79,6 +82,10 @@ public final class AppContainer {
                 new ReferenceListModule(
                         applicationContext,
                         warehouseItemRepository
+                );
+        withdrawalHistoryModule =
+                new WithdrawalHistoryModule(
+                        withdrawalHistoryRepository
                 );
     }
 
@@ -141,5 +148,11 @@ public final class AppContainer {
     provideReferenceListLocationViewModelFactory() {
         return inventoryModule
                 .provideReferenceListLocationViewModelFactory();
+    }
+
+    public WithdrawalHistoryCreateViewModelFactory
+    provideWithdrawalHistoryCreateViewModelFactory() {
+        return withdrawalHistoryModule
+                .provideWithdrawalHistoryCreateViewModelFactory();
     }
 }

@@ -764,4 +764,19 @@
         <item quantity="one">%d referencia</item>
         <item quantity="other">%d referencias</item>
     </plurals>
+
+
+
+    <string name="withdrawal_history_save_action"> Guardar historial </string>
+    <string name="withdrawal_history_saving"> Guardando… </string>
+    <string name="withdrawal_history_save_confirmation_title">
+        Guardar registro histórico
+    </string>
+    <string name="withdrawal_history_save_confirmation_message">
+        Se guardará esta lista con %1$d referencias.\n\n%2$d están encontradas y %3$d no encontradas.\n\nLas cantidades son documentales y no modificarán el stock.
+    </string>
+    <string name="withdrawal_history_saved"> Historial guardado. </string>
+    <string name="withdrawal_history_save_error">
+        No se pudo guardar el historial.
+    </string>
 </resources>

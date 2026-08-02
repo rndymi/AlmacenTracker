@@ -105,7 +105,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             android:minHeight="48dp"
-            android:text="@string/continue_action" />
+            android:text="@string/withdrawal_history_save_action" />
 
     </LinearLayout>
 
