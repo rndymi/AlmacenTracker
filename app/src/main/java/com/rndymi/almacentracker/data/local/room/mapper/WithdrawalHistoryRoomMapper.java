@@ -2,10 +2,12 @@ package com.rndymi.almacentracker.data.local.room.mapper;
 
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntity;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntryEntity;
+import com.rndymi.almacentracker.data.local.room.projection.WithdrawalHistorySummaryRow;
 import com.rndymi.almacentracker.data.local.room.relation.WithdrawalHistoryWithEntries;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistory;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryEntry;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 
 import java.util.ArrayList;
@@ -168,6 +170,44 @@ public final class WithdrawalHistoryRoomMapper {
                 : new ArrayList<>(entries);
 
         return relation;
+    }
+
+    public WithdrawalHistorySummary toDomain(
+            WithdrawalHistorySummaryRow row
+    ) {
+        Objects.requireNonNull(
+                row,
+                "History summary row cannot be null"
+        );
+
+        return new WithdrawalHistorySummary(
+                row.getId(),
+                row.getTitle(),
+                row.getRegisteredAt(),
+                row.getCreatedAt(),
+                row.getUpdatedAt(),
+                row.getEntryCount(),
+                row.getFoundCount(),
+                row.getNotFoundCount()
+        );
+    }
+
+    public List<WithdrawalHistorySummary> toSummaryDomains(
+            List<WithdrawalHistorySummaryRow> rows
+    ) {
+        Objects.requireNonNull(
+                rows,
+                "History summary rows cannot be null"
+        );
+
+        List<WithdrawalHistorySummary> summaries =
+                new ArrayList<>(rows.size());
+
+        for (WithdrawalHistorySummaryRow row : rows) {
+            summaries.add(toDomain(row));
+        }
+
+        return summaries;
     }
 
     private WithdrawalLocationStatus parseLocationStatus(

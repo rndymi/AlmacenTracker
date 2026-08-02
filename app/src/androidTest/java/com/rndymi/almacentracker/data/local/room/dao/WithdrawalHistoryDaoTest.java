@@ -17,6 +17,7 @@ import com.rndymi.almacentracker.data.local.room.database.AlmacenTrackerDatabase
 import com.rndymi.almacentracker.data.local.room.entity.WarehouseItemEntity;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntity;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntryEntity;
+import com.rndymi.almacentracker.data.local.room.projection.WithdrawalHistorySummaryRow;
 import com.rndymi.almacentracker.data.local.room.relation.WithdrawalHistoryWithEntries;
 
 import org.junit.After;
@@ -333,6 +334,92 @@ public class WithdrawalHistoryDaoTest {
         assertNull(result);
     }
 
+    @Test
+    public void findAllSummaries_emptyDatabase_returnsEmptyList() {
+        List<WithdrawalHistorySummaryRow> summaries =
+                historyDao.findAllSummaries();
+
+        assertNotNull(summaries);
+        assertTrue(summaries.isEmpty());
+    }
+
+    @Test
+    public void findAllSummaries_countsEntriesByStatus() {
+        long historyId =
+                historyDao.insertHistoryWithEntries(
+                        createHistoryEntity(
+                                0L,
+                                "Lista centro",
+                                200L
+                        ),
+                        Arrays.asList(
+                                createFoundEntry(0),
+                                createFoundEntry(1),
+                                createNotFoundEntry(2)
+                        )
+                );
+
+        List<WithdrawalHistorySummaryRow> summaries =
+                historyDao.findAllSummaries();
+
+        assertEquals(1, summaries.size());
+
+        WithdrawalHistorySummaryRow summary =
+                summaries.get(0);
+
+        assertEquals(historyId, summary.getId());
+        assertEquals(3, summary.getEntryCount());
+        assertEquals(2, summary.getFoundCount());
+        assertEquals(1, summary.getNotFoundCount());
+    }
+
+    @Test
+    public void findAllSummaries_ordersByRegisteredAtAndIdDescending() {
+        long firstId =
+                historyDao.insertHistoryWithEntries(
+                        createHistoryEntity(
+                                0L,
+                                "Primera",
+                                100L
+                        ),
+                        Collections.singletonList(
+                                createFoundEntry(0)
+                        )
+                );
+
+        long secondId =
+                historyDao.insertHistoryWithEntries(
+                        createHistoryEntity(
+                                0L,
+                                "Segunda",
+                                200L
+                        ),
+                        Collections.singletonList(
+                                createFoundEntry(0)
+                        )
+                );
+
+        long thirdId =
+                historyDao.insertHistoryWithEntries(
+                        createHistoryEntity(
+                                0L,
+                                "Tercera",
+                                200L
+                        ),
+                        Collections.singletonList(
+                                createFoundEntry(0)
+                        )
+                );
+
+        List<WithdrawalHistorySummaryRow> summaries =
+                historyDao.findAllSummaries();
+
+        assertEquals(3, summaries.size());
+        assertEquals(thirdId, summaries.get(0).getId());
+        assertEquals(secondId, summaries.get(1).getId());
+        assertEquals(firstId, summaries.get(2).getId());
+    }
+
     private WithdrawalHistoryEntity createHistory(
             String title
     ) {
@@ -342,6 +429,42 @@ public class WithdrawalHistoryDaoTest {
                 1000L,
                 1000L,
                 1000L
+        );
+    }
+
+    private WithdrawalHistoryEntity createHistoryEntity(
+            long id,
+            String title,
+            long registeredAt
+    ) {
+        return new WithdrawalHistoryEntity(
+                id,
+                title,
+                registeredAt,
+                registeredAt,
+                registeredAt
+        );
+    }
+
+    private WithdrawalHistoryEntryEntity
+    createFoundEntry(
+            int orderIndex
+    ) {
+        return createFoundEntry(
+                orderIndex,
+                "MR",
+                String.valueOf(1210 + orderIndex)
+        );
+    }
+
+    private WithdrawalHistoryEntryEntity
+    createNotFoundEntry(
+            int orderIndex
+    ) {
+        return createNotFoundEntry(
+                orderIndex,
+                "MZ",
+                String.valueOf(1300 + orderIndex)
         );
     }
 

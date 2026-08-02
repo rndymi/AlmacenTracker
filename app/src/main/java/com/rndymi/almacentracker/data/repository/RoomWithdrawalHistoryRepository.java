@@ -4,13 +4,17 @@ import com.rndymi.almacentracker.data.local.room.dao.WithdrawalHistoryDao;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntity;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntryEntity;
 import com.rndymi.almacentracker.data.local.room.mapper.WithdrawalHistoryRoomMapper;
+import com.rndymi.almacentracker.data.local.room.projection.WithdrawalHistorySummaryRow;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
+
 import com.rndymi.almacentracker.data.local.room.relation.WithdrawalHistoryWithEntries;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executor;
 
 public final class RoomWithdrawalHistoryRepository
         implements WithdrawalHistoryRepository {
@@ -94,6 +98,39 @@ public final class RoomWithdrawalHistoryRepository
 
                 callback.onSuccess(
                         mapper.toDomain(relation)
+                );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void findAllSummaries(
+            RepositoryCallback<
+                    List<WithdrawalHistorySummary>
+                    > callback
+    ) {
+        Objects.requireNonNull(callback);
+
+        executor.execute(() -> {
+            try {
+                List<WithdrawalHistorySummaryRow> rows =
+                        dao.findAllSummaries();
+
+                List<WithdrawalHistorySummary> summaries;
+
+                if (rows == null || rows.isEmpty()) {
+                    summaries = Collections.emptyList();
+                } else {
+                    summaries =
+                            mapper.toSummaryDomains(rows);
+                }
+
+                callback.onSuccess(
+                        Collections.unmodifiableList(
+                                new ArrayList<>(summaries)
+                        )
                 );
             } catch (RuntimeException exception) {
                 callback.onError(exception);

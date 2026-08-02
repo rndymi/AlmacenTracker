@@ -6,10 +6,12 @@ import static org.junit.Assert.assertThrows;
 
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntity;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntryEntity;
+import com.rndymi.almacentracker.data.local.room.projection.WithdrawalHistorySummaryRow;
 import com.rndymi.almacentracker.data.local.room.relation.WithdrawalHistoryWithEntries;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistory;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryEntry;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 
 import org.junit.Before;
@@ -203,6 +205,60 @@ public class WithdrawalHistoryRoomMapperTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> mapper.toDomain(entity)
+        );
+    }
+
+    @Test
+    public void summaryRow_mapsToDomain() {
+        WithdrawalHistorySummaryRow row =
+                new WithdrawalHistorySummaryRow(
+                        7L,
+                        "Reposición",
+                        100L,
+                        110L,
+                        120L,
+                        4,
+                        3,
+                        1
+                );
+
+        WithdrawalHistorySummary summary =
+                mapper.toDomain(row);
+
+        assertEquals(7L, summary.getId());
+        assertEquals("Reposición", summary.getTitle());
+        assertEquals(4, summary.getEntryCount());
+        assertEquals(3, summary.getFoundCount());
+        assertEquals(1, summary.getNotFoundCount());
+    }
+
+    @Test
+    public void nullSummaryRow_isRejected() {
+        assertThrows(
+                NullPointerException.class,
+                () -> mapper.toDomain(
+                        (WithdrawalHistorySummaryRow) null
+                )
+        );
+    }
+
+    @Test
+    public void inconsistentSummaryCounters_areRejected() {
+        WithdrawalHistorySummaryRow row =
+                new WithdrawalHistorySummaryRow(
+                        7L,
+                        null,
+                        100L,
+                        110L,
+                        120L,
+                        4,
+                        2,
+                        1
+                );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> mapper.toDomain(row)
         );
     }
 }
