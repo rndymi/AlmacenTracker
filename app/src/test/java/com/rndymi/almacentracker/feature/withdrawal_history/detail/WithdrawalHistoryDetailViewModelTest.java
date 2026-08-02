@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.LiveData;
 
+import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.data.repository.WithdrawalHistoryRepository;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistory;
@@ -148,7 +149,7 @@ public final class WithdrawalHistoryDetailViewModelTest {
         viewModel.load(9L);
 
         assertTrue(
-                observed.get().hasError()
+                observed.get().hasLoadError()
         );
         assertFalse(
                 observed.get().hasContent()
@@ -199,13 +200,13 @@ public final class WithdrawalHistoryDetailViewModelTest {
         viewModel.load(7L);
 
         assertTrue(
-                observed.get().hasError()
+                observed.get().hasLoadError()
         );
 
         repository.error = null;
         repository.record = createRecord();
 
-        viewModel.retry();
+        viewModel.retryLoad();
 
         assertEquals(
                 2,
@@ -248,6 +249,149 @@ public final class WithdrawalHistoryDetailViewModelTest {
                 record.getEntries()
                         .get(0)
                         .getOrderIndex()
+        );
+    }
+
+    @Test
+    public void deleteHistoryPublishesDeletingAndSuccessEvent() {
+        FakeRepository repository =
+                new FakeRepository();
+
+        repository.record = createRecord();
+
+        WithdrawalHistoryDetailViewModel viewModel =
+                new WithdrawalHistoryDetailViewModel(
+                        repository
+                );
+
+        AtomicReference<
+                WithdrawalHistoryDetailUiState
+                > observedState =
+                observe(viewModel.getUiState());
+
+        AtomicReference<UiEvent<Long>>
+                observedEvent =
+                new AtomicReference<>();
+
+        viewModel.getDeleteSuccessEvent()
+                .observeForever(
+                        observedEvent::set
+                );
+
+        viewModel.load(7L);
+        viewModel.deleteHistory();
+
+        assertEquals(
+                1,
+                repository.deleteByIdCalls
+        );
+
+        assertEquals(
+                7L,
+                repository.lastDeletedHistoryId
+        );
+
+        assertNotNull(
+                observedEvent.get()
+        );
+
+        assertEquals(
+                Long.valueOf(7L),
+                observedEvent.get()
+                        .getContentIfNotHandled()
+        );
+
+        assertNotNull(
+                observedState.get()
+                        .getRecord()
+        );
+    }
+
+    @Test
+    public void deleteHistoryNotFoundPublishesNotFound() {
+        FakeRepository repository =
+                new FakeRepository();
+
+        repository.record = createRecord();
+
+        WithdrawalHistoryDetailViewModel viewModel =
+                new WithdrawalHistoryDetailViewModel(
+                        repository
+                );
+
+        AtomicReference<
+                WithdrawalHistoryDetailUiState
+                > observed =
+                observe(viewModel.getUiState());
+
+        viewModel.load(7L);
+
+        repository.deleteNotFound = true;
+
+        viewModel.deleteHistory();
+
+        assertTrue(
+                observed.get().isNotFound()
+        );
+    }
+
+    @Test
+    public void deleteErrorPreservesContentAndAllowsRetry() {
+        FakeRepository repository =
+                new FakeRepository();
+
+        repository.record = createRecord();
+        repository.deleteError =
+                new IllegalStateException(
+                        "Delete failed"
+                );
+
+        WithdrawalHistoryDetailViewModel viewModel =
+                new WithdrawalHistoryDetailViewModel(
+                        repository
+                );
+
+        AtomicReference<
+                WithdrawalHistoryDetailUiState
+                > observed =
+                observe(viewModel.getUiState());
+
+        viewModel.load(7L);
+        viewModel.deleteHistory();
+
+        assertTrue(
+                observed.get().hasDeleteError()
+        );
+
+        assertNotNull(
+                observed.get().getRecord()
+        );
+
+        repository.deleteError = null;
+
+        viewModel.retryDelete();
+
+        assertEquals(
+                2,
+                repository.deleteByIdCalls
+        );
+    }
+
+    @Test
+    public void deleteHistoryIgnoresRequestWithoutLoadedRecord() {
+        FakeRepository repository =
+                new FakeRepository();
+
+        WithdrawalHistoryDetailViewModel viewModel =
+                new WithdrawalHistoryDetailViewModel(
+                        repository
+                );
+
+        viewModel.deleteHistory();
+
+        assertEquals(
+                0,
+                repository.deleteByIdCalls
         );
     }
 
@@ -304,14 +448,14 @@ public final class WithdrawalHistoryDetailViewModelTest {
             implements WithdrawalHistoryRepository {
 
         private WithdrawalHistoryRecord record;
-
         private Throwable error;
-
         private boolean notFound;
-
         private int findByIdCalls;
-
         private long lastHistoryId;
+        private Throwable deleteError;
+        private boolean deleteNotFound;
+        private int deleteByIdCalls;
+        private long lastDeletedHistoryId;
 
         @Override
         public void insert(
@@ -368,7 +512,20 @@ public final class WithdrawalHistoryDetailViewModelTest {
                 long historyId,
                 RepositoryCallback<Void> callback
         ) {
-            throw new UnsupportedOperationException();
+            deleteByIdCalls++;
+            lastDeletedHistoryId = historyId;
+
+            if (deleteError != null) {
+                callback.onError(deleteError);
+                return;
+            }
+
+            if (deleteNotFound) {
+                callback.onNotFound();
+                return;
+            }
+
+            callback.onSuccess(null);
         }
     }
 }

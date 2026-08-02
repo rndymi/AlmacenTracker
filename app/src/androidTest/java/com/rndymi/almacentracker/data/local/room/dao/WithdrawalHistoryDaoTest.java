@@ -621,6 +621,38 @@ public class WithdrawalHistoryDaoTest {
         );
     }
 
+    @Test
+    public void deleteByIdRemovesHistoryAndEntries() {
+        long historyId =
+                historyDao.insertHistoryWithEntries(
+                        createHistoryEntity(),
+                        Collections.singletonList(
+                                createEntryEntity()
+                        )
+                );
+
+        int deletedRows =
+                historyDao.deleteById(historyId);
+
+        assertEquals(
+                1,
+                deletedRows
+        );
+
+        assertNull(
+                historyDao.findByIdWithEntries(
+                        historyId
+                )
+        );
+
+        assertEquals(
+                0,
+                historyDao.countEntriesByHistoryId(
+                        historyId
+                )
+        );
+    }
+
     private long insertHistory(
             String title,
             long registeredAt
