@@ -36,6 +36,7 @@ public final class WithdrawalHistoryListViewModel
     private LocalDate toDate;
 
     private boolean hasLoaded;
+    private boolean searchInProgress;
     private long requestGeneration;
 
     public WithdrawalHistoryListViewModel(
@@ -73,7 +74,7 @@ public final class WithdrawalHistoryListViewModel
     }
 
     public void load() {
-        if (hasLoaded) {
+        if (hasLoaded || searchInProgress) {
             return;
         }
 
@@ -140,6 +141,10 @@ public final class WithdrawalHistoryListViewModel
     }
 
     public void refresh() {
+        if (searchInProgress) {
+            return;
+        }
+
         executeCurrentSearch();
     }
 
@@ -150,6 +155,7 @@ public final class WithdrawalHistoryListViewModel
     private void executeCurrentSearch() {
         if (hasInvalidDateInterval()) {
             requestGeneration++;
+            searchInProgress = false;
 
             publishState(
                     currentStateStatus(),
@@ -164,6 +170,8 @@ public final class WithdrawalHistoryListViewModel
 
         long currentRequest =
                 ++requestGeneration;
+
+        searchInProgress = true;
 
         publishState(
                 WithdrawalHistoryListUiState.Status.LOADING,
@@ -186,6 +194,7 @@ public final class WithdrawalHistoryListViewModel
                             return;
                         }
 
+                        searchInProgress = false;
                         hasLoaded = true;
 
                         List<WithdrawalHistorySummary>
@@ -233,6 +242,7 @@ public final class WithdrawalHistoryListViewModel
                             return;
                         }
 
+                        searchInProgress = false;
                         hasLoaded = true;
 
                         publishState(
