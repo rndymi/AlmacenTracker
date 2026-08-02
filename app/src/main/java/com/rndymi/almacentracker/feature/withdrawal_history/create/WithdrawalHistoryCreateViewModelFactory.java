@@ -6,8 +6,30 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidator;
 
+import java.util.Objects;
+
 public final class WithdrawalHistoryCreateViewModelFactory
         implements ViewModelProvider.Factory {
+
+    private final WithdrawalHistorySaveService saveService;
+    private final WithdrawalHistoryDraftValidator validator;
+
+    public WithdrawalHistoryCreateViewModelFactory(
+            WithdrawalHistorySaveService saveService,
+            WithdrawalHistoryDraftValidator validator
+    ) {
+        this.saveService =
+                Objects.requireNonNull(
+                        saveService,
+                        "saveService"
+                );
+
+        this.validator =
+                Objects.requireNonNull(
+                        validator,
+                        "validator"
+                );
+    }
 
     @NonNull
     @Override
@@ -25,7 +47,8 @@ public final class WithdrawalHistoryCreateViewModelFactory
 
         return (T)
                 new WithdrawalHistoryCreateViewModel(
-                        new WithdrawalHistoryDraftValidator()
+                        saveService,
+                        validator
                 );
     }
 }

@@ -10,6 +10,8 @@ public final class WithdrawalHistoryCreateUiState {
         INITIALIZING,
         READY,
         INVALID_INPUT,
+        SAVING,
+        SAVED,
         ERROR
     }
 
@@ -20,6 +22,7 @@ public final class WithdrawalHistoryCreateUiState {
             entries;
     private final String titleError;
     private final String dateError;
+    private final String saveError;
 
     private WithdrawalHistoryCreateUiState(
             Status status,
@@ -27,10 +30,11 @@ public final class WithdrawalHistoryCreateUiState {
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries,
             String titleError,
-            String dateError
+            String dateError,
+            String saveError
     ) {
         this.status = status;
-        this.title = title;
+        this.title = title == null ? "" : title;
         this.registeredAt = registeredAt;
         this.entries =
                 Collections.unmodifiableList(
@@ -38,6 +42,7 @@ public final class WithdrawalHistoryCreateUiState {
                 );
         this.titleError = titleError;
         this.dateError = dateError;
+        this.saveError = saveError;
     }
 
     public static WithdrawalHistoryCreateUiState
@@ -47,6 +52,7 @@ public final class WithdrawalHistoryCreateUiState {
                 "",
                 0L,
                 Collections.emptyList(),
+                null,
                 null,
                 null
         );
@@ -62,6 +68,7 @@ public final class WithdrawalHistoryCreateUiState {
                 title,
                 registeredAt,
                 entries,
+                null,
                 null,
                 null
         );
@@ -80,16 +87,68 @@ public final class WithdrawalHistoryCreateUiState {
                 registeredAt,
                 entries,
                 titleError,
-                dateError
+                dateError,
+                null
         );
     }
 
-    public static WithdrawalHistoryCreateUiState error() {
+    public static WithdrawalHistoryCreateUiState saving(
+            String title,
+            long registeredAt,
+            List<WithdrawalHistoryDraftEntryUiModel> entries
+    ) {
+        return new WithdrawalHistoryCreateUiState(
+                Status.SAVING,
+                title,
+                registeredAt,
+                entries,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static WithdrawalHistoryCreateUiState saved(
+            String title,
+            long registeredAt,
+            List<WithdrawalHistoryDraftEntryUiModel> entries
+    ) {
+        return new WithdrawalHistoryCreateUiState(
+                Status.SAVED,
+                title,
+                registeredAt,
+                entries,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static WithdrawalHistoryCreateUiState saveError(
+            String title,
+            long registeredAt,
+            List<WithdrawalHistoryDraftEntryUiModel> entries,
+            String message
+    ) {
+        return new WithdrawalHistoryCreateUiState(
+                Status.ERROR,
+                title,
+                registeredAt,
+                entries,
+                null,
+                null,
+                message
+        );
+    }
+
+    public static WithdrawalHistoryCreateUiState
+    invalidInitialInput() {
         return new WithdrawalHistoryCreateUiState(
                 Status.ERROR,
                 "",
                 0L,
                 Collections.emptyList(),
+                null,
                 null,
                 null
         );
@@ -120,8 +179,35 @@ public final class WithdrawalHistoryCreateUiState {
         return dateError;
     }
 
-    public boolean canContinue() {
+    public String getSaveError() {
+        return saveError;
+    }
+
+    public boolean hasInitialInputError() {
+        return status == Status.ERROR
+                && entries.isEmpty();
+    }
+
+    public boolean hasSaveError() {
+        return status == Status.ERROR
+                && !entries.isEmpty();
+    }
+
+    public boolean isEditable() {
         return status == Status.READY
-                || status == Status.INVALID_INPUT;
+                || status == Status.INVALID_INPUT
+                || hasSaveError();
+    }
+
+    public boolean isSaving() {
+        return status == Status.SAVING;
+    }
+
+    public boolean isSaved() {
+        return status == Status.SAVED;
+    }
+
+    public boolean canRequestSave() {
+        return isEditable();
     }
 }

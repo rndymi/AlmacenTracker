@@ -6,14 +6,19 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.rndymi.almacentracker.R;
+import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.databinding.ActivityWithdrawalHistoryCreateBinding;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraft;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftEntry;
+import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 import com.rndymi.almacentracker.feature.inventory.common.SimpleTextWatcher;
 import com.rndymi.almacentracker.feature.withdrawal_history.common.WithdrawalHistoryCreateInput;
 import com.rndymi.almacentracker.feature.withdrawal_history.common.WithdrawalHistoryCreateIntentContract;
@@ -25,10 +30,14 @@ import java.util.List;
 public final class WithdrawalHistoryCreateActivity
         extends AppCompatActivity {
 
+    public static final String EXTRA_SAVED_HISTORY_ID =
+            "com.rndymi.almacentracker.extra.SAVED_HISTORY_ID";
+
     private ActivityWithdrawalHistoryCreateBinding binding;
     private WithdrawalHistoryCreateViewModel viewModel;
     private WithdrawalHistoryCreateAdapter adapter;
     private boolean rendering;
+    private boolean saveErrorShown;
 
     public static Intent createIntent(
             Context context,
@@ -49,6 +58,19 @@ public final class WithdrawalHistoryCreateActivity
         return intent;
     }
 
+    public static long getSavedHistoryId(
+            @Nullable Intent data
+    ) {
+        if (data == null) {
+            return 0L;
+        }
+
+        return data.getLongExtra(
+                EXTRA_SAVED_HISTORY_ID,
+                0L
+        );
+    }
+
     @Override
     protected void onCreate(
             @Nullable Bundle savedInstanceState
@@ -62,6 +84,7 @@ public final class WithdrawalHistoryCreateActivity
         setContentView(binding.getRoot());
 
         configureToolbar();
+        configureBackNavigation();
         configureList();
         configureViewModel();
         configureInputs();
@@ -80,6 +103,30 @@ public final class WithdrawalHistoryCreateActivity
                 ignored ->
                         getOnBackPressedDispatcher()
                                 .onBackPressed()
+        );
+    }
+
+    private void configureBackNavigation() {
+        getOnBackPressedDispatcher().addCallback(
+                this,
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        WithdrawalHistoryCreateUiState state =
+                                viewModel.getUiState()
+                                        .getValue();
+
+                        if (state != null
+                                && state.isSaving()) {
+                            return;
+                        }
+
+                        setEnabled(false);
+
+                        getOnBackPressedDispatcher()
+                                .onBackPressed();
+                    }
+                }
         );
     }
 
@@ -118,10 +165,16 @@ public final class WithdrawalHistoryCreateActivity
     }
 
     private void configureViewModel() {
+        AlmacenTrackerApplication application =
+                (AlmacenTrackerApplication)
+                        getApplication();
+
         viewModel =
                 new ViewModelProvider(
                         this,
-                        new WithdrawalHistoryCreateViewModelFactory()
+                        application
+                                .getAppContainer()
+                                .provideWithdrawalHistoryCreateViewModelFactory()
                 ).get(
                         WithdrawalHistoryCreateViewModel.class
                 );
@@ -144,7 +197,7 @@ public final class WithdrawalHistoryCreateActivity
     private void configureActions() {
         binding.continueButton.setOnClickListener(
                 ignored ->
-                        viewModel.continueToConfirmation(
+                        viewModel.requestSaveConfirmation(
                                 System.currentTimeMillis()
                         )
         );
@@ -156,38 +209,48 @@ public final class WithdrawalHistoryCreateActivity
                 this::render
         );
 
-        viewModel.getContinueEvent().observe(
+        viewModel.getConfirmationEvent().observe(
                 this,
-                this::consumeContinueEvent
+                this::consumeConfirmationEvent
+        );
+
+        viewModel.getSavedEvent().observe(
+                this,
+                this::consumeSavedEvent
         );
     }
 
     private void render(
             WithdrawalHistoryCreateUiState state
     ) {
-        boolean ready =
-                state.getStatus()
-                        == WithdrawalHistoryCreateUiState
-                        .Status.READY
-                        || state.getStatus()
-                        == WithdrawalHistoryCreateUiState
-                        .Status.INVALID_INPUT;
+        if (state == null) {
+            return;
+        }
+
+        boolean showContent =
+                !state.hasInitialInputError()
+                        && state.getStatus()
+                        != WithdrawalHistoryCreateUiState
+                        .Status.INITIALIZING;
 
         binding.contentContainer.setVisibility(
-                ready ? View.VISIBLE : View.GONE
-        );
-
-        binding.errorText.setVisibility(
-                state.getStatus()
-                        == WithdrawalHistoryCreateUiState
-                        .Status.ERROR
+                showContent
                         ? View.VISIBLE
                         : View.GONE
         );
 
-        if (!ready) {
+        binding.errorText.setVisibility(
+                state.hasInitialInputError()
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        if (!showContent) {
             return;
         }
+
+        boolean editable =
+                state.isEditable();
 
         rendering = true;
 
@@ -240,14 +303,43 @@ public final class WithdrawalHistoryCreateActivity
                 state.getEntries()
         );
 
+        binding.titleEditText.setEnabled(
+                editable
+        );
+
+        binding.entriesRecyclerView.setEnabled(
+                editable
+        );
+
         binding.continueButton.setEnabled(
-                state.canContinue()
+                state.canRequestSave()
+        );
+
+        binding.continueButton.setText(
+                state.isSaving()
+                        ? R.string.withdrawal_history_saving
+                        : R.string.withdrawal_history_save_action
         );
 
         rendering = false;
+
+        if (state.hasSaveError()
+                && !saveErrorShown) {
+            saveErrorShown = true;
+
+            Toast.makeText(
+                    this,
+                    state.getSaveError(),
+                    Toast.LENGTH_LONG
+            ).show();
+        }
+
+        if (!state.hasSaveError()) {
+            saveErrorShown = false;
+        }
     }
 
-    private void consumeContinueEvent(
+    private void consumeConfirmationEvent(
             UiEvent<WithdrawalHistoryDraft> event
     ) {
         WithdrawalHistoryDraft draft =
@@ -255,18 +347,88 @@ public final class WithdrawalHistoryCreateActivity
                         ? null
                         : event.getContentIfNotHandled();
 
-        if (draft == null) {
+        if (draft == null
+                || isFinishing()
+                || isDestroyed()) {
+            return;
+        }
+
+        int foundCount = 0;
+
+        for (
+                WithdrawalHistoryDraftEntry entry
+                : draft.getEntries()
+        ) {
+            if (entry.getLocationStatus()
+                    == WithdrawalLocationStatus.FOUND) {
+                foundCount++;
+            }
+        }
+
+        int notFoundCount =
+                draft.getEntries().size()
+                        - foundCount;
+
+        String message =
+                getString(
+                        R.string
+                                .withdrawal_history_save_confirmation_message,
+                        draft.getEntries().size(),
+                        foundCount,
+                        notFoundCount
+                );
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(
+                        R.string
+                                .withdrawal_history_save_confirmation_title
+                )
+                .setMessage(message)
+                .setNegativeButton(
+                        android.R.string.cancel,
+                        null
+                )
+                .setPositiveButton(
+                        R.string.withdrawal_history_save_action,
+                        (dialog, which) ->
+                                viewModel.confirmSave(
+                                        System.currentTimeMillis()
+                                )
+                )
+                .show();
+    }
+
+    private void consumeSavedEvent(
+            UiEvent<Long> event
+    ) {
+        Long generatedId =
+                event == null
+                        ? null
+                        : event.getContentIfNotHandled();
+
+        if (generatedId == null
+                || generatedId <= 0L) {
             return;
         }
 
         Toast.makeText(
                 this,
-                getString(
-                        R.string
-                                .withdrawal_history_draft_ready,
-                        draft.getEntries().size()
-                ),
-                Toast.LENGTH_LONG
+                R.string.withdrawal_history_saved,
+                Toast.LENGTH_SHORT
         ).show();
+
+        Intent result =
+                new Intent()
+                        .putExtra(
+                                EXTRA_SAVED_HISTORY_ID,
+                                generatedId
+                        );
+
+        setResult(
+                RESULT_OK,
+                result
+        );
+
+        finish();
     }
 }
