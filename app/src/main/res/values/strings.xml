@@ -722,4 +722,46 @@
     <string name="reference_list_location_not_found_description">
         Referencia %1$s. No encontrada.
     </string>
+
+
+    <string name="register_history_action"> Registrar historial </string>
+    <string name="continue_action"> Continuar </string>
+    <string name="withdrawal_history_create_title">
+        Preparar historial
+    </string>
+    <string name="withdrawal_history_create_description">
+        Completa los datos de la lista antes de registrarla. Las cantidades son documentales y no modifican el stock.
+    </string>
+    <string name="withdrawal_history_title_optional">
+        Título opcional
+    </string>
+    <string name="withdrawal_history_registered_at">
+        Fecha y hora
+    </string>
+    <string name="withdrawal_history_quantity">
+        Cantidad
+    </string>
+    <string name="withdrawal_history_unit"> Unidad </string>
+    <string name="withdrawal_history_not_found">
+        No encontrada al procesar la lista
+    </string>
+    <string name="withdrawal_history_reference_value">
+        %1$s · %2$s
+    </string>
+    <string name="withdrawal_history_site_only">
+        Sitio %1$s
+    </string>
+    <string name="withdrawal_history_site_position">
+        Sitio %1$s · Posición %2$s
+    </string>
+    <string name="withdrawal_history_invalid_input">
+        No hay referencias válidas para preparar el historial.
+    </string>
+    <string name="withdrawal_history_draft_ready">
+        Borrador preparado con %1$d referencias. El guardado se añadirá en la HU28.
+    </string>
+    <plurals name="withdrawal_history_reference_count">
+        <item quantity="one">%d referencia</item>
+        <item quantity="other">%d referencias</item>
+    </plurals>
 </resources>
