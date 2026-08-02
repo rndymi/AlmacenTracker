@@ -894,4 +894,17 @@
     <string name="withdrawal_history_search_error">
         No se pudo buscar en el historial.
     </string>
+
+
+
+    <string name="withdrawal_history_delete_action"> Eliminar lista </string>
+    <string name="withdrawal_history_delete_title"> Eliminar lista histórica </string>
+    <string name="withdrawal_history_delete_named_title"> ¿Eliminar “%1$s”? </string>
+    <string name="withdrawal_history_delete_message">
+        Se eliminará permanentemente esta lista y todas sus referencias guardadas. La mercadería almacenada no se modificará.
+    </string>
+    <string name="withdrawal_history_deleting"> Eliminando lista histórica </string>
+    <string name="withdrawal_history_delete_error">
+        No se pudo eliminar la lista histórica.
+    </string>
 </resources>

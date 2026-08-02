@@ -44,9 +44,9 @@ public final class WithdrawalHistoryDetailUiStateTest {
 
         WithdrawalHistoryDetailUiState state =
                 WithdrawalHistoryDetailUiState
-                        .error(record);
+                        .loadError(record);
 
-        assertTrue(state.hasError());
+        assertTrue(state.hasLoadError());
         assertTrue(state.hasContent());
         assertSame(record, state.getRecord());
     }

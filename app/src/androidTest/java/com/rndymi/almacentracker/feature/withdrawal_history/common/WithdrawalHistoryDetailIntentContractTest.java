@@ -101,4 +101,55 @@ public final class WithdrawalHistoryDetailIntentContractTest {
                         )
         );
     }
+
+    @Test
+    public void createDeleteResultStoresDeletedHistoryId() {
+        Intent result =
+                WithdrawalHistoryDetailIntentContract
+                        .createDeleteResult(
+                                21L
+                        );
+
+        assertEquals(
+                21L,
+                WithdrawalHistoryDetailIntentContract
+                        .readDeletedHistoryId(
+                                result
+                        )
+        );
+    }
+
+    @Test
+    public void createDeleteResultRejectsInvalidId() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        WithdrawalHistoryDetailIntentContract
+                                .createDeleteResult(
+                                        0L
+                                )
+        );
+    }
+
+    @Test
+    public void readDeletedHistoryIdReturnsInvalidValueForNullIntent() {
+        assertEquals(
+                -1L,
+                WithdrawalHistoryDetailIntentContract
+                        .readDeletedHistoryId(
+                                null
+                        )
+        );
+    }
+
+    @Test
+    public void readDeletedHistoryIdReturnsInvalidValueWhenExtraIsMissing() {
+        assertEquals(
+                -1L,
+                WithdrawalHistoryDetailIntentContract
+                        .readDeletedHistoryId(
+                                new Intent()
+                        )
+        );
+    }
 }
