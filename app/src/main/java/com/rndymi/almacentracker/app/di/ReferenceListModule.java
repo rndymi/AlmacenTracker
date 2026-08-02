@@ -11,6 +11,10 @@ import com.rndymi.almacentracker.data.document.AndroidDocumentImageProcessor;
 import com.rndymi.almacentracker.data.document.DocumentLineReconstructor;
 import com.rndymi.almacentracker.data.document.MlKitDocumentTextRecognizer;
 import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
+import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetector;
+import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetectorConfiguration;
+import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetectorPostProcessor;
+import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetectorPreprocessor;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
@@ -19,12 +23,15 @@ import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListRevi
 
 import java.util.Objects;
 
+import ai.onnxruntime.OrtEnvironment;
+
 public final class ReferenceListModule {
 
     private final Context applicationContext;
     private final DocumentImageLoader<Bitmap> imageLoader;
     private final WarehouseItemRepository repository;
     private final PaddleOcrRuntimeProvider paddleOcrRuntimeProvider;
+    private final PaddleTextDetector paddleTextDetector;
 
     public ReferenceListModule(
             Context context,
@@ -53,11 +60,38 @@ public final class ReferenceListModule {
                         paddleOcrRuntimeProvider,
                         "paddleOcrRuntimeProvider"
                 );
+
+        PaddleTextDetectorConfiguration detectorConfiguration =
+                PaddleTextDetectorConfiguration
+                        .defaultConfiguration();
+
+        PaddleTextDetectorPreprocessor detectorPreprocessor =
+                new PaddleTextDetectorPreprocessor(
+                        OrtEnvironment.getEnvironment(),
+                        detectorConfiguration
+                );
+
+        PaddleTextDetectorPostProcessor detectorPostProcessor =
+                new PaddleTextDetectorPostProcessor(
+                        detectorConfiguration
+                );
+
+        paddleTextDetector =
+                new PaddleTextDetector(
+                        this.paddleOcrRuntimeProvider,
+                        detectorConfiguration,
+                        detectorPreprocessor,
+                        detectorPostProcessor
+                );
     }
 
     public PaddleOcrRuntimeProvider
     providePaddleOcrRuntimeProvider() {
         return paddleOcrRuntimeProvider;
+    }
+
+    public PaddleTextDetector providePaddleTextDetector() {
+        return paddleTextDetector;
     }
 
     public ReferenceListCaptureViewModelFactory

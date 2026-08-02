@@ -199,9 +199,28 @@ public final class PaddleTextDetector {
     private void validateSessionNodes(
             OrtSession session
     ) throws TextDetectionException {
-        if (!session.getInputInfo().containsKey(
-                configuration.getInputName()
-        )) {
+        boolean hasConfiguredInput;
+        boolean hasConfiguredOutput;
+
+        try {
+            hasConfiguredInput =
+                    session.getInputInfo().containsKey(
+                            configuration.getInputName()
+                    );
+            hasConfiguredOutput =
+                    session.getOutputInfo().containsKey(
+                            configuration.getOutputName()
+                    );
+        } catch (OrtException exception) {
+            throw new TextDetectionException(
+                    TextDetectionException.Error
+                            .INFERENCE_ERROR,
+                    "Unable to inspect detector session metadata",
+                    exception
+            );
+        }
+
+        if (!hasConfiguredInput) {
             throw new TextDetectionException(
                     TextDetectionException.Error
                             .INPUT_SHAPE_INCOMPATIBLE,
@@ -209,9 +228,7 @@ public final class PaddleTextDetector {
             );
         }
 
-        if (!session.getOutputInfo().containsKey(
-                configuration.getOutputName()
-        )) {
+        if (!hasConfiguredOutput) {
             throw new TextDetectionException(
                     TextDetectionException.Error
                             .OUTPUT_NOT_FOUND,

@@ -1,7 +1,6 @@
 package com.rndymi.almacentracker.data.document.onnx.detection;
 
 import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtException;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,7 +49,7 @@ public final class DetectorInput
 
         try {
             tensor.close();
-        } catch (OrtException exception) {
+        } catch (RuntimeException exception) {
             throw new IllegalStateException(
                     "Unable to close detector input tensor",
                     exception
