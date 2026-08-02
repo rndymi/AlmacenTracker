@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.data.document.onnx;
 
+import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 
 import java.util.Objects;
@@ -65,12 +66,23 @@ public final class PaddleOcrSessionBundle
 
         try {
             recognizerSession.close();
+        } catch (OrtException exception) {
+            failure = closeFailure(exception);
         } catch (RuntimeException exception) {
             failure = exception;
         }
 
         try {
             detectorSession.close();
+        } catch (OrtException exception) {
+            RuntimeException detectorFailure =
+                    closeFailure(exception);
+
+            if (failure == null) {
+                failure = detectorFailure;
+            } else {
+                failure.addSuppressed(detectorFailure);
+            }
         } catch (RuntimeException exception) {
             if (failure == null) {
                 failure = exception;
@@ -82,6 +94,15 @@ public final class PaddleOcrSessionBundle
         if (failure != null) {
             throw failure;
         }
+    }
+
+    private RuntimeException closeFailure(
+            OrtException exception
+    ) {
+        return new IllegalStateException(
+                "Unable to close PP-OCRv5 session",
+                exception
+        );
     }
 
     private void ensureOpen() {

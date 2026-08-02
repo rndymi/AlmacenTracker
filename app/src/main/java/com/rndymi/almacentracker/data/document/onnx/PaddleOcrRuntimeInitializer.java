@@ -90,7 +90,7 @@ public final class PaddleOcrRuntimeInitializer {
             );
 
             PaddleOcrDictionary dictionary =
-                    PaddleOcrDictionary.fromUtf8(
+                    loadDictionary(
                             dictionaryBytes
                     );
 
@@ -134,6 +134,29 @@ public final class PaddleOcrRuntimeInitializer {
             return PaddleOcrInitializationResult.ready(
                     sessionBundle
             );
+        } catch (PaddleOcrManifestException exception) {
+            return error(
+                    PaddleOcrInitializationError
+                            .MANIFEST_INVALID,
+                    exception,
+                    recognizerSession,
+                    detectorSession
+            );
+        } catch (PaddleOcrIntegrityException exception) {
+            return error(
+                    PaddleOcrInitializationError
+                            .RESOURCE_INTEGRITY_ERROR,
+                    exception,
+                    recognizerSession,
+                    detectorSession
+            );
+        } catch (PaddleOcrMetadataException exception) {
+            return error(
+                    exception.getError(),
+                    exception,
+                    recognizerSession,
+                    detectorSession
+            );
         } catch (FileNotFoundException exception) {
             return error(
                     PaddleOcrInitializationError
@@ -152,7 +175,7 @@ public final class PaddleOcrRuntimeInitializer {
             );
         } catch (IllegalArgumentException exception) {
             return error(
-                    mapValidationError(exception),
+                    PaddleOcrInitializationError.UNKNOWN,
                     exception,
                     recognizerSession,
                     detectorSession
@@ -173,6 +196,23 @@ public final class PaddleOcrRuntimeInitializer {
                     exception,
                     recognizerSession,
                     detectorSession
+            );
+        }
+    }
+
+    private PaddleOcrDictionary loadDictionary(
+            byte[] dictionaryBytes
+    ) {
+        try {
+            return PaddleOcrDictionary.fromUtf8(
+                    dictionaryBytes
+            );
+        } catch (IOException exception) {
+            throw new PaddleOcrMetadataException(
+                    PaddleOcrInitializationError
+                            .DICTIONARY_INVALID,
+                    "Recognition dictionary is invalid",
+                    exception
             );
         }
     }
@@ -211,48 +251,6 @@ public final class PaddleOcrRuntimeInitializer {
         );
     }
 
-    private PaddleOcrInitializationError
-    mapValidationError(
-            IllegalArgumentException exception
-    ) {
-        String message = exception.getMessage();
-
-        if (message == null) {
-            return PaddleOcrInitializationError.UNKNOWN;
-        }
-
-        if (message.contains("SHA-256")
-                || message.contains("integrity")) {
-            return PaddleOcrInitializationError
-                    .RESOURCE_INTEGRITY_ERROR;
-        }
-
-        if (message.contains("manifest")
-                || message.contains("configured")) {
-            return PaddleOcrInitializationError
-                    .MANIFEST_INVALID;
-        }
-
-        if (message.contains("dictionary")) {
-            return PaddleOcrInitializationError
-                    .DICTIONARY_INCOMPATIBLE;
-        }
-
-        if (message.contains("Recognizer")
-                || message.contains("recognizer")) {
-            return PaddleOcrInitializationError
-                    .RECOGNIZER_METADATA_INCOMPATIBLE;
-        }
-
-        if (message.contains("Model")
-                || message.contains("model")) {
-            return PaddleOcrInitializationError
-                    .DETECTOR_METADATA_INCOMPATIBLE;
-        }
-
-        return PaddleOcrInitializationError.UNKNOWN;
-    }
-
     private PaddleOcrInitializationError mapOrtError(
             OrtSession detectorSession,
             OrtSession recognizerSession
@@ -280,7 +278,7 @@ public final class PaddleOcrRuntimeInitializer {
 
         try {
             session.close();
-        } catch (RuntimeException ignored) {
+        } catch (OrtException | RuntimeException ignored) {
         }
     }
 }

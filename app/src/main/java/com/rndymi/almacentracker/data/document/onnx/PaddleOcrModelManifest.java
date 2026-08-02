@@ -202,7 +202,7 @@ public final class PaddleOcrModelManifest {
                 .toLowerCase(Locale.ROOT);
 
         if (!value.matches("[0-9a-f]{64}")) {
-            throw new IllegalArgumentException(
+            throw new PaddleOcrManifestException(
                     key + " must contain a SHA-256 hash"
             );
         }
@@ -214,16 +214,22 @@ public final class PaddleOcrModelManifest {
             Properties properties,
             String key
     ) {
-        String value = Objects.requireNonNull(
-                properties.getProperty(key),
-                key
-        ).trim();
+        String configuredValue =
+                properties.getProperty(key);
+
+        if (configuredValue == null) {
+            throw new PaddleOcrManifestException(
+                    key + " is missing"
+            );
+        }
+
+        String value = configuredValue.trim();
 
         if (value.isEmpty()
                 || value.startsWith(
                 PLACEHOLDER_PREFIX
         )) {
-            throw new IllegalArgumentException(
+            throw new PaddleOcrManifestException(
                     key + " has not been configured"
             );
         }
@@ -238,7 +244,7 @@ public final class PaddleOcrModelManifest {
         int value = parseInt(properties, key);
 
         if (value <= 0) {
-            throw new IllegalArgumentException(
+            throw new PaddleOcrManifestException(
                     key + " must be greater than zero"
             );
         }
@@ -253,7 +259,7 @@ public final class PaddleOcrModelManifest {
         int value = parseInt(properties, key);
 
         if (value < 0) {
-            throw new IllegalArgumentException(
+            throw new PaddleOcrManifestException(
                     key + " cannot be negative"
             );
         }
@@ -270,7 +276,7 @@ public final class PaddleOcrModelManifest {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(
+            throw new PaddleOcrManifestException(
                     key + " must contain an integer",
                     exception
             );

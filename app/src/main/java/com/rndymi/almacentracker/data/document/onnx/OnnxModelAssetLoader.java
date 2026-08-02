@@ -129,7 +129,7 @@ public final class OnnxModelAssetLoader {
                         "expectedSha256"
                 )
         )) {
-            throw new IllegalArgumentException(
+            throw new PaddleOcrIntegrityException(
                     "Asset integrity verification failed"
             );
         }
