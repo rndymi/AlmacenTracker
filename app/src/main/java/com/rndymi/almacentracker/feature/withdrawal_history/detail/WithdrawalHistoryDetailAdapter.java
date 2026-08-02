@@ -82,8 +82,10 @@ public final class WithdrawalHistoryDetailAdapter
                             oldItem.getPositionSnapshot(),
                             newItem.getPositionSnapshot()
                     )
-                            && oldItem.getLocationStatus()
-                            == newItem.getLocationStatus();
+                            && valuesEqual(
+                            oldItem.getLocationStatus(),
+                            newItem.getLocationStatus()
+                    );
                 }
 
                 private boolean valuesEqual(
