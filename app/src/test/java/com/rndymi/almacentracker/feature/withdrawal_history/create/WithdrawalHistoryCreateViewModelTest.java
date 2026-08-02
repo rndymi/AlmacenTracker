@@ -12,6 +12,7 @@ import com.rndymi.almacentracker.data.repository.WithdrawalHistoryRepository;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraft;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidator;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 import com.rndymi.almacentracker.feature.withdrawal_history.common.WithdrawalHistoryCreateInput;
 
@@ -19,6 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 public final class WithdrawalHistoryCreateViewModelTest {
 
@@ -457,6 +459,14 @@ public final class WithdrawalHistoryCreateViewModelTest {
         public void findById(
                 long historyId,
                 RepositoryCallback<WithdrawalHistoryRecord> callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void findAllSummaries(
+                RepositoryCallback<
+                        List<WithdrawalHistorySummary>> callback
         ) {
             throw new UnsupportedOperationException();
         }
