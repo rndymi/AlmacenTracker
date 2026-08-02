@@ -725,6 +725,7 @@
 
 
     <string name="register_history_action"> Registrar historial </string>
+    <string name="continue_action"> Continuar </string>
     <string name="withdrawal_history_create_title">
         Preparar historial
     </string>
