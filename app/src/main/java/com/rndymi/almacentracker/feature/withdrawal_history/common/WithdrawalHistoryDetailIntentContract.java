@@ -14,6 +14,9 @@ public final class WithdrawalHistoryDetailIntentContract {
     public static final String EXTRA_HISTORY_ID =
             "com.rndymi.almacentracker.extra.WITHDRAWAL_HISTORY_ID";
 
+    public static final String EXTRA_DELETED_HISTORY_ID =
+            "com.rndymi.almacentracker.extra.DELETED_WITHDRAWAL_HISTORY_ID";
+
     private WithdrawalHistoryDetailIntentContract() {
     }
 
@@ -41,6 +44,21 @@ public final class WithdrawalHistoryDetailIntentContract {
         );
     }
 
+    public static Intent createDeleteResult(
+            long deletedHistoryId
+    ) {
+        if (deletedHistoryId <= 0L) {
+            throw new IllegalArgumentException(
+                    "Deleted history id must be positive"
+            );
+        }
+
+        return new Intent().putExtra(
+                EXTRA_DELETED_HISTORY_ID,
+                deletedHistoryId
+        );
+    }
+
     public static long readHistoryId(
             @Nullable Intent intent
     ) {
@@ -50,6 +68,19 @@ public final class WithdrawalHistoryDetailIntentContract {
 
         return intent.getLongExtra(
                 EXTRA_HISTORY_ID,
+                -1L
+        );
+    }
+
+    public static long readDeletedHistoryId(
+            @Nullable Intent intent
+    ) {
+        if (intent == null) {
+            return -1L;
+        }
+
+        return intent.getLongExtra(
+                EXTRA_DELETED_HISTORY_ID,
                 -1L
         );
     }

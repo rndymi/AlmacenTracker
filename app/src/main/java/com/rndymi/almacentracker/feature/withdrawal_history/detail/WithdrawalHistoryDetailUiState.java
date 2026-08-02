@@ -9,8 +9,10 @@ public final class WithdrawalHistoryDetailUiState {
     public enum Status {
         LOADING,
         CONTENT,
+        DELETING,
         NOT_FOUND,
-        ERROR
+        LOAD_ERROR,
+        DELETE_ERROR
     }
 
     private final Status status;
@@ -25,6 +27,7 @@ public final class WithdrawalHistoryDetailUiState {
                 status,
                 "status"
         );
+
         this.record = record;
     }
 
@@ -49,6 +52,18 @@ public final class WithdrawalHistoryDetailUiState {
         );
     }
 
+    public static WithdrawalHistoryDetailUiState deleting(
+            WithdrawalHistoryRecord record
+    ) {
+        return new WithdrawalHistoryDetailUiState(
+                Status.DELETING,
+                Objects.requireNonNull(
+                        record,
+                        "record"
+                )
+        );
+    }
+
     public static WithdrawalHistoryDetailUiState notFound() {
         return new WithdrawalHistoryDetailUiState(
                 Status.NOT_FOUND,
@@ -56,12 +71,24 @@ public final class WithdrawalHistoryDetailUiState {
         );
     }
 
-    public static WithdrawalHistoryDetailUiState error(
+    public static WithdrawalHistoryDetailUiState loadError(
             WithdrawalHistoryRecord previousRecord
     ) {
         return new WithdrawalHistoryDetailUiState(
-                Status.ERROR,
+                Status.LOAD_ERROR,
                 previousRecord
+        );
+    }
+
+    public static WithdrawalHistoryDetailUiState deleteError(
+            WithdrawalHistoryRecord record
+    ) {
+        return new WithdrawalHistoryDetailUiState(
+                Status.DELETE_ERROR,
+                Objects.requireNonNull(
+                        record,
+                        "record"
+                )
         );
     }
 
@@ -77,6 +104,10 @@ public final class WithdrawalHistoryDetailUiState {
         return status == Status.LOADING;
     }
 
+    public boolean isDeleting() {
+        return status == Status.DELETING;
+    }
+
     public boolean hasContent() {
         return record != null;
     }
@@ -85,7 +116,16 @@ public final class WithdrawalHistoryDetailUiState {
         return status == Status.NOT_FOUND;
     }
 
-    public boolean hasError() {
-        return status == Status.ERROR;
+    public boolean hasLoadError() {
+        return status == Status.LOAD_ERROR;
+    }
+
+    public boolean hasDeleteError() {
+        return status == Status.DELETE_ERROR;
+    }
+
+    public boolean canDelete() {
+        return status == Status.CONTENT
+                || status == Status.DELETE_ERROR;
     }
 }

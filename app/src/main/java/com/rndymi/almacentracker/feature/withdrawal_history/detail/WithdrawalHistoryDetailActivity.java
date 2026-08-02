@@ -24,14 +24,9 @@ import java.util.Locale;
 public final class WithdrawalHistoryDetailActivity
         extends AppCompatActivity {
 
-    private ActivityWithdrawalHistoryDetailBinding
-            binding;
-
-    private WithdrawalHistoryDetailViewModel
-            viewModel;
-
-    private WithdrawalHistoryDetailAdapter
-            adapter;
+    private ActivityWithdrawalHistoryDetailBinding binding;
+    private WithdrawalHistoryDetailViewModel viewModel;
+    private WithdrawalHistoryDetailAdapter adapter;
 
     @Override
     protected void onCreate(
