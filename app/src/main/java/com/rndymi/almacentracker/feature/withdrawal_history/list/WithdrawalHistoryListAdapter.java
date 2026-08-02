@@ -18,13 +18,18 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Locale;
+import java.util.Objects;
 
 public final class WithdrawalHistoryListAdapter
         extends ListAdapter<
         WithdrawalHistorySummary,
-        WithdrawalHistoryListAdapter
-                .HistoryViewHolder
+        WithdrawalHistoryListAdapter.HistoryViewHolder
         > {
+
+    public interface OnHistoryClickListener {
+
+        void onHistoryClick(long historyId);
+    }
 
     private static final DiffUtil.ItemCallback<
             WithdrawalHistorySummary
@@ -35,10 +40,8 @@ public final class WithdrawalHistoryListAdapter
 
                 @Override
                 public boolean areItemsTheSame(
-                        @NonNull
-                        WithdrawalHistorySummary oldItem,
-                        @NonNull
-                        WithdrawalHistorySummary newItem
+                        @NonNull WithdrawalHistorySummary oldItem,
+                        @NonNull WithdrawalHistorySummary newItem
                 ) {
                     return oldItem.getId()
                             == newItem.getId();
@@ -46,17 +49,26 @@ public final class WithdrawalHistoryListAdapter
 
                 @Override
                 public boolean areContentsTheSame(
-                        @NonNull
-                        WithdrawalHistorySummary oldItem,
-                        @NonNull
-                        WithdrawalHistorySummary newItem
+                        @NonNull WithdrawalHistorySummary oldItem,
+                        @NonNull WithdrawalHistorySummary newItem
                 ) {
                     return oldItem.equals(newItem);
                 }
             };
 
-    public WithdrawalHistoryListAdapter() {
+    private final OnHistoryClickListener
+            onHistoryClickListener;
+
+    public WithdrawalHistoryListAdapter(
+            OnHistoryClickListener onHistoryClickListener
+    ) {
         super(DIFF_CALLBACK);
+
+        this.onHistoryClickListener =
+                Objects.requireNonNull(
+                        onHistoryClickListener,
+                        "onHistoryClickListener"
+                );
 
         setHasStableIds(true);
     }
@@ -81,7 +93,10 @@ public final class WithdrawalHistoryListAdapter
                         false
                 );
 
-        return new HistoryViewHolder(binding);
+        return new HistoryViewHolder(
+                binding,
+                onHistoryClickListener
+        );
     }
 
     @Override
@@ -98,11 +113,18 @@ public final class WithdrawalHistoryListAdapter
         private final ItemWithdrawalHistorySummaryBinding
                 binding;
 
+        private final OnHistoryClickListener
+                onHistoryClickListener;
+
         HistoryViewHolder(
-                ItemWithdrawalHistorySummaryBinding binding
+                ItemWithdrawalHistorySummaryBinding binding,
+                OnHistoryClickListener onHistoryClickListener
         ) {
             super(binding.getRoot());
+
             this.binding = binding;
+            this.onHistoryClickListener =
+                    onHistoryClickListener;
         }
 
         void bind(
@@ -135,9 +157,16 @@ public final class WithdrawalHistoryListAdapter
             binding.historyDateText.setText(date);
             binding.historySummaryText.setText(counters);
 
-            binding.getRoot().setClickable(false);
-            binding.getRoot().setFocusable(false);
-            binding.getRoot().setOnClickListener(null);
+            binding.getRoot().setClickable(true);
+            binding.getRoot().setFocusable(true);
+
+            binding.getRoot().setOnClickListener(
+                    ignored ->
+                            onHistoryClickListener
+                                    .onHistoryClick(
+                                            summary.getId()
+                                    )
+            );
 
             binding.getRoot().setContentDescription(
                     context.getString(

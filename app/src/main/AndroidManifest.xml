@@ -46,6 +46,9 @@
             android:name=".feature.reference_list.capture.ReferenceListCaptureActivity"
             android:exported="false" />
         <activity
+            android:name=".feature.withdrawal_history.detail.WithdrawalHistoryDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".feature.withdrawal_history.list.WithdrawalHistoryListActivity"
             android:exported="false" />
         <activity
