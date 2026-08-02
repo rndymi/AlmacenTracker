@@ -210,6 +210,17 @@ public final class RoomWithdrawalHistoryRepositoryTest {
         }
 
         @Override
+        public List<WithdrawalHistorySummaryRow>
+        searchSummaries(
+                int hasQuery,
+                String queryPattern,
+                Long registeredFromInclusive,
+                Long registeredToExclusive
+        ) {
+            throw unsupported();
+        }
+
+        @Override
         public long insertHistory(
                 WithdrawalHistoryEntity entity
         ) {

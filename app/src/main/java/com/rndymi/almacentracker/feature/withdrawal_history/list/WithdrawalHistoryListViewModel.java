@@ -6,8 +6,11 @@ import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.data.repository.WithdrawalHistoryRepository;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySearchCriteria;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,29 +20,51 @@ public final class WithdrawalHistoryListViewModel
         extends ViewModel {
 
     private final WithdrawalHistoryRepository repository;
+    private final ZoneId zoneId;
 
     private final MutableLiveData<
             WithdrawalHistoryListUiState
             > uiState =
-            new MutableLiveData<>(
-                    WithdrawalHistoryListUiState.loading(
-                            Collections.emptyList()
-                    )
-            );
+            new MutableLiveData<>();
 
     private List<WithdrawalHistorySummary>
             currentSummaries =
             Collections.emptyList();
 
+    private String query = "";
+    private LocalDate fromDate;
+    private LocalDate toDate;
+
     private boolean hasLoaded;
-    private boolean loading;
+    private boolean searchInProgress;
+    private long requestGeneration;
 
     public WithdrawalHistoryListViewModel(
             WithdrawalHistoryRepository repository
     ) {
+        this(
+                repository,
+                ZoneId.systemDefault()
+        );
+    }
+
+    WithdrawalHistoryListViewModel(
+            WithdrawalHistoryRepository repository,
+            ZoneId zoneId
+    ) {
         this.repository = Objects.requireNonNull(
                 repository,
                 "repository"
+        );
+
+        this.zoneId = Objects.requireNonNull(
+                zoneId,
+                "zoneId"
+        );
+
+        publishState(
+                WithdrawalHistoryListUiState.Status.LOADING,
+                false
         );
     }
 
@@ -49,39 +74,112 @@ public final class WithdrawalHistoryListViewModel
     }
 
     public void load() {
-        if (hasLoaded || loading) {
+        if (hasLoaded || searchInProgress) {
             return;
         }
 
-        loadSummaries();
+        executeCurrentSearch();
+    }
+
+    public void updateQuery(String value) {
+        query = value == null
+                ? ""
+                : value;
+
+        publishCurrentState();
+    }
+
+    public void search() {
+        executeCurrentSearch();
+    }
+
+    public void updateFromDate(LocalDate date) {
+        fromDate = date;
+        executeCurrentSearch();
+    }
+
+    public void updateToDate(LocalDate date) {
+        toDate = date;
+        executeCurrentSearch();
+    }
+
+    public void clearQuery() {
+        if (query.trim().isEmpty()) {
+            query = "";
+            publishCurrentState();
+            return;
+        }
+
+        query = "";
+        executeCurrentSearch();
+    }
+
+    public void clearFromDate() {
+        if (fromDate == null) {
+            return;
+        }
+
+        fromDate = null;
+        executeCurrentSearch();
+    }
+
+    public void clearToDate() {
+        if (toDate == null) {
+            return;
+        }
+
+        toDate = null;
+        executeCurrentSearch();
+    }
+
+    public void clearCriteria() {
+        query = "";
+        fromDate = null;
+        toDate = null;
+
+        executeCurrentSearch();
     }
 
     public void refresh() {
-        if (loading) {
+        if (searchInProgress) {
             return;
         }
 
-        loadSummaries();
+        executeCurrentSearch();
     }
 
     public void retry() {
-        if (loading) {
+        executeCurrentSearch();
+    }
+
+    private void executeCurrentSearch() {
+        if (hasInvalidDateInterval()) {
+            requestGeneration++;
+            searchInProgress = false;
+
+            publishState(
+                    currentStateStatus(),
+                    true
+            );
+
             return;
         }
 
-        loadSummaries();
-    }
+        WithdrawalHistorySearchCriteria criteria =
+                createCriteria();
 
-    private void loadSummaries() {
-        loading = true;
+        long currentRequest =
+                ++requestGeneration;
 
-        uiState.setValue(
-                WithdrawalHistoryListUiState.loading(
-                        currentSummaries
-                )
+        searchInProgress = true;
+
+        publishState(
+                WithdrawalHistoryListUiState.Status.LOADING,
+                false
         );
 
-        repository.findAllSummaries(
+        repository.searchSummaries(
+                criteria,
                 new RepositoryCallback<
                         List<WithdrawalHistorySummary>
                         >() {
@@ -91,7 +189,12 @@ public final class WithdrawalHistoryListViewModel
                             List<WithdrawalHistorySummary>
                                     value
                     ) {
-                        loading = false;
+                        if (currentRequest
+                                != requestGeneration) {
+                            return;
+                        }
+
+                        searchInProgress = false;
                         hasLoaded = true;
 
                         List<WithdrawalHistorySummary>
@@ -104,17 +207,22 @@ public final class WithdrawalHistoryListViewModel
 
                         currentSummaries = safeValue;
 
-                        if (safeValue.isEmpty()) {
-                            uiState.postValue(
+                        if (!safeValue.isEmpty()) {
+                            publishState(
                                     WithdrawalHistoryListUiState
-                                            .empty()
+                                            .Status.CONTENT,
+                                    false
                             );
                             return;
                         }
 
-                        uiState.postValue(
-                                WithdrawalHistoryListUiState
-                                        .content(safeValue)
+                        publishState(
+                                criteria.hasActiveCriteria()
+                                        ? WithdrawalHistoryListUiState
+                                          .Status.NO_RESULTS
+                                        : WithdrawalHistoryListUiState
+                                          .Status.EMPTY,
+                                false
                         );
                     }
 
@@ -129,17 +237,118 @@ public final class WithdrawalHistoryListViewModel
                     public void onError(
                             Throwable throwable
                     ) {
-                        loading = false;
+                        if (currentRequest
+                                != requestGeneration) {
+                            return;
+                        }
+
+                        searchInProgress = false;
                         hasLoaded = true;
 
-                        uiState.postValue(
+                        publishState(
                                 WithdrawalHistoryListUiState
-                                        .error(
-                                                currentSummaries
-                                        )
+                                        .Status.ERROR,
+                                false
                         );
                     }
                 }
+        );
+    }
+
+    private WithdrawalHistorySearchCriteria
+    createCriteria() {
+        Long fromInclusive =
+                fromDate == null
+                        ? null
+                        : fromDate
+                        .atStartOfDay(zoneId)
+                        .toInstant()
+                        .toEpochMilli();
+
+        Long toExclusive =
+                toDate == null
+                        ? null
+                        : toDate
+                        .plusDays(1L)
+                        .atStartOfDay(zoneId)
+                        .toInstant()
+                        .toEpochMilli();
+
+        return new WithdrawalHistorySearchCriteria(
+                query,
+                fromInclusive,
+                toExclusive
+        );
+    }
+
+    private boolean hasInvalidDateInterval() {
+        return fromDate != null
+                && toDate != null
+                && fromDate.isAfter(toDate);
+    }
+
+    private boolean hasActiveCriteria() {
+        return !query.trim().isEmpty()
+                || fromDate != null
+                || toDate != null;
+    }
+
+    private void publishCurrentState() {
+        WithdrawalHistoryListUiState current =
+                uiState.getValue();
+
+        WithdrawalHistoryListUiState.Status status =
+                current == null
+                        ? WithdrawalHistoryListUiState
+                          .Status.LOADING
+                        : current.getStatus();
+
+        publishState(
+                status,
+                hasInvalidDateInterval()
+        );
+    }
+
+    private WithdrawalHistoryListUiState.Status
+    currentStateStatus() {
+        WithdrawalHistoryListUiState current =
+                uiState.getValue();
+
+        if (current == null) {
+            return currentSummaries.isEmpty()
+                    ? WithdrawalHistoryListUiState
+                      .Status.EMPTY
+                    : WithdrawalHistoryListUiState
+                      .Status.CONTENT;
+        }
+
+        if (current.getStatus()
+                == WithdrawalHistoryListUiState
+                .Status.LOADING) {
+            return currentSummaries.isEmpty()
+                    ? WithdrawalHistoryListUiState
+                      .Status.EMPTY
+                    : WithdrawalHistoryListUiState
+                      .Status.CONTENT;
+        }
+
+        return current.getStatus();
+    }
+
+    private void publishState(
+            WithdrawalHistoryListUiState.Status status,
+            boolean invalidInterval
+    ) {
+        uiState.postValue(
+                WithdrawalHistoryListUiState.create(
+                        status,
+                        currentSummaries,
+                        query,
+                        fromDate,
+                        toDate,
+                        hasActiveCriteria(),
+                        invalidInterval
+                )
         );
     }
 }

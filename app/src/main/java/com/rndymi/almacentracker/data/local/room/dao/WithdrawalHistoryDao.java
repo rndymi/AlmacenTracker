@@ -109,6 +109,67 @@ public interface WithdrawalHistoryDao {
     List<WithdrawalHistorySummaryRow> findAllSummaries();
 
     @Query(
+            "SELECT " +
+                    "history.id AS id, " +
+                    "history.title AS title, " +
+                    "history.registered_at AS registered_at, " +
+                    "history.created_at AS created_at, " +
+                    "history.updated_at AS updated_at, " +
+                    "COUNT(entry.id) AS entry_count, " +
+                    "COALESCE(SUM(CASE " +
+                    "WHEN entry.location_status = 'FOUND' " +
+                    "THEN 1 ELSE 0 END), 0) AS found_count, " +
+                    "COALESCE(SUM(CASE " +
+                    "WHEN entry.location_status = 'NOT_FOUND' " +
+                    "THEN 1 ELSE 0 END), 0) AS not_found_count " +
+                    "FROM withdrawal_history AS history " +
+                    "LEFT JOIN withdrawal_history_entries AS entry " +
+                    "ON entry.history_id = history.id " +
+                    "WHERE (" +
+                    ":hasQuery = 0 " +
+                    "OR history.title LIKE :queryPattern " +
+                    "ESCAPE '\\' COLLATE NOCASE " +
+                    "OR EXISTS (" +
+                    "SELECT 1 " +
+                    "FROM withdrawal_history_entries " +
+                    "AS matching_entry " +
+                    "WHERE matching_entry.history_id = history.id " +
+                    "AND (" +
+                    "matching_entry.category LIKE :queryPattern " +
+                    "ESCAPE '\\' COLLATE NOCASE " +
+                    "OR matching_entry.code LIKE :queryPattern " +
+                    "ESCAPE '\\' COLLATE NOCASE" +
+                    ")" +
+                    ")" +
+                    ") " +
+                    "AND (" +
+                    ":registeredFromInclusive IS NULL " +
+                    "OR history.registered_at " +
+                    ">= :registeredFromInclusive" +
+                    ") " +
+                    "AND (" +
+                    ":registeredToExclusive IS NULL " +
+                    "OR history.registered_at " +
+                    "< :registeredToExclusive" +
+                    ") " +
+                    "GROUP BY " +
+                    "history.id, " +
+                    "history.title, " +
+                    "history.registered_at, " +
+                    "history.created_at, " +
+                    "history.updated_at " +
+                    "ORDER BY " +
+                    "history.registered_at DESC, " +
+                    "history.id DESC"
+    )
+    List<WithdrawalHistorySummaryRow> searchSummaries(
+            int hasQuery,
+            String queryPattern,
+            Long registeredFromInclusive,
+            Long registeredToExclusive
+    );
+
+    @Query(
             "SELECT COUNT(*) FROM withdrawal_history"
     )
     int countHistories();

@@ -14,6 +14,7 @@ import com.rndymi.almacentracker.data.repository.WithdrawalHistoryRepository;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistory;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryEntry;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySearchCriteria;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 
@@ -345,6 +346,16 @@ public final class WithdrawalHistoryDetailViewModelTest {
 
         @Override
         public void findAllSummaries(
+                RepositoryCallback<
+                        List<WithdrawalHistorySummary>
+                        > callback
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void searchSummaries(
+                WithdrawalHistorySearchCriteria criteria,
                 RepositoryCallback<
                         List<WithdrawalHistorySummary>
                         > callback

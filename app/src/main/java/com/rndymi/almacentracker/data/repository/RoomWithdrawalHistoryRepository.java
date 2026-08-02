@@ -5,6 +5,7 @@ import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntity;
 import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntryEntity;
 import com.rndymi.almacentracker.data.local.room.mapper.WithdrawalHistoryRoomMapper;
 import com.rndymi.almacentracker.data.local.room.projection.WithdrawalHistorySummaryRow;
+import com.rndymi.almacentracker.domain.history.WithdrawalHistorySearchCriteria;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
 
 import com.rndymi.almacentracker.data.local.room.relation.WithdrawalHistoryWithEntries;
@@ -117,6 +118,55 @@ public final class RoomWithdrawalHistoryRepository
             try {
                 List<WithdrawalHistorySummaryRow> rows =
                         dao.findAllSummaries();
+
+                List<WithdrawalHistorySummary> summaries;
+
+                if (rows == null || rows.isEmpty()) {
+                    summaries = Collections.emptyList();
+                } else {
+                    summaries =
+                            mapper.toSummaryDomains(rows);
+                }
+
+                callback.onSuccess(
+                        Collections.unmodifiableList(
+                                new ArrayList<>(summaries)
+                        )
+                );
+            } catch (RuntimeException exception) {
+                callback.onError(exception);
+            }
+        });
+    }
+
+    @Override
+    public void searchSummaries(
+            WithdrawalHistorySearchCriteria criteria,
+            RepositoryCallback<
+                    List<WithdrawalHistorySummary>
+                    > callback
+    ) {
+        Objects.requireNonNull(
+                criteria,
+                "criteria"
+        );
+
+        Objects.requireNonNull(
+                callback,
+                "callback"
+        );
+
+        executor.execute(() -> {
+            try {
+                List<WithdrawalHistorySummaryRow> rows =
+                        dao.searchSummaries(
+                                criteria.hasQuery()
+                                        ? 1
+                                        : 0,
+                                criteria.createLikePattern(),
+                                criteria.getRegisteredFromInclusive(),
+                                criteria.getRegisteredToExclusive()
+                        );
 
                 List<WithdrawalHistorySummary> summaries;
 
