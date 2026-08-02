@@ -779,4 +779,47 @@
     <string name="withdrawal_history_save_error">
         No se pudo guardar el historial.
     </string>
+
+
+
+    <string name="withdrawal_history_action"> Historial </string>
+    <string name="withdrawal_history_list_title"> Historial </string>
+    <string name="withdrawal_history_loading"> Cargando historial… </string>
+    <string name="withdrawal_history_untitled"> Lista sin título </string>
+    <string name="withdrawal_history_empty_title">
+        Todavía no hay listas guardadas
+    </string>
+    <string name="withdrawal_history_empty_description">
+        Procesa una lista y guárdala para verla aquí.
+    </string>
+    <string name="withdrawal_history_load_error">
+        No se pudo cargar el historial.
+    </string>
+    <string name="withdrawal_history_refresh_error">
+        No se pudo actualizar el historial.
+    </string>
+    <string name="withdrawal_history_summary_complete">
+        %1$s · %2$s · %3$s
+    </string>
+    <string name="withdrawal_history_summary_without_missing">
+        %1$s · %2$s
+    </string>
+    <string name="withdrawal_history_summary_without_found">
+        %1$s · %2$s
+    </string>
+    <string name="withdrawal_history_item_description">
+        %1$s. %2$s. %3$s.
+    </string>
+    <plurals name="withdrawal_history_reference_count">
+        <item quantity="one">%d referencia</item>
+        <item quantity="other">%d referencias</item>
+    </plurals>
+    <plurals name="withdrawal_history_found_count">
+        <item quantity="one">%d encontrada</item>
+        <item quantity="other">%d encontradas</item>
+    </plurals>
+    <plurals name="withdrawal_history_not_found_count">
+        <item quantity="one">%d no encontrada</item>
+        <item quantity="other">%d no encontradas</item>
+    </plurals>
 </resources>
