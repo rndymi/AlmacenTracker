@@ -31,6 +31,7 @@ import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
 import com.rndymi.almacentracker.feature.inventory.form.ItemFormActivity;
 import com.rndymi.almacentracker.feature.scanner.ScannerActivity;
 import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureActivity;
+import com.rndymi.almacentracker.feature.withdrawal_history.list.WithdrawalHistoryListActivity;
 import com.rndymi.almacentracker.R;
 
 import java.util.ArrayList;
@@ -1082,6 +1083,17 @@ public final class MainActivity extends AppCompatActivity {
             );
         }
 
+        MenuItem historyItem =
+                menu.findItem(
+                        R.id.action_withdrawal_history
+                );
+
+        if (historyItem != null) {
+            historyItem.setEnabled(
+                    !viewModel.hasSelection()
+            );
+        }
+
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -1095,6 +1107,12 @@ public final class MainActivity extends AppCompatActivity {
         if (item.getItemId()
                 == R.id.action_process_reference_list) {
             openReferenceListCapture();
+            return true;
+        }
+
+        if (item.getItemId()
+                == R.id.action_withdrawal_history) {
+            openWithdrawalHistory();
             return true;
         }
 
@@ -1124,4 +1142,14 @@ public final class MainActivity extends AppCompatActivity {
         );
     }
 
+    private void openWithdrawalHistory() {
+        if (viewModel.hasSelection()) {
+            return;
+        }
+
+        startActivity(
+                WithdrawalHistoryListActivity
+                        .createIntent(this)
+        );
+    }
 }

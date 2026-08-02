@@ -760,10 +760,6 @@
     <string name="withdrawal_history_draft_ready">
         Borrador preparado con %1$d referencias. El guardado se añadirá en la HU28.
     </string>
-    <plurals name="withdrawal_history_reference_count">
-        <item quantity="one">%d referencia</item>
-        <item quantity="other">%d referencias</item>
-    </plurals>
 
 
 

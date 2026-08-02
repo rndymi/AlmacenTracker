@@ -15,6 +15,12 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_withdrawal_history"
+        android:icon="@drawable/ic_history"
+        android:title="@string/withdrawal_history_action"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_data_management"
         android:icon="@drawable/ic_data_management"
         android:title="@string/data_management_action"
