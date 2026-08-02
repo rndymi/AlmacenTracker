@@ -318,7 +318,7 @@ public final class WithdrawalHistoryCreateViewModel
             return;
         }
 
-        uiState.setValue(
+        uiState.postValue(
                 WithdrawalHistoryCreateUiState.saved(
                         current.getTitle(),
                         current.getRegisteredAt(),
@@ -326,7 +326,7 @@ public final class WithdrawalHistoryCreateViewModel
                 )
         );
 
-        savedEvent.setValue(
+        savedEvent.postValue(
                 new UiEvent<>(generatedId)
         );
     }
@@ -347,7 +347,7 @@ public final class WithdrawalHistoryCreateViewModel
             return;
         }
 
-        uiState.setValue(
+        uiState.postValue(
                 WithdrawalHistoryCreateUiState.saveError(
                         current.getTitle(),
                         current.getRegisteredAt(),

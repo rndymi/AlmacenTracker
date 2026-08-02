@@ -100,15 +100,7 @@ public final class WithdrawalHistoryCreateAdapter
                         @NonNull
                         WithdrawalHistoryDraftEntryUiModel newItem
                 ) {
-                    return oldItem.getQuantityText()
-                            .equals(
-                                    newItem.getQuantityText()
-                            )
-                            && oldItem.getUnitText()
-                            .equals(
-                                    newItem.getUnitText()
-                            )
-                            && equalsNullable(
+                    return equalsNullable(
                             oldItem.getQuantityError(),
                             newItem.getQuantityError()
                     )
@@ -208,7 +200,8 @@ public final class WithdrawalHistoryCreateAdapter
                             )
             );
 
-            if (!binding.quantityEditText
+            if (!binding.quantityEditText.hasFocus()
+                    && !binding.quantityEditText
                     .getText()
                     .toString()
                     .equals(
@@ -219,7 +212,8 @@ public final class WithdrawalHistoryCreateAdapter
                 );
             }
 
-            if (!binding.unitEditText
+            if (!binding.unitEditText.hasFocus()
+                    && !binding.unitEditText
                     .getText()
                     .toString()
                     .equals(
