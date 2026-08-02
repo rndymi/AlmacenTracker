@@ -239,8 +239,7 @@ public final class ReferenceListReviewActivity
                         event -> {
                             List<DocumentReferenceData>
                                     confirmedValues =
-                                    event
-                                            .getContentIfNotHandled();
+                                    event.getContentIfNotHandled();
 
                             if (confirmedValues == null) {
                                 return;
@@ -476,21 +475,11 @@ public final class ReferenceListReviewActivity
     private void openReferenceLocations(
             List<DocumentReferenceData> confirmedValues
     ) {
-        List<WarehouseReference> references =
-                new ArrayList<>(
-                        confirmedValues.size()
-                );
-
-        for (DocumentReferenceData value
-                : confirmedValues) {
-            references.add(value.getReference());
-        }
-
         startActivity(
                 ReferenceListLocationActivity
                         .createIntent(
                                 this,
-                                references
+                                confirmedValues
                         )
         );
     }

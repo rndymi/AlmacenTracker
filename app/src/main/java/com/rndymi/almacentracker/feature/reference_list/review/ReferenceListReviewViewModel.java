@@ -46,8 +46,8 @@ public final class ReferenceListReviewViewModel
                             .initial()
             );
 
-    private final MutableLiveData
-            <UiEvent<List<DocumentReferenceData>>>
+    private final MutableLiveData<
+            UiEvent<List<DocumentReferenceData>>>
             confirmationEvent =
             new MutableLiveData<>();
 
@@ -103,8 +103,8 @@ public final class ReferenceListReviewViewModel
         return uiState;
     }
 
-    public LiveData
-            <UiEvent<List<DocumentReferenceData>>>
+    public LiveData<
+            UiEvent<List<DocumentReferenceData>>>
     getConfirmationEvent() {
         return confirmationEvent;
     }

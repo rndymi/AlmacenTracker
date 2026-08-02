@@ -12,11 +12,18 @@ import androidx.lifecycle.ViewModelProvider;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListLocationBinding;
+import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceLocation;
 import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
+import com.rndymi.almacentracker.feature.reference_list.common.DocumentReferenceDataIntentContract;
 import com.rndymi.almacentracker.feature.reference_list.common.WarehouseReferenceIntentContract;
+import com.rndymi.almacentracker.feature.withdrawal_history.common.WithdrawalHistoryCreateInput;
+import com.rndymi.almacentracker.feature.withdrawal_history.create.WithdrawalHistoryCreateActivity;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class ReferenceListLocationActivity
@@ -30,9 +37,13 @@ public final class ReferenceListLocationActivity
 
     private ReferenceListLocationAdapter adapter;
 
+    private List<DocumentReferenceData>
+            documentReferences =
+            Collections.emptyList();
+
     public static Intent createIntent(
             Context context,
-            List<WarehouseReference> references
+            List<DocumentReferenceData> references
     ) {
         Intent intent =
                 new Intent(
@@ -40,10 +51,25 @@ public final class ReferenceListLocationActivity
                         ReferenceListLocationActivity.class
                 );
 
+        DocumentReferenceDataIntentContract
+                .putDocumentReferences(
+                        intent,
+                        references
+                );
+
+        List<WarehouseReference> warehouseReferences =
+                new ArrayList<>();
+
+        for (DocumentReferenceData value : references) {
+            warehouseReferences.add(
+                    value.getReference()
+            );
+        }
+
         WarehouseReferenceIntentContract
                 .putReferences(
                         intent,
-                        references
+                        warehouseReferences
                 );
 
         return intent;
@@ -60,6 +86,12 @@ public final class ReferenceListLocationActivity
                         .inflate(getLayoutInflater());
 
         setContentView(binding.getRoot());
+
+        documentReferences =
+                DocumentReferenceDataIntentContract
+                        .getDocumentReferences(
+                                getIntent()
+                        );
 
         configureToolbar();
         configureList();
@@ -114,6 +146,11 @@ public final class ReferenceListLocationActivity
         binding.retryButton.setOnClickListener(
                 ignored -> viewModel.retry()
         );
+
+        binding.registerHistoryButton
+                .setOnClickListener(
+                        ignored -> openHistoryPreparation()
+                );
     }
 
     private void observeState() {
@@ -143,6 +180,12 @@ public final class ReferenceListLocationActivity
 
         binding.locationsRecyclerView.setVisibility(
                 content
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        binding.registerHistoryButton.setVisibility(
+                content && !state.getLocations().isEmpty()
                         ? View.VISIBLE
                         : View.GONE
         );
@@ -221,5 +264,105 @@ public final class ReferenceListLocationActivity
                         location.getWarehouseItemId()
                 )
         );
+    }
+
+    private void openHistoryPreparation() {
+        ReferenceListLocationUiState state =
+                viewModel.getUiState().getValue();
+
+        if (state == null
+                || !state.hasContent()
+                || state.getLocations().isEmpty()) {
+            return;
+        }
+
+        List<WithdrawalHistoryCreateInput> input =
+                new ArrayList<>();
+
+        for (
+                int index = 0;
+                index < state.getLocations().size();
+                index++
+        ) {
+            WarehouseReferenceLocation location =
+                    state.getLocations().get(index);
+
+            DocumentReferenceData documentData =
+                    findDocumentData(
+                            location.getReference()
+                    );
+
+            Integer quantity =
+                    documentData == null
+                            ? null
+                            : documentData.getQuantity();
+
+            String unit =
+                    documentData == null
+                            ? null
+                            : documentData.getUnit();
+
+            if (location.isFound()) {
+                input.add(
+                        new WithdrawalHistoryCreateInput(
+                                index,
+                                location
+                                        .getReference()
+                                        .getCategory(),
+                                location
+                                        .getReference()
+                                        .getCode(),
+                                quantity,
+                                unit,
+                                location.getWarehouseItemId(),
+                                location.getSite(),
+                                location.getPosition(),
+                                WithdrawalLocationStatus.FOUND
+                        )
+                );
+            } else {
+                input.add(
+                        new WithdrawalHistoryCreateInput(
+                                index,
+                                location
+                                        .getReference()
+                                        .getCategory(),
+                                location
+                                        .getReference()
+                                        .getCode(),
+                                quantity,
+                                unit,
+                                null,
+                                null,
+                                null,
+                                WithdrawalLocationStatus
+                                        .NOT_FOUND
+                        )
+                );
+            }
+        }
+
+        startActivity(
+                WithdrawalHistoryCreateActivity
+                        .createIntent(
+                                this,
+                                input
+                        )
+        );
+    }
+
+    private DocumentReferenceData findDocumentData(
+            WarehouseReference reference
+    ) {
+        for (
+                DocumentReferenceData value
+                : documentReferences
+        ) {
+            if (value.getReference().equals(reference)) {
+                return value;
+            }
+        }
+
+        return null;
     }
 }
