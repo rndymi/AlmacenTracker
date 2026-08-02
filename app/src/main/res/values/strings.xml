@@ -864,4 +864,34 @@
         %1$s. %2$s. %3$s.
     </string>
     <string name="back_action"> Volver </string>
+
+
+
+    <string name="search_action"> Buscar </string>
+    <string name="withdrawal_history_search_hint"> Buscar por título, categoría o código </string>
+    <string name="withdrawal_history_from_any_date"> Desde: cualquier fecha </string>
+    <string name="withdrawal_history_to_any_date"> Hasta: cualquier fecha </string>
+    <string name="withdrawal_history_from_date"> Desde: %1$s </string>
+    <string name="withdrawal_history_to_date"> Hasta: %1$s </string>
+    <string name="withdrawal_history_select_from_date">
+        Seleccionar fecha inicial
+    </string>
+    <string name="withdrawal_history_select_to_date">
+        Seleccionar fecha final
+    </string>
+    <string name="withdrawal_history_clear_from_date"> Quitar desde </string>
+    <string name="withdrawal_history_clear_to_date"> Quitar hasta </string>
+    <string name="withdrawal_history_clear_filters"> Limpiar filtros </string>
+    <string name="withdrawal_history_invalid_date_interval">
+        La fecha inicial no puede ser posterior a la fecha final.
+    </string>
+    <string name="withdrawal_history_no_results_title">
+        No se encontraron listas
+    </string>
+    <string name="withdrawal_history_no_results_description">
+        Prueba con otro texto o cambia las fechas.
+    </string>
+    <string name="withdrawal_history_search_error">
+        No se pudo buscar en el historial.
+    </string>
 </resources>
