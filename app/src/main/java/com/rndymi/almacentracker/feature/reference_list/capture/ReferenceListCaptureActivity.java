@@ -727,7 +727,6 @@ public final class ReferenceListCaptureActivity
             return;
         }
 
-        // Failure is harmless; cache cleanup can remove it later.
         file.delete();
     }
 

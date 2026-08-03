@@ -192,7 +192,6 @@ public class AlmacenTrackerDatabaseMigrationTest {
                                             int oldVersion,
                                             int newVersion
                                     ) {
-                                        // Version one is created directly.
                                     }
                                 }
                         )

@@ -57,7 +57,7 @@ public final class PaddleOcrModelManifestTest {
                 manifest.getRecognizerBlankIndex()
         );
         assertEquals(
-                18383,
+                99,
                 manifest.getDictionaryEntryCount()
         );
         assertEquals(
@@ -174,7 +174,7 @@ public final class PaddleOcrModelManifestTest {
         );
         properties.setProperty(
                 "dictionary.entry.count",
-                "18383"
+                "99"
         );
         properties.setProperty(
                 "dictionary.charset",
