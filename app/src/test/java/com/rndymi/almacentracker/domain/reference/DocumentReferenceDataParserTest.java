@@ -178,6 +178,72 @@ public final class DocumentReferenceDataParserTest {
         assertNull(result.getUnit());
     }
 
+    @Test
+    public void parseRecoversFiveWhenSWasReadAsQuantity() {
+        DocumentReferenceData result =
+                parser.parse(
+                        match(
+                                "MR",
+                                "21570",
+                                "M221570-Spcs"
+                        )
+                );
+
+        assertEquals(
+                Integer.valueOf(5),
+                result.getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                result.getUnit()
+        );
+    }
+
+    @Test
+    public void parseRecoversFiveAndPackageUnitFromNoisyLine() {
+        DocumentReferenceData result =
+                parser.parse(
+                        match(
+                                "MA",
+                                "901",
+                                "MA901-SPgts"
+                        )
+                );
+
+        assertEquals(
+                Integer.valueOf(5),
+                result.getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                result.getUnit()
+        );
+    }
+
+    @Test
+    public void parseRecoversPackageUnitFromP4ts() {
+        DocumentReferenceData result =
+                parser.parse(
+                        match(
+                                "MR",
+                                "21211",
+                                "MR21211-1P4t"
+                        )
+                );
+
+        assertEquals(
+                Integer.valueOf(1),
+                result.getQuantity()
+        );
+
+        assertEquals(
+                "PQT",
+                result.getUnit()
+        );
+    }
+
     private WarehouseReferenceMatch match(
             String category,
             String code,

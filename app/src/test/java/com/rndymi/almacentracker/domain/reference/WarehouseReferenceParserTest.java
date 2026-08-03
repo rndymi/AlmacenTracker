@@ -1056,4 +1056,76 @@ public final class WarehouseReferenceParserTest {
                         .displayValue()
         );
     }
+
+    @Test
+    public void suggestReferencesRecoversJAsSeven() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MA",
+                                "JI0"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MA",
+                                        "710"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MA 710",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesRecoversSeparatedFinalOne() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MR",
+                                "2111 I"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21111"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MR 21111",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesDoesNotMergeRealAlphabeticQualifier() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MA",
+                                "900 A"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MA",
+                                        "900"
+                                )
+                        ),
+                        5
+                );
+
+        assertTrue(suggestions.isEmpty());
+    }
 }

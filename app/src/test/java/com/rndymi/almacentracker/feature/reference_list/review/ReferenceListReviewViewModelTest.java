@@ -1097,6 +1097,127 @@ public final class ReferenceListReviewViewModelTest {
         );
     }
 
+    @Test
+    public void applyInitialLinesRecoversObservedTwoColumnQuantityAndCodes() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MA",
+                                                        "710"
+                                                ),
+                                                warehouseItem(
+                                                        "MA",
+                                                        "901"
+                                                ),
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21111"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "MAJI0-4PS",
+                        "MA901-SPgts",
+                        "MR2111I-2P9ts"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(3, state.getReferenceCount());
+
+        ReferenceProposal first =
+                state.getProposals().get(0);
+
+        assertEquals(
+                "MA JI0",
+                first.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                first.getMatchStatus()
+        );
+
+        assertEquals(
+                "MA 710",
+                first.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(4),
+                first.getDocumentData()
+                        .getQuantity()
+        );
+
+        ReferenceProposal second =
+                state.getProposals().get(1);
+
+        assertEquals(
+                Integer.valueOf(5),
+                second.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                second.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal third =
+                state.getProposals().get(2);
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                third.getMatchStatus()
+        );
+
+        assertEquals(
+                "MR 21111",
+                third.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(2),
+                third.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                third.getDocumentData()
+                        .getUnit()
+        );
+    }
+
     private WarehouseItem warehouseItem(
             String category,
             String code
