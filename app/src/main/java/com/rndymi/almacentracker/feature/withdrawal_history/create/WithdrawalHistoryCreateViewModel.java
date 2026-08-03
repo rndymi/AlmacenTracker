@@ -82,6 +82,7 @@ public final class WithdrawalHistoryCreateViewModel
 
     public void initialize(
             List<WithdrawalHistoryCreateInput> input,
+            String initialTitle,
             long now
     ) {
         if (initialized) {
@@ -154,7 +155,9 @@ public final class WithdrawalHistoryCreateViewModel
 
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.ready(
-                        "",
+                        normalizeInitialTitle(
+                                initialTitle
+                        ),
                         now,
                         entries
                 )
@@ -537,6 +540,33 @@ public final class WithdrawalHistoryCreateViewModel
 
         WithdrawalHistoryDraftEntryUiModel update(
                 WithdrawalHistoryDraftEntryUiModel entry
+        );
+    }
+
+    private String normalizeInitialTitle(
+            String value
+    ) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replace('\u00A0', ' ')
+                .replaceAll(
+                        "[\\p{Z}\\s]+",
+                        " "
+                )
+                .trim();
+    }
+
+    public void initialize(
+            List<WithdrawalHistoryCreateInput> input,
+            long now
+    ) {
+        initialize(
+                input,
+                null,
+                now
         );
     }
 }
