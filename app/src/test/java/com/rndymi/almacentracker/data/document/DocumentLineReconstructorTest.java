@@ -1,6 +1,7 @@
 package com.rndymi.almacentracker.data.document;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.rndymi.almacentracker.core.document.RecognizedTextElement;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
@@ -714,6 +715,69 @@ public final class DocumentLineReconstructorTest {
                 result.get(10)
                         .getReconstructedText()
         );
+    }
+
+    @Test
+    public void reconstructNeverKeepsTwoReferenceStartsInSameLine() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "MA900-3pcs",
+                                20,
+                                100,
+                                185,
+                                130
+                        ),
+                        element(
+                                "M221505-1pqts",
+                                220,
+                                102,
+                                390,
+                                132
+                        ),
+                        element(
+                                "MA901-5pqts",
+                                20,
+                                155,
+                                185,
+                                185
+                        ),
+                        element(
+                                "MR21111-2p9ts",
+                                220,
+                                157,
+                                390,
+                                187
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        420
+                );
+
+        assertEquals(4, result.size());
+
+        for (RecognizedTextLine line : result) {
+            String text =
+                    line.getReconstructedText()
+                            .toUpperCase();
+
+            boolean containsLeftAndRightReference =
+                    (
+                            text.contains("MA900")
+                                    && text.contains("M221505")
+                    )
+                            || (
+                            text.contains("MA901")
+                                    && text.contains("MR21111")
+                    );
+
+            assertFalse(
+                    containsLeftAndRightReference
+            );
+        }
     }
 
     private RecognizedTextElement element(
