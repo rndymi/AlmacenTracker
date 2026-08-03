@@ -7,17 +7,14 @@ import java.util.regex.Pattern;
 
 public final class DocumentReferenceDataParser {
 
-    private static final Pattern
-            DOCUMENT_DATA_DELIMITER_PATTERN =
+    private static final Pattern DOCUMENT_DATA_DELIMITER_PATTERN =
             Pattern.compile(
                     "[\\-\u2010\u2011\u2012\u2013\u2014]"
             );
-
-    private static final Pattern
-            DOCUMENT_DATA_PATTERN =
+    private static final Pattern DOCUMENT_DATA_PATTERN =
             Pattern.compile(
                     "^[\\p{Z}\\s:;,.\\-/]*"
-                            + "([1-9][0-9]{0,8})"
+                            + "([0-9ILSZGJBO]{1,9})"
                             + "(?:[\\p{Z}\\s]*"
                             + "([\\p{L}0-9]+"
                             + "(?:[\\p{Z}\\s]+"
@@ -25,21 +22,40 @@ public final class DocumentReferenceDataParser {
                             + "[\\p{Z}\\s:;,.\\-/]*$"
             );
 
-    private final DocumentUnitNormalizer
-            unitNormalizer;
+    private final DocumentUnitNormalizer unitNormalizer;
+    private final DocumentQuantityNormalizer quantityNormalizer;
 
     public DocumentReferenceDataParser() {
-        this(new DocumentUnitNormalizer());
+        this(
+                new DocumentQuantityNormalizer(),
+                new DocumentUnitNormalizer()
+        );
     }
 
     public DocumentReferenceDataParser(
+            DocumentQuantityNormalizer quantityNormalizer,
             DocumentUnitNormalizer unitNormalizer
     ) {
+        this.quantityNormalizer =
+                Objects.requireNonNull(
+                        quantityNormalizer,
+                        "quantityNormalizer"
+                );
+
         this.unitNormalizer =
                 Objects.requireNonNull(
                         unitNormalizer,
                         "unitNormalizer"
                 );
+    }
+
+    public DocumentReferenceDataParser(
+            DocumentUnitNormalizer unitNormalizer
+    ) {
+        this(
+                new DocumentQuantityNormalizer(),
+                unitNormalizer
+        );
     }
 
     public DocumentReferenceData parse(
@@ -109,7 +125,7 @@ public final class DocumentReferenceDataParser {
         }
 
         Integer quantity =
-                parsePositiveQuantity(
+                quantityNormalizer.normalize(
                         matcher.group(1)
                 );
 
@@ -224,21 +240,6 @@ public final class DocumentReferenceDataParser {
                 )
                 .trim()
                 .toUpperCase(Locale.ROOT);
-    }
-
-    private Integer parsePositiveQuantity(
-            String value
-    ) {
-        try {
-            int quantity =
-                    Integer.parseInt(value);
-
-            return quantity > 0
-                    ? quantity
-                    : null;
-        } catch (NumberFormatException exception) {
-            return null;
-        }
     }
 
     private DocumentReferenceData withoutProposal(

@@ -804,6 +804,11 @@ public final class WarehouseReferenceParser {
             return 1;
         }
 
+        if (observed == 'J'
+                && expected == '7') {
+            return 1;
+        }
+
         if ((observed == 'O'
                 && expected == '0')
                 || (observed == 'S'
@@ -881,14 +886,32 @@ public final class WarehouseReferenceParser {
             );
         }
 
-        return new CodeParts(
+        String numeric =
                 normalized.substring(
                         0,
                         separatorIndex
-                ),
+                );
+
+        String suffix =
                 normalized.substring(
                         separatorIndex + 1
-                )
+                );
+
+        if (suffix.length() == 1
+                && numeric.length() >= 2
+                && numeric.length() < 5
+                && isDigitConfusableSuffix(
+                suffix.charAt(0)
+        )) {
+            return new CodeParts(
+                    numeric + suffix,
+                    ""
+            );
+        }
+
+        return new CodeParts(
+                numeric,
+                suffix
         );
     }
 
@@ -945,6 +968,18 @@ public final class WarehouseReferenceParser {
         }
 
         return digitCount >= 1;
+    }
+
+    private boolean isDigitConfusableSuffix(
+            char value
+    ) {
+        return value == 'I'
+                || value == 'L'
+                || value == 'O'
+                || value == 'S'
+                || value == 'Z'
+                || value == 'G'
+                || value == 'J';
     }
 
     private String referenceSegment(

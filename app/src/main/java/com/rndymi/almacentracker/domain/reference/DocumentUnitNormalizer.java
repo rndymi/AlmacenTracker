@@ -8,8 +8,7 @@ import java.util.Set;
 
 public final class DocumentUnitNormalizer {
 
-    private static final Set<String>
-            SAFE_CORRECTION_TARGETS =
+    private static final Set<String>SAFE_CORRECTION_TARGETS =
             Collections.unmodifiableSet(
                     new HashSet<>(
                             Arrays.asList(
@@ -21,6 +20,9 @@ public final class DocumentUnitNormalizer {
                             )
                     )
             );
+
+    private static final int
+            MAXIMUM_CORRECTION_DISTANCE = 2;
 
     public String normalize(
             String observedValue
@@ -47,21 +49,76 @@ public final class DocumentUnitNormalizer {
                 "[\\p{L}]+"
                         + "(?: [\\p{L}]+){0,2}"
         )) {
-            return normalized;
+            String compactAlphabetic =
+                    normalized.replace(" ", "");
+
+            String correctedKnownUnit =
+                    findUniqueKnownCorrection(
+                            compactAlphabetic
+                    );
+
+            return correctedKnownUnit != null
+                    ? correctedKnownUnit
+                    : normalized;
         }
 
         String compact =
                 normalized.replace(" ", "");
 
-        String corrected =
+        String characterCorrected =
                 correctCommonOcrCharacters(
                         compact
                 );
 
-        return SAFE_CORRECTION_TARGETS
-                .contains(corrected)
-                ? corrected
-                : null;
+        String correctedKnownUnit =
+                findUniqueKnownCorrection(
+                        characterCorrected
+                );
+
+        return correctedKnownUnit;
+    }
+
+    private String findUniqueKnownCorrection(
+            String observed
+    ) {
+        if (SAFE_CORRECTION_TARGETS.contains(
+                observed
+        )) {
+            return observed;
+        }
+
+        String uniqueCandidate = null;
+        int bestDistance =
+                Integer.MAX_VALUE;
+
+        for (String expected
+                : SAFE_CORRECTION_TARGETS) {
+
+            int distance =
+                    levenshteinDistance(
+                            observed,
+                            expected
+                    );
+
+            if (distance
+                    > MAXIMUM_CORRECTION_DISTANCE) {
+                continue;
+            }
+
+            if (distance < bestDistance) {
+                uniqueCandidate = expected;
+                bestDistance = distance;
+                continue;
+            }
+
+            if (distance == bestDistance
+                    && uniqueCandidate != null
+                    && !uniqueCandidate.equals(expected)) {
+                uniqueCandidate = null;
+            }
+        }
+
+        return uniqueCandidate;
     }
 
     private String correctCommonOcrCharacters(
@@ -102,6 +159,14 @@ public final class DocumentUnitNormalizer {
                     corrected.append('I');
                     break;
 
+                case '4':
+                    corrected.append(
+                            containsDigit
+                                    ? 'Q'
+                                    : '4'
+                    );
+                    break;
+
                 case 'F':
                     corrected.append(
                             containsDigit
@@ -117,5 +182,60 @@ public final class DocumentUnitNormalizer {
         }
 
         return corrected.toString();
+    }
+
+    private int levenshteinDistance(
+            String left,
+            String right
+    ) {
+        int[] previous =
+                new int[right.length() + 1];
+
+        int[] current =
+                new int[right.length() + 1];
+
+        for (int index = 0;
+             index <= right.length();
+             index++) {
+            previous[index] = index;
+        }
+
+        for (int leftIndex = 1;
+             leftIndex <= left.length();
+             leftIndex++) {
+
+            current[0] = leftIndex;
+
+            for (int rightIndex = 1;
+                 rightIndex <= right.length();
+                 rightIndex++) {
+
+                int replacementCost =
+                        left.charAt(leftIndex - 1)
+                                == right.charAt(
+                                rightIndex - 1
+                        )
+                                ? 0
+                                : 1;
+
+                current[rightIndex] =
+                        Math.min(
+                                Math.min(
+                                        current[rightIndex - 1]
+                                                + 1,
+                                        previous[rightIndex]
+                                                + 1
+                                ),
+                                previous[rightIndex - 1]
+                                        + replacementCost
+                        );
+            }
+
+            int[] swap = previous;
+            previous = current;
+            current = swap;
+        }
+
+        return previous[right.length()];
     }
 }
