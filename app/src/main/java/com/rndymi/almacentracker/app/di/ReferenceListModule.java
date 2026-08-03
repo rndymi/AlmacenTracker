@@ -10,11 +10,15 @@ import com.rndymi.almacentracker.data.document.AndroidDocumentImageLoader;
 import com.rndymi.almacentracker.data.document.AndroidDocumentImageProcessor;
 import com.rndymi.almacentracker.data.document.DocumentLineReconstructor;
 import com.rndymi.almacentracker.data.document.MlKitDocumentTextRecognizer;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrModelManifest;
 import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
 import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetector;
 import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetectorConfiguration;
 import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetectorPostProcessor;
 import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetectorPreprocessor;
+import com.rndymi.almacentracker.data.document.onnx.recognition.PaddleTextRecognizer;
+import com.rndymi.almacentracker.data.document.onnx.recognition.PaddleTextRecognizerConfiguration;
+import com.rndymi.almacentracker.data.document.onnx.recognition.PaddleTextRecognizerPreprocessor;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
@@ -32,6 +36,7 @@ public final class ReferenceListModule {
     private final WarehouseItemRepository repository;
     private final PaddleOcrRuntimeProvider paddleOcrRuntimeProvider;
     private final PaddleTextDetector paddleTextDetector;
+    private final PaddleTextRecognizer paddleTextRecognizer;
 
     public ReferenceListModule(
             Context context,
@@ -83,6 +88,34 @@ public final class ReferenceListModule {
                         detectorPreprocessor,
                         detectorPostProcessor
                 );
+
+        PaddleTextRecognizerConfiguration recognizerConfiguration =
+                new PaddleTextRecognizerConfiguration(
+                        "x",
+                        "fetch_name_0",
+                        48,
+                        32,
+                        2048,
+                        8,
+                        0,
+                        18385,
+                        1,
+                        0.45f,
+                        2.50f
+                );
+
+        PaddleTextRecognizerPreprocessor recognizerPreprocessor =
+                new PaddleTextRecognizerPreprocessor(
+                        OrtEnvironment.getEnvironment(),
+                        recognizerConfiguration
+                );
+
+        paddleTextRecognizer =
+                new PaddleTextRecognizer(
+                        this.paddleOcrRuntimeProvider,
+                        recognizerConfiguration,
+                        recognizerPreprocessor
+                );
     }
 
     public PaddleOcrRuntimeProvider
@@ -92,6 +125,10 @@ public final class ReferenceListModule {
 
     public PaddleTextDetector providePaddleTextDetector() {
         return paddleTextDetector;
+    }
+
+    public PaddleTextRecognizer providePaddleTextRecognizer() {
+        return paddleTextRecognizer;
     }
 
     public ReferenceListCaptureViewModelFactory
