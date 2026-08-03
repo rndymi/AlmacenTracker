@@ -477,11 +477,11 @@ public final class ReferenceListReviewViewModelTest {
                         .displayValue()
         );
 
-        assertFalse(state.canConfirm());
+        assertTrue(state.canConfirm());
     }
 
     @Test
-    public void applyInitialLinesSeparatesOcrCodeAndOptionalSuffix() {
+    public void applyInitialLinesPreservesAmbiguousAttachedOcrCode() {
         viewModel.applyInitialLines(
                 Collections.singletonList(
                         "MR 215L1POS"
@@ -495,12 +495,17 @@ public final class ReferenceListReviewViewModelTest {
                         .get(0);
 
         assertEquals(
-                "MR 215L1 POS",
+                "MR 215L1POS",
                 proposal.getReference()
                         .displayValue()
         );
 
         assertTrue(proposal.requiresCorrection());
+        assertFalse(
+                viewModel.getUiState()
+                        .getValue()
+                        .canConfirm()
+        );
     }
 
     @Test
@@ -523,7 +528,12 @@ public final class ReferenceListReviewViewModelTest {
                         .displayValue()
         );
 
-        assertTrue(proposal.requiresCorrection());
+        assertFalse(proposal.requiresCorrection());
+        assertTrue(
+                viewModel.getUiState()
+                        .getValue()
+                        .canConfirm()
+        );
     }
 
     @Test
