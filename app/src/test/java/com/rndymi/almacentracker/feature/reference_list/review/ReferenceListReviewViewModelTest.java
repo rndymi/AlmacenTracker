@@ -910,6 +910,182 @@ public final class ReferenceListReviewViewModelTest {
         );
     }
 
+    @Test
+    public void applyInitialLinesProcessesRealPaddleOutput() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21570"
+                                                ),
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21571"
+                                                ),
+                                                warehouseItem(
+                                                        "MS",
+                                                        "5008"
+                                                ),
+                                                warehouseItem(
+                                                        "ML",
+                                                        "3723"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "Clena",
+                        "M221570-5pc5",
+                        "Mn21571-1pcs",
+                        "M55008-3pcs",
+                        "ML3923-4p9fs"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(4, state.getReferenceCount());
+
+        ReferenceProposal first =
+                state.getProposals().get(0);
+
+        assertEquals(
+                "MR 21570",
+                first.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                first.getMatchStatus()
+        );
+
+        assertEquals(
+                Integer.valueOf(5),
+                first.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                first.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal second =
+                state.getProposals().get(1);
+
+        assertEquals(
+                "MN 21571",
+                second.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                second.getMatchStatus()
+        );
+
+        assertEquals(
+                "MR 21571",
+                second.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(1),
+                second.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                second.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal third =
+                state.getProposals().get(2);
+
+        assertEquals(
+                "MS 5008",
+                third.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                third.getMatchStatus()
+        );
+
+        assertEquals(
+                Integer.valueOf(3),
+                third.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                third.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal fourth =
+                state.getProposals().get(3);
+
+        assertEquals(
+                "ML 3923",
+                fourth.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                fourth.getMatchStatus()
+        );
+
+        assertEquals(
+                "ML 3723",
+                fourth.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(4),
+                fourth.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                fourth.getDocumentData()
+                        .getUnit()
+        );
+    }
+
     private WarehouseItem warehouseItem(
             String category,
             String code
