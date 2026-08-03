@@ -22,6 +22,14 @@ public final class PaddleOcrModelManifest {
     private final int blankTokenCount;
     private final int additionalSpecialTokenCount;
 
+    private final String recognizerOutputName;
+    private final int recognizerOutputRank;
+    private final int recognizerFixedHeight;
+    private final int recognizerBlankIndex;
+
+    private final int dictionaryEntryCount;
+    private final String dictionaryCharset;
+
     private final String dictionarySha256;
 
     private PaddleOcrModelManifest(
@@ -32,25 +40,39 @@ public final class PaddleOcrModelManifest {
             String recognizerSha256,
             String recognizerInputName,
             int recognizerInputRank,
+            String recognizerOutputName,
+            int recognizerOutputRank,
             int recognizerOutputCount,
+            int recognizerFixedHeight,
             int recognizerClassCount,
             int blankTokenCount,
             int additionalSpecialTokenCount,
-            String dictionarySha256
+            int recognizerBlankIndex,
+            String dictionarySha256,
+            int dictionaryEntryCount,
+            String dictionaryCharset
     ) {
         this.detectorSha256 = detectorSha256;
         this.detectorInputName = detectorInputName;
         this.detectorInputRank = detectorInputRank;
         this.detectorOutputCount = detectorOutputCount;
+
         this.recognizerSha256 = recognizerSha256;
         this.recognizerInputName = recognizerInputName;
         this.recognizerInputRank = recognizerInputRank;
+        this.recognizerOutputName = recognizerOutputName;
+        this.recognizerOutputRank = recognizerOutputRank;
         this.recognizerOutputCount = recognizerOutputCount;
+        this.recognizerFixedHeight = recognizerFixedHeight;
         this.recognizerClassCount = recognizerClassCount;
         this.blankTokenCount = blankTokenCount;
         this.additionalSpecialTokenCount =
                 additionalSpecialTokenCount;
+        this.recognizerBlankIndex = recognizerBlankIndex;
+
         this.dictionarySha256 = dictionarySha256;
+        this.dictionaryEntryCount = dictionaryEntryCount;
+        this.dictionaryCharset = dictionaryCharset;
     }
 
     public static PaddleOcrModelManifest from(
@@ -97,6 +119,23 @@ public final class PaddleOcrModelManifest {
                         properties,
                         "recognizer.input.rank"
                 );
+        String recognizerOutputName =
+                requireText(
+                        properties,
+                        "recognizer.output.name"
+                );
+
+        int recognizerOutputRank =
+                requirePositiveInt(
+                        properties,
+                        "recognizer.output.rank"
+                );
+
+        int recognizerFixedHeight =
+                requirePositiveInt(
+                        properties,
+                        "recognizer.input.fixed.height"
+                );
         int recognizerOutputCount =
                 requirePositiveInt(
                         properties,
@@ -117,12 +156,54 @@ public final class PaddleOcrModelManifest {
                         properties,
                         "recognizer.additional.special.token.count"
                 );
+        int recognizerBlankIndex =
+                requireNonNegativeInt(
+                        properties,
+                        "recognizer.ctc.blank.index"
+                );
 
         String dictionarySha256 =
                 requireHash(
                         properties,
                         "dictionary.sha256"
                 );
+
+        int dictionaryEntryCount =
+                requirePositiveInt(
+                        properties,
+                        "dictionary.entry.count"
+                );
+
+        String dictionaryCharset =
+                requireText(
+                        properties,
+                        "dictionary.charset"
+                );
+
+        if (recognizerBlankIndex >= recognizerClassCount) {
+            throw new PaddleOcrManifestException(
+                    "recognizer.ctc.blank.index must be smaller "
+                            + "than recognizer.class.count"
+            );
+        }
+
+        int calculatedDictionarySize =
+                recognizerClassCount
+                        - blankTokenCount
+                        - additionalSpecialTokenCount;
+
+        if (calculatedDictionarySize != dictionaryEntryCount) {
+            throw new PaddleOcrManifestException(
+                    "dictionary.entry.count does not match "
+                            + "the recognizer class relationship"
+            );
+        }
+
+        if (!"UTF-8".equalsIgnoreCase(dictionaryCharset)) {
+            throw new PaddleOcrManifestException(
+                    "Only UTF-8 dictionaries are supported"
+            );
+        }
 
         return new PaddleOcrModelManifest(
                 detectorSha256,
@@ -132,18 +213,33 @@ public final class PaddleOcrModelManifest {
                 recognizerSha256,
                 recognizerInputName,
                 recognizerInputRank,
+                recognizerOutputName,
+                recognizerOutputRank,
                 recognizerOutputCount,
+                recognizerFixedHeight,
                 recognizerClassCount,
                 blankTokenCount,
                 additionalSpecialTokenCount,
-                dictionarySha256
+                recognizerBlankIndex,
+                dictionarySha256,
+                dictionaryEntryCount,
+                dictionaryCharset
         );
     }
 
     public int expectedDictionarySize() {
-        return recognizerClassCount
-                - blankTokenCount
-                - additionalSpecialTokenCount;
+        int calculatedSize =
+                recognizerClassCount
+                        - blankTokenCount
+                        - additionalSpecialTokenCount;
+
+        if (calculatedSize != dictionaryEntryCount) {
+            throw new PaddleOcrManifestException(
+                    "The declared dictionary size is inconsistent"
+            );
+        }
+
+        return calculatedSize;
     }
 
     public String getDetectorSha256() {
@@ -192,6 +288,30 @@ public final class PaddleOcrModelManifest {
 
     public String getDictionarySha256() {
         return dictionarySha256;
+    }
+
+    public String getRecognizerOutputName() {
+        return recognizerOutputName;
+    }
+
+    public int getRecognizerOutputRank() {
+        return recognizerOutputRank;
+    }
+
+    public int getRecognizerFixedHeight() {
+        return recognizerFixedHeight;
+    }
+
+    public int getRecognizerBlankIndex() {
+        return recognizerBlankIndex;
+    }
+
+    public int getDictionaryEntryCount() {
+        return dictionaryEntryCount;
+    }
+
+    public String getDictionaryCharset() {
+        return dictionaryCharset;
     }
 
     private static String requireHash(

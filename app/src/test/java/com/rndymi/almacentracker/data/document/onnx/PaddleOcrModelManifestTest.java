@@ -39,6 +39,31 @@ public final class PaddleOcrModelManifestTest {
                 99,
                 manifest.expectedDictionarySize()
         );
+
+        assertEquals(
+                "fetch_name_0",
+                manifest.getRecognizerOutputName()
+        );
+        assertEquals(
+                3,
+                manifest.getRecognizerOutputRank()
+        );
+        assertEquals(
+                48,
+                manifest.getRecognizerFixedHeight()
+        );
+        assertEquals(
+                0,
+                manifest.getRecognizerBlankIndex()
+        );
+        assertEquals(
+                18383,
+                manifest.getDictionaryEntryCount()
+        );
+        assertEquals(
+                "UTF-8",
+                manifest.getDictionaryCharset()
+        );
     }
 
     @Test
@@ -129,6 +154,31 @@ public final class PaddleOcrModelManifestTest {
         properties.setProperty(
                 "dictionary.sha256",
                 HASH
+        );
+
+        properties.setProperty(
+                "recognizer.input.fixed.height",
+                "48"
+        );
+        properties.setProperty(
+                "recognizer.output.name",
+                "fetch_name_0"
+        );
+        properties.setProperty(
+                "recognizer.output.rank",
+                "3"
+        );
+        properties.setProperty(
+                "recognizer.ctc.blank.index",
+                "0"
+        );
+        properties.setProperty(
+                "dictionary.entry.count",
+                "18383"
+        );
+        properties.setProperty(
+                "dictionary.charset",
+                "UTF-8"
         );
 
         return properties;
