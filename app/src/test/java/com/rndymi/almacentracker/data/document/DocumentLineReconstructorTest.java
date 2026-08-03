@@ -493,6 +493,69 @@ public final class DocumentLineReconstructorTest {
         );
     }
 
+    @Test
+    public void reconstructDoesNotSplitAlphabeticCodeQualifier() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "ML",
+                                30,
+                                100,
+                                60,
+                                130
+                        ),
+                        element(
+                                "4170",
+                                75,
+                                100,
+                                130,
+                                130
+                        ),
+                        element(
+                                "DARK",
+                                145,
+                                100,
+                                200,
+                                130
+                        ),
+                        element(
+                                "BLUE",
+                                215,
+                                100,
+                                270,
+                                130
+                        ),
+                        element(
+                                "-",
+                                285,
+                                100,
+                                295,
+                                130
+                        ),
+                        element(
+                                "4pqts",
+                                310,
+                                100,
+                                375,
+                                130
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        500
+                );
+
+        assertEquals(1, result.size());
+
+        assertEquals(
+                "ML 4170 DARK BLUE - 4pqts",
+                result.get(0)
+                        .getReconstructedText()
+        );
+    }
+
     private RecognizedTextElement element(
             String text,
             int left,
