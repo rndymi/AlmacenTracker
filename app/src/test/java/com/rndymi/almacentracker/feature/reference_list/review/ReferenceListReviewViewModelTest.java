@@ -112,7 +112,7 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
-    public void applyInitialLines_offersCandidatesWithoutAutoCorrecting() {
+    public void applyInitialLinesOffersSuggestionAndResolvesInvalidCategory() {
         ReferenceListReviewViewModel resolvingViewModel =
                 new ReferenceListReviewViewModel(
                         new WarehouseReferenceParser(),
@@ -154,52 +154,48 @@ public final class ReferenceListReviewViewModelTest {
 
         assertNotNull(state);
         assertEquals(2, state.getReferenceCount());
+
+        ReferenceProposal first =
+                state.getProposals().get(0);
+
         assertEquals(
                 "MR 2I57I",
-                state.getProposals()
-                        .get(0)
-                        .getReference()
+                first.getReference()
                         .displayValue()
         );
-        assertEquals(
-                "M5 SOO8",
-                state.getProposals()
-                        .get(1)
-                        .getReference()
-                        .displayValue()
-        );
-        assertTrue(
-                state.getProposals()
-                        .get(0)
-                        .requiresCorrection()
-        );
+
         assertEquals(
                 ReferenceProposal.MatchStatus
                         .UNIQUE_SUGGESTION,
-                state.getProposals()
-                        .get(0)
-                        .getMatchStatus()
+                first.getMatchStatus()
         );
+
         assertEquals(
                 "MR 21571",
-                state.getProposals()
-                        .get(0)
-                        .getSuggestions()
+                first.getSuggestions()
                         .get(0)
                         .displayValue()
         );
+
+        ReferenceProposal second =
+                state.getProposals().get(1);
+
         assertEquals(
                 "MS 5008",
-                state.getProposals()
-                        .get(1)
-                        .getSuggestions()
-                        .get(0)
+                second.getReference()
                         .displayValue()
         );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                second.getMatchStatus()
+        );
+
+        assertFalse(second.requiresCorrection());
     }
 
     @Test
-    public void applyInitialLines_joinsSplitInputAndOffersSuggestion() {
+    public void applyInitialLinesJoinsSplitInputAndResolvesUniqueReference() {
         ReferenceListReviewViewModel resolvingViewModel =
                 new ReferenceListReviewViewModel(
                         new WarehouseReferenceParser(),
@@ -212,7 +208,7 @@ public final class ReferenceListReviewViewModelTest {
                                             > callback
                             ) {
                                 callback.onSuccess(
-                                        Arrays.asList(
+                                        Collections.singletonList(
                                                 warehouseItem(
                                                         "MS",
                                                         "5008"
@@ -237,20 +233,19 @@ public final class ReferenceListReviewViewModelTest {
 
         assertNotNull(state);
         assertEquals(1, state.getReferenceCount());
-        assertEquals(
-                "M5 SOO8",
-                state.getProposals()
-                        .get(0)
-                        .getReference()
-                        .displayValue()
-        );
+
+        ReferenceProposal proposal =
+                state.getProposals().get(0);
+
         assertEquals(
                 "MS 5008",
-                state.getProposals()
-                        .get(0)
-                        .getSuggestions()
-                        .get(0)
+                proposal.getReference()
                         .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                proposal.getMatchStatus()
         );
     }
 
@@ -448,7 +443,7 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
-    public void applyInitialLines_keepsAllOcrCandidatesForReview() {
+    public void applyInitialLinesKeepsOnlyAlphabeticOcrCategoriesWithoutRepository() {
         viewModel.applyInitialLines(
                 Arrays.asList(
                         "Me 21570 -5pcs",
@@ -464,30 +459,32 @@ public final class ReferenceListReviewViewModelTest {
                         .getValue();
 
         assertNotNull(state);
-        assertEquals(4, state.getReferenceCount());
-        assertFalse(state.canConfirm());
-        assertTrue(
+        assertEquals(2, state.getReferenceCount());
+
+        assertEquals(
+                "ME 21570",
+                state.getProposals()
+                        .get(0)
+                        .getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                "ML 3923",
                 state.getProposals()
                         .get(1)
-                        .requiresCorrection()
+                        .getReference()
+                        .displayValue()
         );
-        assertTrue(
-                state.getProposals()
-                        .get(2)
-                        .requiresCorrection()
-        );
-        assertFalse(
-                state.getProposals()
-                        .get(3)
-                        .requiresCorrection()
-        );
+
+        assertFalse(state.canConfirm());
     }
 
     @Test
     public void applyInitialLinesSeparatesOcrCodeAndOptionalSuffix() {
         viewModel.applyInitialLines(
                 Collections.singletonList(
-                        "M2 215L1POS"
+                        "MR 215L1POS"
                 )
         );
 
@@ -498,18 +495,19 @@ public final class ReferenceListReviewViewModelTest {
                         .get(0);
 
         assertEquals(
-                "M2 215L1 POS",
+                "MR 215L1 POS",
                 proposal.getReference()
                         .displayValue()
         );
+
         assertTrue(proposal.requiresCorrection());
     }
 
     @Test
-    public void applyInitialLinesDoesNotTreatAttachedUnitAsSuffix() {
+    public void applyInitialLinesPreservesAttachedQualifierWithoutQuantity() {
         viewModel.applyInitialLines(
                 Collections.singletonList(
-                        "M2 21511pcs"
+                        "MR 21511pcs"
                 )
         );
 
@@ -520,18 +518,19 @@ public final class ReferenceListReviewViewModelTest {
                         .get(0);
 
         assertEquals(
-                "M2 21511",
+                "MR 21511 PCS",
                 proposal.getReference()
                         .displayValue()
         );
+
         assertTrue(proposal.requiresCorrection());
     }
 
     @Test
-    public void editReference_clearsRequiredCorrectionState() {
+    public void editReferenceClearsRequiredCorrectionState() {
         viewModel.applyInitialLines(
-                Arrays.asList(
-                        "M2 215I1"
+                Collections.singletonList(
+                        "MR 215I1"
                 )
         );
 
@@ -555,6 +554,7 @@ public final class ReferenceListReviewViewModelTest {
                 ReferenceInputResult.Status.SUCCESS,
                 result.getStatus()
         );
+
         assertFalse(
                 viewModel
                         .getUiState()
@@ -563,6 +563,7 @@ public final class ReferenceListReviewViewModelTest {
                         .get(0)
                         .requiresCorrection()
         );
+
         assertTrue(
                 viewModel
                         .getUiState()

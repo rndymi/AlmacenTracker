@@ -125,7 +125,13 @@ public final class DocumentReferenceDataParser {
                         observedUnit
                 );
 
-        if (requireUnit && unit == null) {
+        if (observedUnit != null
+                && unit == null) {
+            return withoutProposal(match);
+        }
+
+        if (requireUnit
+                && unit == null) {
             return withoutProposal(match);
         }
 
