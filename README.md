@@ -19,6 +19,22 @@ sin perder el funcionamiento offline
 
 ---
 
+## Development version
+
+AlmacenTracker v1.4.0 se encuentra actualmente en desarrollo.
+
+El proyecto incluye la infraestructura local inicial necesaria para 
+cargar y validar los modelos de detección y reconocimiento de PP-OCRv5 con ONNX Runtime.
+
+El flujo funcional de reconocimiento de documentos continúa utilizando ML Kit
+mientras se implementan y evalúan el detector, el reconocedor y el flujo completo de documentos de 
+PP-OCRv5 en las siguientes historias de usuario.
+
+Todos los recursos de OCR se procesan de forma local. 
+La aplicación no requiere conexión a Internet para cargar los modelos incluidos.
+
+---
+
 ## Funcionalidades
 
 ### Gestión de mercadería
