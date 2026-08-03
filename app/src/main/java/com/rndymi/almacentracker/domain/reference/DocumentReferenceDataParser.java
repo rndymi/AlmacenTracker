@@ -1,20 +1,46 @@
 package com.rndymi.almacentracker.domain.reference;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class DocumentReferenceDataParser {
 
-    private static final Pattern QUANTITY_UNIT_PATTERN =
+    private static final Pattern
+            DOCUMENT_DATA_DELIMITER_PATTERN =
             Pattern.compile(
-                    "(?:-|–|—|:)?" +
-                            "\\s*" +
-                            "([1-9][0-9]{0,8})" +
-                            "\\s*" +
-                            "([\\p{L}]{1,30})" +
-                            "(?![\\p{L}0-9])"
+                    "[\\-\u2010\u2011\u2012\u2013\u2014]"
             );
+
+    private static final Pattern
+            DOCUMENT_DATA_PATTERN =
+            Pattern.compile(
+                    "^[\\p{Z}\\s:;,.\\-/]*"
+                            + "([1-9][0-9]{0,8})"
+                            + "(?:[\\p{Z}\\s]*"
+                            + "([\\p{L}0-9]+"
+                            + "(?:[\\p{Z}\\s]+"
+                            + "[\\p{L}0-9]+){0,2}))?"
+                            + "[\\p{Z}\\s:;,.\\-/]*$"
+            );
+
+    private final DocumentUnitNormalizer
+            unitNormalizer;
+
+    public DocumentReferenceDataParser() {
+        this(new DocumentUnitNormalizer());
+    }
+
+    public DocumentReferenceDataParser(
+            DocumentUnitNormalizer unitNormalizer
+    ) {
+        this.unitNormalizer =
+                Objects.requireNonNull(
+                        unitNormalizer,
+                        "unitNormalizer"
+                );
+    }
 
     public DocumentReferenceData parse(
             WarehouseReferenceMatch match
@@ -23,7 +49,8 @@ public final class DocumentReferenceDataParser {
             return null;
         }
 
-        String sourceText = match.getSourceRawText();
+        String sourceText =
+                match.getSourceRawText();
 
         if (sourceText == null
                 || sourceText.trim().isEmpty()) {
@@ -31,58 +58,184 @@ public final class DocumentReferenceDataParser {
         }
 
         String normalizedSource =
-                sourceText
-                        .replace('\u00A0', ' ')
-                        .replaceAll("\\s+", " ")
-                        .trim()
-                        .toUpperCase(Locale.ROOT);
+                normalize(sourceText);
 
-        Matcher matcher =
-                QUANTITY_UNIT_PATTERN.matcher(
-                        normalizedSource
-                );
+        Matcher delimiterMatcher =
+                DOCUMENT_DATA_DELIMITER_PATTERN
+                        .matcher(normalizedSource);
 
-        DocumentReferenceData candidate = null;
-
-        while (matcher.find()) {
-            String quantityText = matcher.group(1);
-            String unitText = matcher.group(2);
-
-            if (!DocumentQuantityUnitVocabulary
-                    .isKnownUnit(unitText)) {
-                continue;
-            }
-
-            Integer quantity =
-                    parsePositiveQuantity(
-                            quantityText
-                    );
-
-            if (quantity == null) {
-                continue;
-            }
-
-            if (candidate != null) {
-                return withoutProposal(match);
-            }
-
-            candidate =
-                    new DocumentReferenceData(
-                            match.getReference(),
-                            quantity,
-                            DocumentQuantityUnitVocabulary
-                                    .normalize(unitText),
-                            match.getSourceLineIndex(),
-                            sourceText
-                    );
+        if (delimiterMatcher.find()) {
+            return parseTail(
+                    match,
+                    normalizedSource.substring(
+                            delimiterMatcher.end()
+                    ),
+                    false
+            );
         }
 
-        return candidate == null
-                ? withoutProposal(match)
-                : candidate;
+        String fallbackTail =
+                findTailAfterReference(
+                        normalizedSource,
+                        match.getReference()
+                );
+
+        if (fallbackTail == null) {
+            return withoutProposal(match);
+        }
+
+        return parseTail(
+                match,
+                fallbackTail,
+                true
+        );
     }
 
-    private static DocumentReferenceData withoutProposal(
+    private DocumentReferenceData parseTail(
+            WarehouseReferenceMatch match,
+            String sourceTail,
+            boolean requireUnit
+    ) {
+        String normalizedTail =
+                normalize(sourceTail);
+
+        Matcher matcher =
+                DOCUMENT_DATA_PATTERN.matcher(
+                        normalizedTail
+                );
+
+        if (!matcher.matches()) {
+            return withoutProposal(match);
+        }
+
+        Integer quantity =
+                parsePositiveQuantity(
+                        matcher.group(1)
+                );
+
+        if (quantity == null) {
+            return withoutProposal(match);
+        }
+
+        String observedUnit =
+                matcher.group(2);
+
+        String unit =
+                unitNormalizer.normalize(
+                        observedUnit
+                );
+
+        if (requireUnit && unit == null) {
+            return withoutProposal(match);
+        }
+
+        return new DocumentReferenceData(
+                match.getReference(),
+                quantity,
+                unit,
+                match.getSourceLineIndex(),
+                match.getSourceRawText()
+        );
+    }
+
+    private String findTailAfterReference(
+            String normalizedSource,
+            WarehouseReference reference
+    ) {
+        if (reference == null) {
+            return null;
+        }
+
+        Matcher matcher =
+                buildReferencePattern(reference)
+                        .matcher(normalizedSource);
+
+        if (!matcher.find()) {
+            return null;
+        }
+
+        return normalizedSource.substring(
+                matcher.end()
+        );
+    }
+
+    private Pattern buildReferencePattern(
+            WarehouseReference reference
+    ) {
+        return Pattern.compile(
+                "(?<![A-Z0-9])"
+                        + flexibleCharactersPattern(
+                        reference.getCategory()
+                )
+                        + "[\\p{Z}\\s:._]*"
+                        + flexibleCharactersPattern(
+                        reference.getCode()
+                )
+                        + "(?![A-Z0-9])"
+        );
+    }
+
+    private String flexibleCharactersPattern(
+            String value
+    ) {
+        String normalized =
+                normalize(value)
+                        .replace(" ", "");
+
+        StringBuilder pattern =
+                new StringBuilder();
+
+        for (int index = 0;
+             index < normalized.length();
+             index++) {
+
+            if (index > 0) {
+                pattern.append(
+                        "[\\p{Z}\\s:._]*"
+                );
+            }
+
+            pattern.append(
+                    Pattern.quote(
+                            String.valueOf(
+                                    normalized.charAt(index)
+                            )
+                    )
+            );
+        }
+
+        return pattern.toString();
+    }
+
+    private String normalize(
+            String value
+    ) {
+        return value
+                .replace('\u00A0', ' ')
+                .replaceAll(
+                        "[\\p{Z}\\s]+",
+                        " "
+                )
+                .trim()
+                .toUpperCase(Locale.ROOT);
+    }
+
+    private Integer parsePositiveQuantity(
+            String value
+    ) {
+        try {
+            int quantity =
+                    Integer.parseInt(value);
+
+            return quantity > 0
+                    ? quantity
+                    : null;
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private DocumentReferenceData withoutProposal(
             WarehouseReferenceMatch match
     ) {
         return new DocumentReferenceData(
@@ -92,19 +245,5 @@ public final class DocumentReferenceDataParser {
                 match.getSourceLineIndex(),
                 match.getSourceRawText()
         );
-    }
-
-    private static Integer parsePositiveQuantity(
-            String value
-    ) {
-        try {
-            int quantity = Integer.parseInt(value);
-
-            return quantity > 0
-                    ? quantity
-                    : null;
-        } catch (NumberFormatException exception) {
-            return null;
-        }
     }
 }
