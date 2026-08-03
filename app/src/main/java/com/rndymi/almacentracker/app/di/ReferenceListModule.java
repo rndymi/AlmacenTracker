@@ -9,7 +9,6 @@ import com.rndymi.almacentracker.core.document.DocumentTextRecognizer;
 import com.rndymi.almacentracker.data.document.AndroidDocumentImageLoader;
 import com.rndymi.almacentracker.data.document.AndroidDocumentImageProcessor;
 import com.rndymi.almacentracker.data.document.DocumentLineReconstructor;
-import com.rndymi.almacentracker.data.document.MlKitDocumentTextRecognizer;
 import com.rndymi.almacentracker.data.document.onnx.PaddleOcrModelManifest;
 import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
 import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetector;
@@ -19,12 +18,14 @@ import com.rndymi.almacentracker.data.document.onnx.detection.PaddleTextDetector
 import com.rndymi.almacentracker.data.document.onnx.recognition.PaddleTextRecognizer;
 import com.rndymi.almacentracker.data.document.onnx.recognition.PaddleTextRecognizerConfiguration;
 import com.rndymi.almacentracker.data.document.onnx.recognition.PaddleTextRecognizerPreprocessor;
+import com.rndymi.almacentracker.data.document.PaddleOcrDocumentTextRecognizer;
 import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureViewModelFactory;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewViewModelFactory;
 
+import java.util.concurrent.ExecutorService;
 import java.util.Objects;
 
 import ai.onnxruntime.OrtEnvironment;
@@ -34,6 +35,7 @@ public final class ReferenceListModule {
     private final Context applicationContext;
     private final DocumentImageLoader<Bitmap> imageLoader;
     private final WarehouseItemRepository repository;
+    private final ExecutorService ocrExecutor;
     private final PaddleOcrRuntimeProvider paddleOcrRuntimeProvider;
     private final PaddleTextDetector paddleTextDetector;
     private final PaddleTextRecognizer paddleTextRecognizer;
@@ -41,6 +43,7 @@ public final class ReferenceListModule {
     public ReferenceListModule(
             Context context,
             WarehouseItemRepository repository,
+            ExecutorService ocrExecutor,
             PaddleOcrRuntimeProvider paddleOcrRuntimeProvider
     ) {
         applicationContext =
@@ -58,6 +61,12 @@ public final class ReferenceListModule {
                 Objects.requireNonNull(
                         repository,
                         "repository"
+                );
+
+        this.ocrExecutor =
+                Objects.requireNonNull(
+                        ocrExecutor,
+                        "ocrExecutor"
                 );
 
         this.paddleOcrRuntimeProvider =
@@ -139,8 +148,13 @@ public final class ReferenceListModule {
                 );
 
         DocumentTextRecognizer recognizer =
-                new MlKitDocumentTextRecognizer(
-                        new DocumentLineReconstructor()
+                new PaddleOcrDocumentTextRecognizer(
+                        ocrExecutor,
+                        paddleOcrRuntimeProvider,
+                        paddleTextDetector,
+                        paddleTextRecognizer,
+                        new DocumentLineReconstructor(),
+                        System::currentTimeMillis
                 );
 
         return new ReferenceListCaptureViewModelFactory(
