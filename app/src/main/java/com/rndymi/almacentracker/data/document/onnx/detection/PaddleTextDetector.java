@@ -2,10 +2,11 @@ package com.rndymi.almacentracker.data.document.onnx.detection;
 
 import android.graphics.Bitmap;
 
-import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
-import com.rndymi.almacentracker.data.document.onnx.PaddleOcrSessionBundle;
 import com.rndymi.almacentracker.data.document.onnx.model.DetectedTextRegion;
 import com.rndymi.almacentracker.data.document.onnx.model.TextDetectionResult;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrRuntimeProvider;
+import com.rndymi.almacentracker.data.document.onnx.PaddleOcrSessionBundle;
+import com.rndymi.almacentracker.data.document.onnx.pipeline.TextRegionDetector;
 
 import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtException;
@@ -17,7 +18,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class PaddleTextDetector {
+public final class PaddleTextDetector
+        implements TextRegionDetector {
 
     private final Object inferenceLock =
             new Object();
@@ -51,6 +53,7 @@ public final class PaddleTextDetector {
         );
     }
 
+    @Override
     public TextDetectionResult detect(
             Bitmap bitmap
     ) throws TextDetectionException {

@@ -114,6 +114,7 @@ public final class AppContainer {
                 new ReferenceListModule(
                         applicationContext,
                         warehouseItemRepository,
+                        ocrExecutor,
                         paddleOcrRuntimeProvider
                 );
         withdrawalHistoryModule =
