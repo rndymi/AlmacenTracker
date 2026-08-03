@@ -1,9 +1,11 @@
 package com.rndymi.almacentracker.core.document;
 
 public interface DocumentImageProcessor {
+
     void process(
-            String imageUri,
+            DocumentImageProcessingRequest request,
             DocumentImageProcessingCallback callback
     );
+
     void close();
 }

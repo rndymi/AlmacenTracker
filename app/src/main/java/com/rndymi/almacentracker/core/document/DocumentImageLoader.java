@@ -6,6 +6,7 @@ public interface DocumentImageLoader<T> {
 
     T loadPreview(
             String imageUri,
-            int targetSize
+            int targetSize,
+            int manualRotationDegrees
     );
 }
