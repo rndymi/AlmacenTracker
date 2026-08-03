@@ -378,6 +378,90 @@ public final class WithdrawalHistoryCreateViewModelTest {
         );
     }
 
+    @Test
+    public void initializePrefillsRecognizedDocumentTitle() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+
+        viewModel.initialize(
+                Collections.singletonList(
+                        foundInput(4, "CAJAS")
+                ),
+                "UTOPYA",
+                1_722_710_000_000L
+        );
+
+        WithdrawalHistoryCreateUiState state =
+                viewModel.getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+
+        assertEquals(
+                "UTOPYA",
+                state.getTitle()
+        );
+    }
+
+    @Test
+    public void initializePreservesChineseDocumentTitle() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+
+        viewModel.initialize(
+                Collections.singletonList(
+                        foundInput(4, "CAJAS")
+                ),
+                "王小明",
+                1_722_710_000_000L
+        );
+
+        WithdrawalHistoryCreateUiState state =
+                viewModel.getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+
+        assertEquals(
+                "王小明",
+                state.getTitle()
+        );
+    }
+
+    @Test
+    public void initializeKeepsTitleEmptyWhenDocumentHasNoTitle() {
+        TestDependencies dependencies =
+                new TestDependencies();
+
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+
+        viewModel.initialize(
+                Collections.singletonList(
+                        foundInput(4, "CAJAS")
+                ),
+                null,
+                1_722_710_000_000L
+        );
+
+        WithdrawalHistoryCreateUiState state =
+                viewModel.getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+
+        assertEquals(
+                "",
+                state.getTitle()
+        );
+    }
+
     private static void initialize(
             WithdrawalHistoryCreateViewModel viewModel
     ) {

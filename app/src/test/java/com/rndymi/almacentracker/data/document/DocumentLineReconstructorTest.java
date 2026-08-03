@@ -1,6 +1,7 @@
 package com.rndymi.almacentracker.data.document;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.rndymi.almacentracker.core.document.RecognizedTextElement;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
@@ -491,6 +492,292 @@ public final class DocumentLineReconstructorTest {
                 result.get(0)
                         .getReconstructedText()
         );
+    }
+
+    @Test
+    public void reconstructDoesNotSplitAlphabeticCodeQualifier() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "ML",
+                                30,
+                                100,
+                                60,
+                                130
+                        ),
+                        element(
+                                "4170",
+                                75,
+                                100,
+                                130,
+                                130
+                        ),
+                        element(
+                                "DARK",
+                                145,
+                                100,
+                                200,
+                                130
+                        ),
+                        element(
+                                "BLUE",
+                                215,
+                                100,
+                                270,
+                                130
+                        ),
+                        element(
+                                "-",
+                                285,
+                                100,
+                                295,
+                                130
+                        ),
+                        element(
+                                "4pqts",
+                                310,
+                                100,
+                                375,
+                                130
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        500
+                );
+
+        assertEquals(1, result.size());
+
+        assertEquals(
+                "ML 4170 DARK BLUE - 4pqts",
+                result.get(0)
+                        .getReconstructedText()
+        );
+    }
+
+    @Test
+    public void reconstructSeparatesRealTwoColumnReferenceList() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "UTOPYA",
+                                40,
+                                20,
+                                115,
+                                48
+                        ),
+
+                        element(
+                                "MA710-4pcs",
+                                25,
+                                90,
+                                185,
+                                120
+                        ),
+                        element(
+                                "MA900-3pcs",
+                                25,
+                                135,
+                                185,
+                                165
+                        ),
+                        element(
+                                "MA901-5pqts",
+                                25,
+                                180,
+                                190,
+                                210
+                        ),
+                        element(
+                                "MA930-2pqts",
+                                25,
+                                225,
+                                190,
+                                255
+                        ),
+                        element(
+                                "MR21231-4pqts",
+                                25,
+                                270,
+                                195,
+                                300
+                        ),
+                        element(
+                                "MR21232-2pqts",
+                                25,
+                                315,
+                                195,
+                                345
+                        ),
+
+                        element(
+                                "MR21502-2pqts",
+                                225,
+                                92,
+                                390,
+                                122
+                        ),
+                        element(
+                                "MR21505-1pqts",
+                                225,
+                                137,
+                                390,
+                                167
+                        ),
+                        element(
+                                "MR21111-2pqts",
+                                225,
+                                182,
+                                390,
+                                212
+                        ),
+                        element(
+                                "MR21211-1pqt",
+                                225,
+                                227,
+                                385,
+                                257
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        420
+                );
+
+        assertEquals(11, result.size());
+
+        assertEquals(
+                "UTOPYA",
+                result.get(0)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MA710-4pcs",
+                result.get(1)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MA900-3pcs",
+                result.get(2)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MA901-5pqts",
+                result.get(3)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MA930-2pqts",
+                result.get(4)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR21231-4pqts",
+                result.get(5)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR21232-2pqts",
+                result.get(6)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR21502-2pqts",
+                result.get(7)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR21505-1pqts",
+                result.get(8)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR21111-2pqts",
+                result.get(9)
+                        .getReconstructedText()
+        );
+
+        assertEquals(
+                "MR21211-1pqt",
+                result.get(10)
+                        .getReconstructedText()
+        );
+    }
+
+    @Test
+    public void reconstructNeverKeepsTwoReferenceStartsInSameLine() {
+        List<RecognizedTextElement> elements =
+                Arrays.asList(
+                        element(
+                                "MA900-3pcs",
+                                20,
+                                100,
+                                185,
+                                130
+                        ),
+                        element(
+                                "M221505-1pqts",
+                                220,
+                                102,
+                                390,
+                                132
+                        ),
+                        element(
+                                "MA901-5pqts",
+                                20,
+                                155,
+                                185,
+                                185
+                        ),
+                        element(
+                                "MR21111-2p9ts",
+                                220,
+                                157,
+                                390,
+                                187
+                        )
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        elements,
+                        420
+                );
+
+        assertEquals(4, result.size());
+
+        for (RecognizedTextLine line : result) {
+            String text =
+                    line.getReconstructedText()
+                            .toUpperCase();
+
+            boolean containsLeftAndRightReference =
+                    (
+                            text.contains("MA900")
+                                    && text.contains("M221505")
+                    )
+                            || (
+                            text.contains("MA901")
+                                    && text.contains("MR21111")
+                    );
+
+            assertFalse(
+                    containsLeftAndRightReference
+            );
+        }
     }
 
     private RecognizedTextElement element(

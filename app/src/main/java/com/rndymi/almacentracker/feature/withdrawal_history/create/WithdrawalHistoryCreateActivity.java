@@ -32,6 +32,9 @@ public final class WithdrawalHistoryCreateActivity
 
     public static final String EXTRA_SAVED_HISTORY_ID =
             "com.rndymi.almacentracker.extra.SAVED_HISTORY_ID";
+    private static final String EXTRA_INITIAL_TITLE =
+            "com.rndymi.almacentracker.extra."
+                    + "WITHDRAWAL_HISTORY_INITIAL_TITLE";
 
     private ActivityWithdrawalHistoryCreateBinding binding;
     private WithdrawalHistoryCreateViewModel viewModel;
@@ -41,7 +44,8 @@ public final class WithdrawalHistoryCreateActivity
 
     public static Intent createIntent(
             Context context,
-            List<WithdrawalHistoryCreateInput> entries
+            List<WithdrawalHistoryCreateInput> entries,
+            @Nullable String initialTitle
     ) {
         Intent intent =
                 new Intent(
@@ -54,6 +58,14 @@ public final class WithdrawalHistoryCreateActivity
                         intent,
                         entries
                 );
+
+        if (initialTitle != null
+                && !initialTitle.trim().isEmpty()) {
+            intent.putExtra(
+                    EXTRA_INITIAL_TITLE,
+                    initialTitle.trim()
+            );
+        }
 
         return intent;
     }
@@ -94,6 +106,9 @@ public final class WithdrawalHistoryCreateActivity
         viewModel.initialize(
                 WithdrawalHistoryCreateIntentContract
                         .getEntries(getIntent()),
+                getIntent().getStringExtra(
+                        EXTRA_INITIAL_TITLE
+                ),
                 System.currentTimeMillis()
         );
     }

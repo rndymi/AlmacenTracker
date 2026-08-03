@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public final class WarehouseReferenceParserTest {
@@ -243,12 +245,12 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLine_preservesCategoryAndDigitsForReview() {
+    public void parseOcrLineResolvesInvalidCategoryAgainstKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
                         "M5 SOO8 - 3 pcs",
-                        java.util.Collections.singletonList(
+                        Collections.singletonList(
                                 new WarehouseReference(
                                         "MS",
                                         "5008"
@@ -257,11 +259,20 @@ public final class WarehouseReferenceParserTest {
                 );
 
         assertEquals(1, matches.size());
+
         assertEquals(
-                "M5 SOO8",
+                "MS 5008",
                 matches.get(0)
                         .getReference()
                         .displayValue()
+        );
+
+        assertTrue(
+                parser.isValidCategory(
+                        matches.get(0)
+                                .getReference()
+                                .getCategory()
+                )
         );
     }
 
@@ -371,57 +382,39 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLine_withoutKnownReferencePreservesInvalidOcrCandidate() {
+    public void parseOcrLineDoesNotExposeNumericCategoryWithoutKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
                         "M2 215I1 - 1 pcs",
-                        java.util.Collections.emptyList()
+                        Collections.emptyList()
                 );
 
-        assertEquals(1, matches.size());
-        assertEquals(
-                "M2 215I1",
-                matches.get(0)
-                        .getReference()
-                        .displayValue()
-        );
+        assertTrue(matches.isEmpty());
     }
 
     @Test
-    public void parseOcrLineSeparatesSuffixFromAmbiguousNumericCode() {
+    public void parseOcrLineRejectsInvalidCategoryWithQualifierWithoutKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
                         "M2 215L1POS",
-                        java.util.Collections.emptyList()
+                        Collections.emptyList()
                 );
 
-        assertEquals(1, matches.size());
-        assertEquals(
-                "M2 215L1 POS",
-                matches.get(0)
-                        .getReference()
-                        .displayValue()
-        );
+        assertTrue(matches.isEmpty());
     }
 
     @Test
-    public void parseOcrLineSeparatesSuffixFromFourCharacterCode() {
+    public void parseOcrLineRejectsInvalidCategoryWithoutKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
                         "M5 SOO8POS",
-                        java.util.Collections.emptyList()
+                        Collections.emptyList()
                 );
 
-        assertEquals(1, matches.size());
-        assertEquals(
-                "M5 SOO8 POS",
-                matches.get(0)
-                        .getReference()
-                        .displayValue()
-        );
+        assertTrue(matches.isEmpty());
     }
 
     @Test
@@ -460,8 +453,8 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseLineDoesNotTreatUnitsAsOptionalSuffixes() {
-        String[] unitSuffixes = {
+    public void parseLinePreservesAlphabeticQualifierWithoutDocumentBoundary() {
+        String[] qualifiers = {
                 "PCS",
                 "PQTS",
                 "PZAS",
@@ -469,16 +462,17 @@ public final class WarehouseReferenceParserTest {
                 "PAQUETES"
         };
 
-        for (String unitSuffix : unitSuffixes) {
+        for (String qualifier : qualifiers) {
             List<WarehouseReferenceMatch> matches =
                     parser.parseLine(
                             0,
-                            "MR 21570 " + unitSuffix
+                            "MR 21570 " + qualifier
                     );
 
             assertEquals(1, matches.size());
+
             assertEquals(
-                    "MR 21570",
+                    "MR 21570 " + qualifier,
                     matches.get(0)
                             .getReference()
                             .displayValue()
@@ -487,17 +481,18 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineDropsAttachedUnitWhenHyphenIsMissing() {
+    public void parseOcrLinePreservesAttachedQualifierWhenQuantityIsMissing() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
-                        "M2 21511pcs",
-                        java.util.Collections.emptyList()
+                        "MR21511pcs",
+                        Collections.emptyList()
                 );
 
         assertEquals(1, matches.size());
+
         assertEquals(
-                "M2 21511",
+                "MR 21511 PCS",
                 matches.get(0)
                         .getReference()
                         .displayValue()
@@ -584,9 +579,9 @@ public final class WarehouseReferenceParserTest {
                 parser.suggestReferences(
                         new WarehouseReference(
                                 "M2",
-                                "21511 PCS"
+                                "21511"
                         ),
-                        java.util.Arrays.asList(
+                        Arrays.asList(
                                 new WarehouseReference(
                                         "MR",
                                         "21571"
@@ -833,21 +828,304 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineRemovesAttachedQuantityUnit() {
+    public void parseOcrLinePreservesAttachedAlphabeticQualifier() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
-                        "MA 710PCS",
-                        java.util.Collections.emptyList()
+                        "MA710PCS",
+                        Collections.emptyList()
                 );
 
         assertEquals(1, matches.size());
 
         assertEquals(
-                "MA 710",
+                "MA 710 PCS",
                 matches.get(0)
                         .getReference()
                         .displayValue()
         );
+    }
+
+    @Test
+    public void parseLineUsesDashAsDocumentBoundary() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseLine(
+                        0,
+                        "MR 21570 - 5 pcs"
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MR 21570",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseLinePreservesAttachedQualifier() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseLine(
+                        0,
+                        "MA 900A - 3 pcs"
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MA 900 A",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseLinePreservesWordQualifier() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseLine(
+                        0,
+                        "ML 4170 Yellow - 2 pqts"
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "ML 4170 YELLOW",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineResolvesM2AgainstRoom() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M221570-5pc5",
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21570"
+                                )
+                        )
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MR 21570",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+
+        assertTrue(
+                parser.isValidCategory(
+                        matches.get(0)
+                                .getReference()
+                                .getCategory()
+                )
+        );
+    }
+
+    @Test
+    public void parseOcrLineResolvesM5AgainstRoom() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M55008-3pcs",
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MS",
+                                        "5008"
+                                )
+                        )
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MS 5008",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineSelectsUniqueBestCategoryCandidate() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M221570-5pcs",
+                        Arrays.asList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21570"
+                                ),
+                                new WarehouseReference(
+                                        "MZ",
+                                        "21570"
+                                )
+                        )
+                );
+
+        assertEquals(1, matches.size());
+
+        assertEquals(
+                "MZ 21570",
+                matches.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineRejectsEqualBestCategoryCandidates() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M121570-5pcs",
+                        Arrays.asList(
+                                new WarehouseReference(
+                                        "MI",
+                                        "21570"
+                                ),
+                                new WarehouseReference(
+                                        "ML",
+                                        "21570"
+                                )
+                        )
+                );
+
+        assertTrue(matches.isEmpty());
+    }
+
+    @Test
+    public void suggestReferencesSupportsNReadInsteadOfR() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MN",
+                                "21571"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21571"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MR 21571",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesSupportsNineReadInsteadOfSeven() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "ML",
+                                "3923"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "ML",
+                                        "3723"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "ML 3723",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesRecoversJAsSeven() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MA",
+                                "JI0"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MA",
+                                        "710"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MA 710",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesRecoversSeparatedFinalOne() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MR",
+                                "2111 I"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "21111"
+                                )
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+
+        assertEquals(
+                "MR 21111",
+                suggestions.get(0)
+                        .displayValue()
+        );
+    }
+
+    @Test
+    public void suggestReferencesDoesNotMergeRealAlphabeticQualifier() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference(
+                                "MA",
+                                "900 A"
+                        ),
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MA",
+                                        "900"
+                                )
+                        ),
+                        5
+                );
+
+        assertTrue(suggestions.isEmpty());
     }
 }

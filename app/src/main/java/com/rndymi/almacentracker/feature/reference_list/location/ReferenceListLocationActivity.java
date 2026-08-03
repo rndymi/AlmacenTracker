@@ -29,21 +29,24 @@ import java.util.List;
 public final class ReferenceListLocationActivity
         extends AppCompatActivity {
 
-    private ActivityReferenceListLocationBinding
-            binding;
-
-    private ReferenceListLocationViewModel
-            viewModel;
-
+    private ActivityReferenceListLocationBinding binding;
+    private ReferenceListLocationViewModel viewModel;
     private ReferenceListLocationAdapter adapter;
 
-    private List<DocumentReferenceData>
-            documentReferences =
+    private static final String EXTRA_DOCUMENT_TITLE =
+            "com.rndymi.almacentracker.extra."
+                    + "DOCUMENT_TITLE";
+
+    @Nullable
+    private String documentTitle;
+
+    private List<DocumentReferenceData> documentReferences =
             Collections.emptyList();
 
     public static Intent createIntent(
             Context context,
-            List<DocumentReferenceData> references
+            List<DocumentReferenceData> references,
+            @Nullable String documentTitle
     ) {
         Intent intent =
                 new Intent(
@@ -72,6 +75,14 @@ public final class ReferenceListLocationActivity
                         warehouseReferences
                 );
 
+        if (documentTitle != null
+                && !documentTitle.trim().isEmpty()) {
+            intent.putExtra(
+                    EXTRA_DOCUMENT_TITLE,
+                    documentTitle.trim()
+            );
+        }
+
         return intent;
     }
 
@@ -92,6 +103,10 @@ public final class ReferenceListLocationActivity
                         .getDocumentReferences(
                                 getIntent()
                         );
+        documentTitle =
+                getIntent().getStringExtra(
+                        EXTRA_DOCUMENT_TITLE
+                );
 
         configureToolbar();
         configureList();
@@ -346,7 +361,8 @@ public final class ReferenceListLocationActivity
                 WithdrawalHistoryCreateActivity
                         .createIntent(
                                 this,
-                                input
+                                input,
+                                documentTitle
                         )
         );
     }

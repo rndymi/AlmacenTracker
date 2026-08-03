@@ -112,7 +112,7 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
-    public void applyInitialLines_offersCandidatesWithoutAutoCorrecting() {
+    public void applyInitialLinesOffersSuggestionAndResolvesInvalidCategory() {
         ReferenceListReviewViewModel resolvingViewModel =
                 new ReferenceListReviewViewModel(
                         new WarehouseReferenceParser(),
@@ -154,52 +154,48 @@ public final class ReferenceListReviewViewModelTest {
 
         assertNotNull(state);
         assertEquals(2, state.getReferenceCount());
+
+        ReferenceProposal first =
+                state.getProposals().get(0);
+
         assertEquals(
                 "MR 2I57I",
-                state.getProposals()
-                        .get(0)
-                        .getReference()
+                first.getReference()
                         .displayValue()
         );
-        assertEquals(
-                "M5 SOO8",
-                state.getProposals()
-                        .get(1)
-                        .getReference()
-                        .displayValue()
-        );
-        assertTrue(
-                state.getProposals()
-                        .get(0)
-                        .requiresCorrection()
-        );
+
         assertEquals(
                 ReferenceProposal.MatchStatus
                         .UNIQUE_SUGGESTION,
-                state.getProposals()
-                        .get(0)
-                        .getMatchStatus()
+                first.getMatchStatus()
         );
+
         assertEquals(
                 "MR 21571",
-                state.getProposals()
-                        .get(0)
-                        .getSuggestions()
+                first.getSuggestions()
                         .get(0)
                         .displayValue()
         );
+
+        ReferenceProposal second =
+                state.getProposals().get(1);
+
         assertEquals(
                 "MS 5008",
-                state.getProposals()
-                        .get(1)
-                        .getSuggestions()
-                        .get(0)
+                second.getReference()
                         .displayValue()
         );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                second.getMatchStatus()
+        );
+
+        assertFalse(second.requiresCorrection());
     }
 
     @Test
-    public void applyInitialLines_joinsSplitInputAndOffersSuggestion() {
+    public void applyInitialLinesJoinsSplitInputAndResolvesUniqueReference() {
         ReferenceListReviewViewModel resolvingViewModel =
                 new ReferenceListReviewViewModel(
                         new WarehouseReferenceParser(),
@@ -212,7 +208,7 @@ public final class ReferenceListReviewViewModelTest {
                                             > callback
                             ) {
                                 callback.onSuccess(
-                                        Arrays.asList(
+                                        Collections.singletonList(
                                                 warehouseItem(
                                                         "MS",
                                                         "5008"
@@ -237,20 +233,19 @@ public final class ReferenceListReviewViewModelTest {
 
         assertNotNull(state);
         assertEquals(1, state.getReferenceCount());
-        assertEquals(
-                "M5 SOO8",
-                state.getProposals()
-                        .get(0)
-                        .getReference()
-                        .displayValue()
-        );
+
+        ReferenceProposal proposal =
+                state.getProposals().get(0);
+
         assertEquals(
                 "MS 5008",
-                state.getProposals()
-                        .get(0)
-                        .getSuggestions()
-                        .get(0)
+                proposal.getReference()
                         .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                proposal.getMatchStatus()
         );
     }
 
@@ -448,7 +443,7 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
-    public void applyInitialLines_keepsAllOcrCandidatesForReview() {
+    public void applyInitialLinesKeepsOnlyAlphabeticOcrCategoriesWithoutRepository() {
         viewModel.applyInitialLines(
                 Arrays.asList(
                         "Me 21570 -5pcs",
@@ -464,30 +459,60 @@ public final class ReferenceListReviewViewModelTest {
                         .getValue();
 
         assertNotNull(state);
-        assertEquals(4, state.getReferenceCount());
-        assertFalse(state.canConfirm());
-        assertTrue(
+        assertEquals(2, state.getReferenceCount());
+
+        assertEquals(
+                "ME 21570",
+                state.getProposals()
+                        .get(0)
+                        .getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                "ML 3923",
                 state.getProposals()
                         .get(1)
-                        .requiresCorrection()
+                        .getReference()
+                        .displayValue()
         );
-        assertTrue(
-                state.getProposals()
-                        .get(2)
-                        .requiresCorrection()
+
+        assertTrue(state.canConfirm());
+    }
+
+    @Test
+    public void applyInitialLinesPreservesAmbiguousAttachedOcrCode() {
+        viewModel.applyInitialLines(
+                Collections.singletonList(
+                        "MR 215L1POS"
+                )
         );
+
+        ReferenceProposal proposal =
+                viewModel.getUiState()
+                        .getValue()
+                        .getProposals()
+                        .get(0);
+
+        assertEquals(
+                "MR 215L1POS",
+                proposal.getReference()
+                        .displayValue()
+        );
+
+        assertTrue(proposal.requiresCorrection());
         assertFalse(
-                state.getProposals()
-                        .get(3)
-                        .requiresCorrection()
+                viewModel.getUiState()
+                        .getValue()
+                        .canConfirm()
         );
     }
 
     @Test
-    public void applyInitialLinesSeparatesOcrCodeAndOptionalSuffix() {
+    public void applyInitialLinesPreservesAttachedQualifierWithoutQuantity() {
         viewModel.applyInitialLines(
                 Collections.singletonList(
-                        "M2 215L1POS"
+                        "MR 21511pcs"
                 )
         );
 
@@ -498,40 +523,24 @@ public final class ReferenceListReviewViewModelTest {
                         .get(0);
 
         assertEquals(
-                "M2 215L1 POS",
+                "MR 21511 PCS",
                 proposal.getReference()
                         .displayValue()
         );
-        assertTrue(proposal.requiresCorrection());
-    }
 
-    @Test
-    public void applyInitialLinesDoesNotTreatAttachedUnitAsSuffix() {
-        viewModel.applyInitialLines(
-                Collections.singletonList(
-                        "M2 21511pcs"
-                )
-        );
-
-        ReferenceProposal proposal =
+        assertFalse(proposal.requiresCorrection());
+        assertTrue(
                 viewModel.getUiState()
                         .getValue()
-                        .getProposals()
-                        .get(0);
-
-        assertEquals(
-                "M2 21511",
-                proposal.getReference()
-                        .displayValue()
+                        .canConfirm()
         );
-        assertTrue(proposal.requiresCorrection());
     }
 
     @Test
-    public void editReference_clearsRequiredCorrectionState() {
+    public void editReferenceClearsRequiredCorrectionState() {
         viewModel.applyInitialLines(
-                Arrays.asList(
-                        "M2 215I1"
+                Collections.singletonList(
+                        "MR 215I1"
                 )
         );
 
@@ -555,6 +564,7 @@ public final class ReferenceListReviewViewModelTest {
                 ReferenceInputResult.Status.SUCCESS,
                 result.getStatus()
         );
+
         assertFalse(
                 viewModel
                         .getUiState()
@@ -563,6 +573,7 @@ public final class ReferenceListReviewViewModelTest {
                         .get(0)
                         .requiresCorrection()
         );
+
         assertTrue(
                 viewModel
                         .getUiState()
@@ -907,6 +918,303 @@ public final class ReferenceListReviewViewModelTest {
                 viewModel
                         .getConfirmationEvent()
                         .getValue()
+        );
+    }
+
+    @Test
+    public void applyInitialLinesProcessesRealPaddleOutput() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21570"
+                                                ),
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21571"
+                                                ),
+                                                warehouseItem(
+                                                        "MS",
+                                                        "5008"
+                                                ),
+                                                warehouseItem(
+                                                        "ML",
+                                                        "3723"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "Clena",
+                        "M221570-5pc5",
+                        "Mn21571-1pcs",
+                        "M55008-3pcs",
+                        "ML3923-4p9fs"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(4, state.getReferenceCount());
+
+        ReferenceProposal first =
+                state.getProposals().get(0);
+
+        assertEquals(
+                "MR 21570",
+                first.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                first.getMatchStatus()
+        );
+
+        assertEquals(
+                Integer.valueOf(5),
+                first.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                first.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal second =
+                state.getProposals().get(1);
+
+        assertEquals(
+                "MN 21571",
+                second.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                second.getMatchStatus()
+        );
+
+        assertEquals(
+                "MR 21571",
+                second.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(1),
+                second.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                second.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal third =
+                state.getProposals().get(2);
+
+        assertEquals(
+                "MS 5008",
+                third.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.EXACT,
+                third.getMatchStatus()
+        );
+
+        assertEquals(
+                Integer.valueOf(3),
+                third.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PCS",
+                third.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal fourth =
+                state.getProposals().get(3);
+
+        assertEquals(
+                "ML 3923",
+                fourth.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                fourth.getMatchStatus()
+        );
+
+        assertEquals(
+                "ML 3723",
+                fourth.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(4),
+                fourth.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                fourth.getDocumentData()
+                        .getUnit()
+        );
+    }
+
+    @Test
+    public void applyInitialLinesRecoversObservedTwoColumnQuantityAndCodes() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MA",
+                                                        "710"
+                                                ),
+                                                warehouseItem(
+                                                        "MA",
+                                                        "901"
+                                                ),
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21111"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "MAJI0-4PS",
+                        "MA901-SPgts",
+                        "MR2111I-2P9ts"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(3, state.getReferenceCount());
+
+        ReferenceProposal first =
+                state.getProposals().get(0);
+
+        assertEquals(
+                "MA JI0",
+                first.getReference()
+                        .displayValue()
+        );
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                first.getMatchStatus()
+        );
+
+        assertEquals(
+                "MA 710",
+                first.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(4),
+                first.getDocumentData()
+                        .getQuantity()
+        );
+
+        ReferenceProposal second =
+                state.getProposals().get(1);
+
+        assertEquals(
+                Integer.valueOf(5),
+                second.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                second.getDocumentData()
+                        .getUnit()
+        );
+
+        ReferenceProposal third =
+                state.getProposals().get(2);
+
+        assertEquals(
+                ReferenceProposal.MatchStatus
+                        .UNIQUE_SUGGESTION,
+                third.getMatchStatus()
+        );
+
+        assertEquals(
+                "MR 21111",
+                third.getSuggestions()
+                        .get(0)
+                        .displayValue()
+        );
+
+        assertEquals(
+                Integer.valueOf(2),
+                third.getDocumentData()
+                        .getQuantity()
+        );
+
+        assertEquals(
+                "PQTS",
+                third.getDocumentData()
+                        .getUnit()
         );
     }
 

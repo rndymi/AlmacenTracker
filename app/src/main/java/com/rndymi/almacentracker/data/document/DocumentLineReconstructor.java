@@ -6,23 +6,14 @@ import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public final class DocumentLineReconstructor {
 
-    private static final float MINIMUM_VERTICAL_OVERLAP =
-            0.35f;
-
-    private static final float
-            MAXIMUM_CENTER_DISTANCE_FACTOR =
-            0.65f;
-
-    private static final float
-            MINIMUM_ROW_SPLIT_GAP_FACTOR =
-            0.10f;
-
-    private static final float
-            CHARACTER_GAP_SPLIT_FACTOR =
-            4.5f;
+    private static final float MINIMUM_VERTICAL_OVERLAP = 0.35f;
+    private static final float MAXIMUM_CENTER_DISTANCE_FACTOR = 0.65f;
+    private static final float MINIMUM_ROW_SPLIT_GAP_FACTOR = 0.10f;
+    private static final float CHARACTER_GAP_SPLIT_FACTOR = 4.5f;
 
     private final DocumentColumnDetector columnDetector;
 
@@ -111,8 +102,7 @@ public final class DocumentLineReconstructor {
         return rows;
     }
 
-    private List<SpatialRow>
-    splitRowsByLargeHorizontalGaps(
+    private List<SpatialRow> splitRowsByLargeHorizontalGaps(
             List<SpatialRow> rows,
             int documentWidth
     ) {
@@ -419,28 +409,47 @@ public final class DocumentLineReconstructor {
                     new SpatialRow();
 
             RecognizedTextElement previous = null;
+            boolean currentContainsReferenceStart =
+                    false;
 
-            for (RecognizedTextElement element
-                    : elements) {
+            for (int index = 0;
+                 index < elements.size();
+                 index++) {
 
-                if (previous != null) {
-                    int horizontalGap =
-                            element.getLeft()
-                                    - previous.getRight();
+                RecognizedTextElement element =
+                        elements.get(index);
 
-                    if (horizontalGap
-                            >= splitThreshold) {
+                boolean beginsReference =
+                        beginsReferenceAt(index);
 
-                        if (!current.elements.isEmpty()) {
-                            result.add(current);
-                        }
+                boolean beginsSecondReference =
+                        beginsReference
+                                && currentContainsReferenceStart
+                                && !current.elements.isEmpty();
 
-                        current =
-                                new SpatialRow();
+                boolean hasLargeHorizontalGap =
+                        previous != null
+                                && element.getLeft()
+                                - previous.getRight()
+                                >= splitThreshold;
+
+                if (beginsSecondReference
+                        || hasLargeHorizontalGap) {
+
+                    if (!current.elements.isEmpty()) {
+                        result.add(current);
                     }
+
+                    current = new SpatialRow();
+                    currentContainsReferenceStart = false;
                 }
 
                 current.add(element);
+
+                if (beginsReference) {
+                    currentContainsReferenceStart = true;
+                }
+
                 previous = element;
             }
 
@@ -449,6 +458,127 @@ public final class DocumentLineReconstructor {
             }
 
             return result;
+        }
+
+        private boolean beginsReferenceAt(
+                int index
+        ) {
+            if (index < 0 || index >= elements.size()) {
+                return false;
+            }
+
+            String currentText =
+                    compactAlphanumericText(
+                            elements.get(index)
+                                    .getRawText()
+                    );
+
+            if (looksLikeCombinedReference(
+                    currentText
+            )) {
+                return true;
+            }
+
+            if (!looksLikeObservedCategory(
+                    currentText
+            )) {
+                return false;
+            }
+
+            int nextIndex = index + 1;
+
+            if (nextIndex >= elements.size()) {
+                return false;
+            }
+
+            String nextText =
+                    compactAlphanumericText(
+                            elements.get(nextIndex)
+                                    .getRawText()
+                    );
+
+            return looksLikeObservedCode(nextText);
+        }
+
+        private boolean looksLikeCombinedReference(
+                String value
+        ) {
+            if (value.length() < 5) {
+                return false;
+            }
+
+            if (!Character.isLetter(
+                    value.charAt(0)
+            )) {
+                return false;
+            }
+
+            if (!Character.isLetterOrDigit(
+                    value.charAt(1)
+            )) {
+                return false;
+            }
+
+            return containsDigitFrom(
+                    value,
+                    2
+            );
+        }
+
+        private boolean looksLikeObservedCategory(
+                String value
+        ) {
+            return value.length() == 2
+                    && Character.isLetter(
+                    value.charAt(0)
+            )
+                    && Character.isLetterOrDigit(
+                    value.charAt(1)
+            );
+        }
+
+        private boolean looksLikeObservedCode(
+                String value
+        ) {
+            return value.length() >= 3
+                    && containsDigitFrom(
+                    value,
+                    0
+            );
+        }
+
+        private boolean containsDigitFrom(
+                String value,
+                int startIndex
+        ) {
+            for (int index =
+                 Math.max(0, startIndex);
+                 index < value.length();
+                 index++) {
+
+                if (Character.isDigit(
+                        value.charAt(index)
+                )) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private String compactAlphanumericText(
+                String value
+        ) {
+            String normalized =
+                    value == null
+                            ? ""
+                            : value
+                            .toUpperCase(Locale.ROOT);
+
+            return normalized.replaceAll(
+                    "[^A-Z0-9]",
+                    ""
+            );
         }
 
         private SpatialRow copy() {

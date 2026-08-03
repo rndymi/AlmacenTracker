@@ -18,11 +18,15 @@ import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListReviewBinding;
 import com.rndymi.almacentracker.databinding.DialogReferenceEditorBinding;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentTitleParser;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
+
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.feature.reference_list.common.WarehouseReferenceIntentContract;
 import com.rndymi.almacentracker.feature.reference_list.location.ReferenceListLocationActivity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class ReferenceListReviewActivity
@@ -36,6 +40,9 @@ public final class ReferenceListReviewActivity
     private ActivityReferenceListReviewBinding binding;
     private ReferenceListReviewViewModel viewModel;
     private ReferenceListReviewAdapter adapter;
+
+    @Nullable
+    private String documentTitle;
 
     public static Intent createIntent(
             Context context,
@@ -91,11 +98,24 @@ public final class ReferenceListReviewActivity
         configureActions();
         observeState();
 
-        viewModel.applyInitialLines(
+        List<String> recognizedLines =
                 getIntent()
                         .getStringArrayListExtra(
                                 EXTRA_RECOGNIZED_LINES
-                        )
+                        );
+
+        if (recognizedLines == null) {
+            recognizedLines =
+                    Collections.emptyList();
+        }
+
+        documentTitle =
+                new DocumentTitleParser(
+                        new WarehouseReferenceParser()
+                ).parse(recognizedLines);
+
+        viewModel.applyInitialLines(
+                recognizedLines
         );
     }
 
@@ -479,7 +499,8 @@ public final class ReferenceListReviewActivity
                 ReferenceListLocationActivity
                         .createIntent(
                                 this,
-                                confirmedValues
+                                confirmedValues,
+                                documentTitle
                         )
         );
     }
