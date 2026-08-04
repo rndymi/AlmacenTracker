@@ -12,8 +12,8 @@ public final class DocumentLineReconstructor {
 
     private static final float MINIMUM_VERTICAL_OVERLAP = 0.35f;
     private static final float MAXIMUM_CENTER_DISTANCE_FACTOR = 0.65f;
-    private static final float MINIMUM_ROW_SPLIT_GAP_FACTOR = 0.10f;
-    private static final float CHARACTER_GAP_SPLIT_FACTOR = 4.5f;
+    private static final float MINIMUM_ROW_SPLIT_GAP_FACTOR = 0.055f;
+    private static final float CHARACTER_GAP_SPLIT_FACTOR = 3.0f;
 
     private final DocumentColumnDetector columnDetector;
 
@@ -389,7 +389,7 @@ public final class DocumentLineReconstructor {
             float averageCharacterWidth =
                     calculateAverageCharacterWidth();
 
-            float widthThreshold =
+            float documentThreshold =
                     documentWidth > 0
                             ? documentWidth
                               * MINIMUM_ROW_SPLIT_GAP_FACTOR
@@ -399,16 +399,31 @@ public final class DocumentLineReconstructor {
                     averageCharacterWidth
                             * CHARACTER_GAP_SPLIT_FACTOR;
 
-            float splitThreshold =
+            float splitThreshold;
+
+            if (documentThreshold > 0.0f) {
+                splitThreshold =
+                        Math.min(
+                                documentThreshold,
+                                characterThreshold
+                        );
+            } else {
+                splitThreshold =
+                        characterThreshold;
+            }
+
+            splitThreshold =
                     Math.max(
-                            widthThreshold,
-                            characterThreshold
+                            splitThreshold,
+                            averageCharacterWidth
+                                    * 1.5f
                     );
 
             SpatialRow current =
                     new SpatialRow();
 
             RecognizedTextElement previous = null;
+
             boolean currentContainsReferenceStart =
                     false;
 
@@ -427,21 +442,37 @@ public final class DocumentLineReconstructor {
                                 && currentContainsReferenceStart
                                 && !current.elements.isEmpty();
 
+                int horizontalGap =
+                        previous == null
+                                ? 0
+                                : element.getLeft()
+                                  - previous.getRight();
+
                 boolean hasLargeHorizontalGap =
                         previous != null
-                                && element.getLeft()
-                                - previous.getRight()
+                                && horizontalGap
                                 >= splitThreshold;
 
+                boolean hasDocumentColumnGap =
+                        previous != null
+                                && documentWidth > 0
+                                && horizontalGap
+                                >= documentWidth
+                                * MINIMUM_ROW_SPLIT_GAP_FACTOR;
+
                 if (beginsSecondReference
-                        || hasLargeHorizontalGap) {
+                        || hasLargeHorizontalGap
+                        || hasDocumentColumnGap) {
 
                     if (!current.elements.isEmpty()) {
                         result.add(current);
                     }
 
-                    current = new SpatialRow();
-                    currentContainsReferenceStart = false;
+                    current =
+                            new SpatialRow();
+
+                    currentContainsReferenceStart =
+                            false;
                 }
 
                 current.add(element);
