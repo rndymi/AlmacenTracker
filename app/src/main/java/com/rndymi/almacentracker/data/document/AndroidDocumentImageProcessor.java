@@ -14,7 +14,9 @@ import android.net.Uri;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.rndymi.almacentracker.core.document.DocumentImageProcessingCallback;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessingRequest;
 import com.rndymi.almacentracker.core.document.DocumentImageProcessor;
+import com.rndymi.almacentracker.core.document.DocumentImageRotation;
 
 import java.io.InputStream;
 import java.util.Objects;
@@ -26,7 +28,6 @@ public final class AndroidDocumentImageProcessor
         implements DocumentImageProcessor {
 
     private static final int OCR_MAXIMUM_SIDE = 2200;
-
     private static final float CONTRAST = 1.18f;
 
     private final ContentResolver contentResolver;
@@ -50,12 +51,12 @@ public final class AndroidDocumentImageProcessor
 
     @Override
     public void process(
-            String imageUri,
+            DocumentImageProcessingRequest request,
             DocumentImageProcessingCallback callback
     ) {
         Objects.requireNonNull(
-                imageUri,
-                "imageUri"
+                request,
+                "request"
         );
         Objects.requireNonNull(
                 callback,
@@ -69,16 +70,18 @@ public final class AndroidDocumentImageProcessor
 
         executor.execute(
                 () -> processInBackground(
-                        imageUri,
+                        request,
                         callback
                 )
         );
     }
 
     private void processInBackground(
-            String imageUri,
+            DocumentImageProcessingRequest request,
             DocumentImageProcessingCallback callback
     ) {
+        String imageUri = request.getImageUri();
+
         Uri uri;
 
         try {
@@ -95,6 +98,12 @@ public final class AndroidDocumentImageProcessor
             callback.onImageOpenError();
             return;
         }
+
+        int effectiveRotation =
+                DocumentImageRotation.combine(
+                        metadata.rotation,
+                        request.getManualRotationDegrees()
+                );
 
         Bitmap decoded =
                 decodeScaledBitmap(
@@ -115,7 +124,7 @@ public final class AndroidDocumentImageProcessor
             oriented =
                     rotateBitmap(
                             decoded,
-                            metadata.rotation
+                            effectiveRotation
                     );
 
             if (oriented != decoded
@@ -136,7 +145,7 @@ public final class AndroidDocumentImageProcessor
                             processed,
                             metadata.width,
                             metadata.height,
-                            metadata.rotation
+                            effectiveRotation
                     )
             );
         } catch (
@@ -292,12 +301,15 @@ public final class AndroidDocumentImageProcessor
             Bitmap source,
             int rotation
     ) {
-        if (rotation == 0) {
+        int normalizedRotation =
+                DocumentImageRotation.normalize(rotation);
+
+        if (normalizedRotation == 0) {
             return source;
         }
 
         Matrix matrix = new Matrix();
-        matrix.postRotate(rotation);
+        matrix.postRotate(normalizedRotation);
 
         return Bitmap.createBitmap(
                 source,

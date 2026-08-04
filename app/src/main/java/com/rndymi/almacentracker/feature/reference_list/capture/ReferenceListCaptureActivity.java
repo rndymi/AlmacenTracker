@@ -3,6 +3,7 @@ package com.rndymi.almacentracker.feature.reference_list.capture;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -41,17 +42,16 @@ public final class ReferenceListCaptureActivity
     private ActivityReferenceListCaptureBinding binding;
     private ReferenceListCaptureViewModel viewModel;
     private DocumentImageLoader<Bitmap> imageLoader;
-
     private ActivityResultLauncher<Uri> takePictureLauncher;
-
-    private ActivityResultLauncher <PickVisualMediaRequest>
-            photoPickerLauncher;
+    private ActivityResultLauncher <PickVisualMediaRequest> photoPickerLauncher;
 
     private final ExecutorService previewExecutor = Executors.newSingleThreadExecutor();
 
     private File pendingCaptureFile;
     private File activeCapturedFile;
     private String renderedImageUri;
+    private int renderedManualRotationDegrees = -1;
+    private Bitmap activePreviewBitmap;
     private ReferenceListCaptureUiState.Status lastAnnouncedErrorStatus;
 
     public static Intent createIntent(
@@ -162,6 +162,34 @@ public final class ReferenceListCaptureActivity
 
         binding.selectImageButton.setOnClickListener(
                 ignored -> launchPhotoPicker()
+        );
+
+        binding.rotateImageLeftButton.setOnClickListener(
+                ignored -> {
+                    viewModel.rotateImageLeft();
+
+                    binding.rotationActions
+                            .announceForAccessibility(
+                                    getString(
+                                            R.string
+                                                    .reference_list_rotated_left_announcement
+                                    )
+                            );
+                }
+        );
+
+        binding.rotateImageRightButton.setOnClickListener(
+                ignored -> {
+                    viewModel.rotateImageRight();
+
+                    binding.rotationActions
+                            .announceForAccessibility(
+                                    getString(
+                                            R.string
+                                                    .reference_list_rotated_right_announcement
+                                    )
+                            );
+                }
         );
 
         binding.processImageButton.setOnClickListener(
@@ -314,8 +342,7 @@ public final class ReferenceListCaptureActivity
 
     private void changeImage() {
         deleteActiveCapturedFile();
-        renderedImageUri = null;
-        binding.imagePreview.setImageDrawable(null);
+        clearRenderedPreview();
         viewModel.clearImage();
     }
 
@@ -331,6 +358,28 @@ public final class ReferenceListCaptureActivity
         binding.selectImageButton.setEnabled(
                 state.canChooseImage()
         );
+        binding.rotationActions.setVisibility(
+                state.hasImage()
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+
+        binding.rotateImageLeftButton.setEnabled(
+                state.canRotateImage()
+        );
+
+        binding.rotateImageRightButton.setEnabled(
+                state.canRotateImage()
+        );
+
+        binding.rotationActions.setContentDescription(
+                getString(
+                        R.string
+                                .reference_list_rotation_state_description,
+                        state.getManualRotationDegrees()
+                )
+        );
+
         binding.cancelButton.setEnabled(
                 !processing
         );
@@ -385,8 +434,7 @@ public final class ReferenceListCaptureActivity
             ReferenceListCaptureUiState state
     ) {
         if (!state.shouldShowPreview()) {
-            renderedImageUri = null;
-            binding.imagePreview.setImageDrawable(null);
+            clearRenderedPreview();
             return;
         }
 
@@ -400,39 +448,56 @@ public final class ReferenceListCaptureActivity
         );
 
         String imageUri = state.getImageUri();
+        int manualRotationDegrees =
+                state.getManualRotationDegrees();
 
-        if (imageUri == null
-                || imageUri.equals(renderedImageUri)) {
+        if (imageUri == null) {
+            clearRenderedPreview();
+            return;
+        }
+
+        boolean sameRenderKey =
+                imageUri.equals(renderedImageUri)
+                        && manualRotationDegrees
+                        == renderedManualRotationDegrees;
+
+        if (sameRenderKey) {
             return;
         }
 
         renderedImageUri = imageUri;
+        renderedManualRotationDegrees =
+                manualRotationDegrees;
 
         loadScaledPreview(
-                Uri.parse(imageUri)
+                Uri.parse(imageUri),
+                manualRotationDegrees
         );
     }
 
     private void loadScaledPreview(
-            Uri imageUri
+            Uri imageUri,
+            int manualRotationDegrees
     ) {
-        binding.imagePreview.setImageDrawable(null);
+        detachAndRecycleActivePreview();
+
+        String requestedImageUri =
+                imageUri.toString();
 
         previewExecutor.execute(
                 () -> {
                     Bitmap preview =
                             imageLoader.loadPreview(
-                                    imageUri.toString(),
-                                    PREVIEW_MAX_SIZE
+                                    requestedImageUri,
+                                    PREVIEW_MAX_SIZE,
+                                    manualRotationDegrees
                             );
 
                     runOnUiThread(
                             () -> {
                                 if (isFinishing()
                                         || isDestroyed()) {
-                                    if (preview != null) {
-                                        preview.recycle();
-                                    }
+                                    recyclePreview(preview);
                                     return;
                                 }
 
@@ -441,15 +506,17 @@ public final class ReferenceListCaptureActivity
                                                 .getUiState()
                                                 .getValue();
 
-                                if (state == null
-                                        || state.getImageUri() == null
-                                        || !state.getImageUri()
-                                        .equals(
-                                                imageUri.toString()
-                                        )) {
-                                    if (preview != null) {
-                                        preview.recycle();
-                                    }
+                                boolean obsolete =
+                                        state == null
+                                                || state.getImageUri() == null
+                                                || !state.getImageUri()
+                                                .equals(requestedImageUri)
+                                                || state
+                                                .getManualRotationDegrees()
+                                                != manualRotationDegrees;
+
+                                if (obsolete) {
+                                    recyclePreview(preview);
                                     return;
                                 }
 
@@ -461,6 +528,10 @@ public final class ReferenceListCaptureActivity
                                             );
                                     return;
                                 }
+
+                                detachAndRecycleActivePreview();
+
+                                activePreviewBitmap = preview;
 
                                 binding.imagePreview
                                         .setImageBitmap(preview);
@@ -774,6 +845,26 @@ public final class ReferenceListCaptureActivity
         );
     }
 
+    private void clearRenderedPreview() {
+        renderedImageUri = null;
+        renderedManualRotationDegrees = -1;
+        detachAndRecycleActivePreview();
+    }
+
+    private void detachAndRecycleActivePreview() {
+        binding.imagePreview.setImageDrawable(null);
+
+        recyclePreview(activePreviewBitmap);
+        activePreviewBitmap = null;
+    }
+
+    private void recyclePreview(Bitmap bitmap) {
+        if (bitmap != null
+                && !bitmap.isRecycled()) {
+            bitmap.recycle();
+        }
+    }
+
     @Override
     protected void onSaveInstanceState(
             Bundle outState
@@ -791,15 +882,14 @@ public final class ReferenceListCaptureActivity
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-
         previewExecutor.shutdownNow();
 
-        if (isFinishing()) {
-            deletePendingCapture();
-            deleteActiveCapturedFile();
+        if (binding != null) {
+            detachAndRecycleActivePreview();
         }
 
         binding = null;
+
+        super.onDestroy();
     }
 }

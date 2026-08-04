@@ -5,8 +5,10 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.rndymi.almacentracker.core.document.DocumentImage;
-import com.rndymi.almacentracker.core.document.DocumentImageProcessingCallback;
 import com.rndymi.almacentracker.core.document.DocumentImageProcessor;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessingCallback;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessingRequest;
+import com.rndymi.almacentracker.core.document.DocumentImageRotation;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.DocumentRecognitionCallback;
 import com.rndymi.almacentracker.core.document.DocumentTextRecognizer;
@@ -73,6 +75,49 @@ public final class ReferenceListCaptureViewModel
         );
     }
 
+    public void rotateImageLeft() {
+        rotateImage(
+                true
+        );
+    }
+
+    public void rotateImageRight() {
+        rotateImage(
+                false
+        );
+    }
+
+    private void rotateImage(boolean rotateLeft) {
+        ReferenceListCaptureUiState current =
+                uiState.getValue();
+
+        if (processing
+                || current == null
+                || !current.canRotateImage()) {
+            return;
+        }
+
+        int currentRotation =
+                current.getManualRotationDegrees();
+
+        int newRotation =
+                rotateLeft
+                        ? DocumentImageRotation.rotateLeft(
+                        currentRotation
+                )
+                        : DocumentImageRotation.rotateRight(
+                        currentRotation
+                );
+
+        processingRequestId++;
+
+        uiState.setValue(
+                current.withManualRotationDegrees(
+                        newRotation
+                )
+        );
+    }
+
     public void processSelectedImage() {
         ReferenceListCaptureUiState state =
                 uiState.getValue();
@@ -94,16 +139,23 @@ public final class ReferenceListCaptureViewModel
         long requestId =
                 ++processingRequestId;
 
+        int manualRotationDegrees =
+                state.getManualRotationDegrees();
+
         uiState.setValue(
                 ReferenceListCaptureUiState
                         .processing(
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         )
         );
 
         imageProcessor.process(
-                imageUri,
+                new DocumentImageProcessingRequest(
+                        imageUri,
+                        manualRotationDegrees
+                ),
                 new DocumentImageProcessingCallback() {
 
                     @Override
@@ -119,6 +171,7 @@ public final class ReferenceListCaptureViewModel
                                 requestId,
                                 imageUri,
                                 imageSource,
+                                manualRotationDegrees,
                                 documentImage
                         );
                     }
@@ -128,7 +181,8 @@ public final class ReferenceListCaptureViewModel
                         completeWithImageError(
                                 requestId,
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         );
                     }
 
@@ -137,7 +191,8 @@ public final class ReferenceListCaptureViewModel
                         completeWithRecognitionError(
                                 requestId,
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         );
                     }
                 }
@@ -148,6 +203,7 @@ public final class ReferenceListCaptureViewModel
             long requestId,
             String imageUri,
             DocumentImageSource imageSource,
+            int manualRotationDegrees,
             DocumentImage documentImage
     ) {
         textRecognizer.recognize(
@@ -169,7 +225,8 @@ public final class ReferenceListCaptureViewModel
                                     ReferenceListCaptureUiState
                                             .noTextFound(
                                                     imageUri,
-                                                    imageSource
+                                                    imageSource,
+                                                    manualRotationDegrees
                                             )
                             );
                             return;
@@ -180,7 +237,8 @@ public final class ReferenceListCaptureViewModel
                                         .textRecognized(
                                                 imageUri,
                                                 imageSource,
-                                                document
+                                                document,
+                                                manualRotationDegrees
                                         )
                         );
                     }
@@ -190,7 +248,8 @@ public final class ReferenceListCaptureViewModel
                         completeWithImageError(
                                 requestId,
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         );
                     }
 
@@ -199,7 +258,8 @@ public final class ReferenceListCaptureViewModel
                         completeWithRecognitionError(
                                 requestId,
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         );
                     }
                 }
@@ -209,7 +269,8 @@ public final class ReferenceListCaptureViewModel
     private void completeWithImageError(
             long requestId,
             String imageUri,
-            DocumentImageSource imageSource
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
     ) {
         if (!completeRequest(requestId)) {
             return;
@@ -219,7 +280,8 @@ public final class ReferenceListCaptureViewModel
                 ReferenceListCaptureUiState
                         .imageError(
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         )
         );
     }
@@ -227,7 +289,8 @@ public final class ReferenceListCaptureViewModel
     private void completeWithRecognitionError(
             long requestId,
             String imageUri,
-            DocumentImageSource imageSource
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
     ) {
         if (!completeRequest(requestId)) {
             return;
@@ -237,7 +300,8 @@ public final class ReferenceListCaptureViewModel
                 ReferenceListCaptureUiState
                         .recognitionError(
                                 imageUri,
-                                imageSource
+                                imageSource,
+                                manualRotationDegrees
                         )
         );
     }

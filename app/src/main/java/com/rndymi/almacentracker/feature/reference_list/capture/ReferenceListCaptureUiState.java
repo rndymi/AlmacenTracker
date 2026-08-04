@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.feature.reference_list.capture;
 
+import com.rndymi.almacentracker.core.document.DocumentImageRotation;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.RecognizedDocument;
 
@@ -20,13 +21,15 @@ public final class ReferenceListCaptureUiState {
     private final DocumentImageSource imageSource;
     private final RecognizedDocument recognizedDocument;
     private final boolean rawTextExpanded;
+    private final int manualRotationDegrees;
 
     private ReferenceListCaptureUiState(
             Status status,
             String imageUri,
             DocumentImageSource imageSource,
             RecognizedDocument recognizedDocument,
-            boolean rawTextExpanded
+            boolean rawTextExpanded,
+            int manualRotationDegrees
     ) {
         this.status = status;
         this.imageUri = imageUri;
@@ -35,6 +38,10 @@ public final class ReferenceListCaptureUiState {
                 recognizedDocument;
         this.rawTextExpanded =
                 rawTextExpanded;
+        this.manualRotationDegrees =
+                DocumentImageRotation.normalize(
+                        manualRotationDegrees
+                );
     }
 
     public static ReferenceListCaptureUiState empty() {
@@ -43,7 +50,8 @@ public final class ReferenceListCaptureUiState {
                 null,
                 null,
                 null,
-                false
+                false,
+                0
         );
     }
 
@@ -52,26 +60,42 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource
     ) {
+        return imageSelected(
+                imageUri,
+                imageSource,
+                0
+        );
+    }
+
+    public static ReferenceListCaptureUiState
+    imageSelected(
+            String imageUri,
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
+    ) {
         return create(
                 Status.IMAGE_SELECTED,
                 imageUri,
                 imageSource,
                 null,
-                false
+                false,
+                manualRotationDegrees
         );
     }
 
     public static ReferenceListCaptureUiState
     processing(
             String imageUri,
-            DocumentImageSource imageSource
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
     ) {
         return create(
                 Status.PROCESSING,
                 imageUri,
                 imageSource,
                 null,
-                false
+                false,
+                manualRotationDegrees
         );
     }
 
@@ -79,56 +103,64 @@ public final class ReferenceListCaptureUiState {
     textRecognized(
             String imageUri,
             DocumentImageSource imageSource,
-            RecognizedDocument document
+            RecognizedDocument document,
+            int manualRotationDegrees
     ) {
         return create(
                 Status.TEXT_RECOGNIZED,
                 imageUri,
                 imageSource,
                 document,
-                false
+                false,
+                manualRotationDegrees
         );
     }
 
     public static ReferenceListCaptureUiState
     noTextFound(
             String imageUri,
-            DocumentImageSource imageSource
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
     ) {
         return create(
                 Status.NO_TEXT_FOUND,
                 imageUri,
                 imageSource,
                 null,
-                false
+                false,
+                manualRotationDegrees
         );
     }
 
     public static ReferenceListCaptureUiState
     imageError(
             String imageUri,
-            DocumentImageSource imageSource
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
     ) {
         return create(
                 Status.IMAGE_ERROR,
                 imageUri,
                 imageSource,
                 null,
-                false
+                false,
+                manualRotationDegrees
         );
     }
 
     public static ReferenceListCaptureUiState
     recognitionError(
             String imageUri,
-            DocumentImageSource imageSource
+            DocumentImageSource imageSource,
+            int manualRotationDegrees
     ) {
         return create(
                 Status.RECOGNITION_ERROR,
                 imageUri,
                 imageSource,
                 null,
-                false
+                false,
+                manualRotationDegrees
         );
     }
 
@@ -137,14 +169,16 @@ public final class ReferenceListCaptureUiState {
             String imageUri,
             DocumentImageSource imageSource,
             RecognizedDocument recognizedDocument,
-            boolean rawTextExpanded
+            boolean rawTextExpanded,
+            int manualRotationDegrees
     ) {
         return new ReferenceListCaptureUiState(
                 status,
                 imageUri,
                 imageSource,
                 recognizedDocument,
-                rawTextExpanded
+                rawTextExpanded,
+                manualRotationDegrees
         );
     }
 
@@ -159,7 +193,23 @@ public final class ReferenceListCaptureUiState {
                 imageUri,
                 imageSource,
                 recognizedDocument,
-                expanded
+                expanded,
+                manualRotationDegrees
+        );
+    }
+
+    public ReferenceListCaptureUiState
+    withManualRotationDegrees(
+            int rotationDegrees
+    ) {
+        if (!canRotateImage()) {
+            return this;
+        }
+
+        return imageSelected(
+                imageUri,
+                imageSource,
+                rotationDegrees
         );
     }
 
@@ -183,6 +233,10 @@ public final class ReferenceListCaptureUiState {
         return rawTextExpanded;
     }
 
+    public int getManualRotationDegrees() {
+        return manualRotationDegrees;
+    }
+
     public boolean hasImage() {
         return imageUri != null
                 && imageSource != null;
@@ -197,6 +251,11 @@ public final class ReferenceListCaptureUiState {
     }
 
     public boolean canProcessImage() {
+        return hasImage()
+                && status != Status.PROCESSING;
+    }
+
+    public boolean canRotateImage() {
         return hasImage()
                 && status != Status.PROCESSING;
     }

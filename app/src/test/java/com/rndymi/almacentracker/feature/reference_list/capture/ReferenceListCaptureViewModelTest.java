@@ -2,11 +2,13 @@ package com.rndymi.almacentracker.feature.reference_list.capture;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 
 import com.rndymi.almacentracker.core.document.DocumentImage;
 import com.rndymi.almacentracker.core.document.DocumentImageProcessingCallback;
+import com.rndymi.almacentracker.core.document.DocumentImageProcessingRequest;
 import com.rndymi.almacentracker.core.document.DocumentImageProcessor;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.core.document.DocumentRecognitionCallback;
@@ -15,16 +17,33 @@ import com.rndymi.almacentracker.core.document.RecognizedDocument;
 import com.rndymi.almacentracker.core.document.RecognizedTextLine;
 
 import org.junit.Rule;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
 
 public final class ReferenceListCaptureViewModelTest {
 
+    private FakeDocumentImageProcessor imageProcessor;
+    private FakeRecognizer recognizer;
+    private ReferenceListCaptureViewModel viewModel;
+
     @Rule
     public final InstantTaskExecutorRule
             instantTaskExecutorRule =
             new InstantTaskExecutorRule();
+
+    @Before
+    public void setUp() {
+        imageProcessor =
+                new FakeDocumentImageProcessor();
+        recognizer = new FakeRecognizer();
+        viewModel =
+                new ReferenceListCaptureViewModel(
+                        imageProcessor,
+                        recognizer
+                );
+    }
 
     @Test
     public void startsEmpty() {
@@ -255,6 +274,197 @@ public final class ReferenceListCaptureViewModelTest {
         );
     }
 
+    @Test
+    public void rotateRightUpdatesStateWithoutStartingOcr() {
+        viewModel.selectImage(
+                "content://image",
+                DocumentImageSource.PHOTO_PICKER
+        );
+
+        viewModel.rotateImageRight();
+
+        ReferenceListCaptureUiState state =
+                getCurrentState();
+
+        assertEquals(
+                ReferenceListCaptureUiState.Status.IMAGE_SELECTED,
+                state.getStatus()
+        );
+
+        assertEquals(
+                90,
+                state.getManualRotationDegrees()
+        );
+
+        assertNull(imageProcessor.getLastRequest());
+    }
+
+    @Test
+    public void rotateLeftWrapsFromZeroToTwoHundredSeventy() {
+        viewModel.selectImage(
+                "content://image",
+                DocumentImageSource.PHOTO_PICKER
+        );
+
+        viewModel.rotateImageLeft();
+
+        assertEquals(
+                270,
+                getCurrentState()
+                        .getManualRotationDegrees()
+        );
+    }
+
+    @Test
+    public void fourRightRotationsReturnToZero() {
+        viewModel.selectImage(
+                "content://image",
+                DocumentImageSource.PHOTO_PICKER
+        );
+
+        viewModel.rotateImageRight();
+        viewModel.rotateImageRight();
+        viewModel.rotateImageRight();
+        viewModel.rotateImageRight();
+
+        assertEquals(
+                0,
+                getCurrentState()
+                        .getManualRotationDegrees()
+        );
+    }
+
+    @Test
+    public void processingReceivesCurrentManualRotation() {
+        viewModel.selectImage(
+                "content://image",
+                DocumentImageSource.PHOTO_PICKER
+        );
+
+        viewModel.rotateImageRight();
+        viewModel.processSelectedImage();
+
+        DocumentImageProcessingRequest request =
+                imageProcessor.getLastRequest();
+
+        assertNotNull(request);
+
+        assertEquals(
+                "content://image",
+                request.getImageUri()
+        );
+
+        assertEquals(
+                90,
+                request.getManualRotationDegrees()
+        );
+    }
+
+    @Test
+    public void rotateAfterRecognitionInvalidatesPreviousDocument() {
+        prepareRecognizedDocument();
+
+        viewModel.rotateImageRight();
+
+        ReferenceListCaptureUiState state =
+                getCurrentState();
+
+        assertEquals(
+                ReferenceListCaptureUiState.Status.IMAGE_SELECTED,
+                state.getStatus()
+        );
+
+        assertNull(state.getRecognizedDocument());
+        assertEquals(
+                90,
+                state.getManualRotationDegrees()
+        );
+    }
+
+    @Test
+    public void rotateAfterNoTextReturnsToImageSelected() {
+        prepareNoTextResult();
+
+        viewModel.rotateImageRight();
+
+        ReferenceListCaptureUiState state =
+                getCurrentState();
+
+        assertEquals(
+                ReferenceListCaptureUiState.Status.IMAGE_SELECTED,
+                state.getStatus()
+        );
+    }
+
+    @Test
+    public void changingImageResetsManualRotation() {
+        viewModel.selectImage(
+                "content://first",
+                DocumentImageSource.PHOTO_PICKER
+        );
+
+        viewModel.rotateImageRight();
+
+        viewModel.selectImage(
+                "content://second",
+                DocumentImageSource.PHOTO_PICKER
+        );
+
+        ReferenceListCaptureUiState state =
+                getCurrentState();
+
+        assertEquals(
+                "content://second",
+                state.getImageUri()
+        );
+
+        assertEquals(
+                0,
+                state.getManualRotationDegrees()
+        );
+    }
+
+    private ReferenceListCaptureUiState getCurrentState() {
+        return requireState(viewModel);
+    }
+
+    private void prepareRecognizedDocument() {
+        viewModel.selectImage(
+                "content://image",
+                DocumentImageSource.PHOTO_PICKER
+        );
+        viewModel.processSelectedImage();
+        imageProcessor.completeWith(null);
+        recognizer.completeWith(
+                new RecognizedDocument(
+                        DocumentImageSource.PHOTO_PICKER,
+                        Collections.singletonList(
+                                new RecognizedTextLine(
+                                        0,
+                                        "MR 1210 A"
+                                )
+                        ),
+                        1000L
+                )
+        );
+    }
+
+    private void prepareNoTextResult() {
+        viewModel.selectImage(
+                "content://image",
+                DocumentImageSource.PHOTO_PICKER
+        );
+        viewModel.processSelectedImage();
+        imageProcessor.completeWith(null);
+        recognizer.completeWith(
+                new RecognizedDocument(
+                        DocumentImageSource.PHOTO_PICKER,
+                        Collections.emptyList(),
+                        1000L
+                )
+        );
+    }
+
     private ReferenceListCaptureUiState requireState(
             ReferenceListCaptureViewModel viewModel
     ) {
@@ -269,14 +479,20 @@ public final class ReferenceListCaptureViewModelTest {
             implements DocumentImageProcessor {
 
         private DocumentImageProcessingCallback callback;
+        private DocumentImageProcessingRequest lastRequest;
         private int requestCount;
+
+        private DocumentImageProcessingRequest getLastRequest() {
+            return lastRequest;
+        }
 
         @Override
         public void process(
-                String imageUri,
+                DocumentImageProcessingRequest request,
                 DocumentImageProcessingCallback callback
         ) {
             requestCount++;
+            lastRequest = request;
             this.callback = callback;
         }
 

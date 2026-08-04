@@ -907,4 +907,28 @@
     <string name="withdrawal_history_delete_error">
         No se pudo eliminar la lista histórica.
     </string>
+
+
+
+    <string name="reference_list_orientation_title">
+        Orientación de la imagen
+    </string>
+    <string name="reference_list_orientation_description">
+        La imagen se girará antes de procesarla.
+    </string>
+    <string name="reference_list_rotate_left_action">
+        Girar a la izquierda
+    </string>
+    <string name="reference_list_rotate_right_action">
+        Girar a la derecha
+    </string>
+    <string name="reference_list_rotation_state_description">
+        Orientación manual: %1$d grados
+    </string>
+    <string name="reference_list_rotated_left_announcement">
+        Imagen girada a la izquierda.
+    </string>
+    <string name="reference_list_rotated_right_announcement">
+        Imagen girada a la derecha.
+    </string>
 </resources>
