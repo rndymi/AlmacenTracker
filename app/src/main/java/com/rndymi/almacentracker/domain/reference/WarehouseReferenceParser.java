@@ -144,6 +144,18 @@ public final class WarehouseReferenceParser {
                         rawText
                 );
 
+        List<WarehouseReferenceMatch> knownMatches =
+                findKnownReferencesInLine(
+                        lineIndex,
+                        normalizedOcrText,
+                        rawText,
+                        knownReferences
+                );
+
+        if (!knownMatches.isEmpty()) {
+            return knownMatches;
+        }
+
         List<WarehouseReferenceMatch> strictMatches =
                 parseLine(
                         lineIndex,
@@ -157,16 +169,10 @@ public final class WarehouseReferenceParser {
             );
         }
 
-        List<WarehouseReferenceMatch> observedMatches =
-                extractOcrCandidates(
-                        lineIndex,
-                        normalizedOcrText,
-                        rawText
-                );
-
-        return resolveInvalidCategories(
-                observedMatches,
-                knownReferences
+        return extractOcrCandidates(
+                lineIndex,
+                normalizedOcrText,
+                rawText
         );
     }
 
@@ -1190,5 +1196,175 @@ public final class WarehouseReferenceParser {
         return Collections.unmodifiableList(
                 restored
         );
+    }
+
+    private List<WarehouseReferenceMatch>
+    findKnownReferencesInLine(
+            int lineIndex,
+            String normalizedOcrText,
+            String originalSource,
+            List<WarehouseReference> knownReferences
+    ) {
+        if (knownReferences == null
+                || knownReferences.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String compactSource =
+                compactForKnownReferenceSearch(
+                        normalizedOcrText
+                );
+
+        List<WarehouseReference> orderedKnown =
+                new ArrayList<>();
+
+        for (WarehouseReference known : knownReferences) {
+            if (known == null) {
+                continue;
+            }
+
+            WarehouseReference normalizedKnown =
+                    normalizeKnownReference(known);
+
+            if (normalizedKnown != null
+                    && !orderedKnown.contains(
+                    normalizedKnown
+            )) {
+                orderedKnown.add(normalizedKnown);
+            }
+        }
+
+        orderedKnown.sort(
+                Comparator
+                        .comparingInt(
+                                this::compactIdentityLength
+                        )
+                        .reversed()
+                        .thenComparing(
+                                WarehouseReference::displayValue
+                        )
+        );
+
+        List<WarehouseReferenceMatch> result =
+                new ArrayList<>();
+
+        int occurrenceIndex = 0;
+
+        for (WarehouseReference known : orderedKnown) {
+            String compactIdentity =
+                    compactReferenceIdentity(known);
+
+            if (compactIdentity.isEmpty()) {
+                continue;
+            }
+
+            int start =
+                    compactSource.indexOf(
+                            compactIdentity
+                    );
+
+            if (start < 0) {
+                continue;
+            }
+
+            result.add(
+                    new WarehouseReferenceMatch(
+                            known,
+                            lineIndex,
+                            originalSource,
+                            occurrenceIndex++
+                    )
+            );
+
+            compactSource =
+                    compactSource.substring(
+                            0,
+                            start
+                    )
+                            + repeatSpaces(
+                            compactIdentity.length()
+                    )
+                            + compactSource.substring(
+                            start
+                                    + compactIdentity.length()
+                    );
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
+    }
+
+    private WarehouseReference normalizeKnownReference(
+            WarehouseReference value
+    ) {
+        if (value == null) {
+            return null;
+        }
+
+        String category =
+                normalizeCategory(
+                        value.getCategory()
+                );
+
+        String code =
+                normalizeCode(
+                        value.getCode()
+                );
+
+        if (category.isEmpty()
+                || code.isEmpty()) {
+            return null;
+        }
+
+        return new WarehouseReference(
+                category,
+                code
+        );
+    }
+
+    private int compactIdentityLength(
+            WarehouseReference reference
+    ) {
+        return compactReferenceIdentity(
+                reference
+        ).length();
+    }
+
+    private String compactReferenceIdentity(
+            WarehouseReference reference
+    ) {
+        return compactForKnownReferenceSearch(
+                reference.getCategory()
+                        + reference.getCode()
+        );
+    }
+
+    private String compactForKnownReferenceSearch(
+            String value
+    ) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .toUpperCase(Locale.ROOT)
+                .replaceAll(
+                        "[\\p{Z}\\s:;,.]+",
+                        ""
+                );
+    }
+
+    private String repeatSpaces(int length) {
+        StringBuilder result =
+                new StringBuilder(length);
+
+        for (int index = 0;
+             index < length;
+             index++) {
+            result.append(' ');
+        }
+
+        return result.toString();
     }
 }

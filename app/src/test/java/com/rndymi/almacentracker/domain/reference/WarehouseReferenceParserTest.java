@@ -1160,4 +1160,78 @@ public final class WarehouseReferenceParserTest {
         assertEquals(1, suggestions.size());
         assertEquals("MR 20166", suggestions.get(0).displayValue());
     }
+
+    @Test
+    public void parseOcrLinePreservesInvalidObservedCategory() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "MK866S",
+                        Collections.singletonList(
+                                new WarehouseReference(
+                                        "MR",
+                                        "8665"
+                                )
+                        )
+                );
+
+        assertEquals(
+                1,
+                matches.size()
+        );
+
+        assertEquals(
+                new WarehouseReference(
+                        "MK",
+                        "866S"
+                ),
+                matches.get(0)
+                        .getObservedReference()
+        );
+
+        assertFalse(
+                matches.get(0)
+                        .hasResolvedReference()
+        );
+    }
+
+    @Test
+    public void parseOcrLineSelectsLongestKnownHyphenatedReference() {
+        List<WarehouseReference> known =
+                Arrays.asList(
+                        new WarehouseReference(
+                                "M",
+                                "873"
+                        ),
+                        new WarehouseReference(
+                                "M",
+                                "873-1"
+                        ),
+                        new WarehouseReference(
+                                "M",
+                                "873-12"
+                        )
+                );
+
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M873-12 - 1P - ①②",
+                        known
+                );
+
+        assertEquals(
+                1,
+                matches.size()
+        );
+
+        assertEquals(
+                new WarehouseReference(
+                        "M",
+                        "873-12"
+                ),
+                matches.get(0)
+                        .getReference()
+        );
+    }
 }
