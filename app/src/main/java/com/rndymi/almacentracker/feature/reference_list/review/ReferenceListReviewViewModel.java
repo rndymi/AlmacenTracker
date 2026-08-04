@@ -13,6 +13,8 @@ import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceMatch;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceSuggestion;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceSuggestionResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,8 +38,8 @@ public final class ReferenceListReviewViewModel
 
     private final WarehouseReferenceParser parser;
     private final WarehouseItemRepository repository;
-    private final DocumentReferenceDataParser
-            documentReferenceDataParser;
+    private final DocumentReferenceDataParser documentReferenceDataParser;
+    private final WarehouseReferenceSuggestionResolver suggestionResolver;
 
     private final MutableLiveData
             <ReferenceListReviewUiState> uiState =
@@ -85,6 +87,20 @@ public final class ReferenceListReviewViewModel
             WarehouseItemRepository repository,
             DocumentReferenceDataParser documentReferenceDataParser
     ) {
+        this(
+                parser,
+                repository,
+                documentReferenceDataParser,
+                new WarehouseReferenceSuggestionResolver()
+        );
+    }
+
+    ReferenceListReviewViewModel(
+            WarehouseReferenceParser parser,
+            WarehouseItemRepository repository,
+            DocumentReferenceDataParser documentReferenceDataParser,
+            WarehouseReferenceSuggestionResolver suggestionResolver
+    ) {
         this.parser =
                 Objects.requireNonNull(
                         parser,
@@ -95,6 +111,11 @@ public final class ReferenceListReviewViewModel
                 Objects.requireNonNull(
                         documentReferenceDataParser,
                         "documentReferenceDataParser"
+                );
+        this.suggestionResolver =
+                Objects.requireNonNull(
+                        suggestionResolver,
+                        "suggestionResolver"
                 );
     }
 
@@ -217,7 +238,7 @@ public final class ReferenceListReviewViewModel
                         : matches
                 ) {
                     WarehouseReference reference =
-                            match.getReference();
+                            match.getObservedReference();
 
                     if (unique.containsKey(
                             reference.identityKey()
@@ -312,19 +333,27 @@ public final class ReferenceListReviewViewModel
             List<WarehouseReference> knownReferences,
             boolean knownReferencesAvailable
     ) {
-        WarehouseReference reference =
-                match.getReference();
+        WarehouseReference observedReference =
+                match.getObservedReference();
+
+        List<WarehouseReferenceSuggestion>
+                contextualSuggestions =
+                knownReferencesAvailable
+                        ? suggestionResolver.resolve(
+                        observedReference,
+                        knownReferences,
+                        MAXIMUM_SUGGESTIONS
+                )
+                        : Collections.emptyList();
 
         List<WarehouseReference> suggestions =
-                suggestionsFor(
-                        reference,
-                        knownReferences,
-                        knownReferencesAvailable
+                referencesFromSuggestions(
+                        contextualSuggestions
                 );
 
         ReferenceProposal.MatchStatus matchStatus =
-                matchStatusFor(
-                        reference,
+                contextualMatchStatusFor(
+                        observedReference,
                         suggestions,
                         knownReferences,
                         knownReferencesAvailable
@@ -332,11 +361,13 @@ public final class ReferenceListReviewViewModel
 
         return new ReferenceProposal(
                 proposalId,
-                reference,
+                observedReference,
+                observedReference,
                 match.getSourceRawText(),
                 false,
                 matchStatus,
                 suggestions,
+                contextualSuggestions,
                 documentReferenceDataParser.parse(match)
         );
     }
@@ -774,5 +805,101 @@ public final class ReferenceListReviewViewModel
         }
 
         return -1;
+    }
+
+    private List<WarehouseReference>
+    referencesFromSuggestions(
+            List<WarehouseReferenceSuggestion> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<WarehouseReference> result =
+                new ArrayList<>(values.size());
+
+        for (WarehouseReferenceSuggestion value : values) {
+            if (value != null
+                    && !result.contains(
+                    value.getReference()
+            )) {
+                result.add(
+                        value.getReference()
+                );
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
+    }
+
+    private ReferenceProposal.MatchStatus
+    contextualMatchStatusFor(
+            WarehouseReference observed,
+            List<WarehouseReference> suggestions,
+            List<WarehouseReference> knownReferences,
+            boolean knownReferencesAvailable
+    ) {
+        if (!knownReferencesAvailable) {
+            return isValidReference(observed)
+                    ? ReferenceProposal.MatchStatus.UNVERIFIED
+                    : ReferenceProposal.MatchStatus.NO_MATCH;
+        }
+
+        if (knownReferences.contains(observed)) {
+            return ReferenceProposal.MatchStatus.EXACT;
+        }
+
+        if (suggestions.size() == 1) {
+            return ReferenceProposal.MatchStatus
+                    .UNIQUE_SUGGESTION;
+        }
+
+        if (suggestions.size() > 1) {
+            int bestScore =
+                    contextualSuggestionsScore(
+                            observed,
+                            knownReferences
+                    );
+
+            int bestCount = 0;
+
+            for (WarehouseReferenceSuggestion suggestion
+                    : suggestionResolver.resolve(
+                    observed,
+                    knownReferences,
+                    MAXIMUM_SUGGESTIONS
+            )) {
+
+                if (suggestion.getScore()
+                        == bestScore) {
+                    bestCount++;
+                }
+            }
+
+            return bestCount == 1
+                    ? ReferenceProposal.MatchStatus
+                      .UNIQUE_SUGGESTION
+                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
+        }
+
+        return ReferenceProposal.MatchStatus.NO_MATCH;
+    }
+
+    private int contextualSuggestionsScore(
+            WarehouseReference observed,
+            List<WarehouseReference> knownReferences
+    ) {
+        List<WarehouseReferenceSuggestion> values =
+                suggestionResolver.resolve(
+                        observed,
+                        knownReferences,
+                        MAXIMUM_SUGGESTIONS
+                );
+
+        return values.isEmpty()
+                ? Integer.MAX_VALUE
+                : values.get(0).getScore();
     }
 }
