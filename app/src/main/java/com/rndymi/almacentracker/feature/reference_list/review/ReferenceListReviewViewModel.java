@@ -355,7 +355,9 @@ public final class ReferenceListReviewViewModel
 
         if (isValidReference(reference)
                 && knownReferences.contains(reference)) {
-            return ReferenceProposal.MatchStatus.EXACT;
+            return suggestions.isEmpty()
+                    ? ReferenceProposal.MatchStatus.EXACT
+                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
         }
 
         if (suggestions.size() == 1) {
@@ -375,9 +377,16 @@ public final class ReferenceListReviewViewModel
             List<WarehouseReference> knownReferences,
             boolean knownReferencesAvailable
     ) {
-        if (!knownReferencesAvailable
-                || knownReferences.contains(reference)) {
+        if (!knownReferencesAvailable) {
             return Collections.emptyList();
+        }
+
+        if (knownReferences.contains(reference)) {
+            return parser.suggestZeroSixAlternatives(
+                    reference,
+                    knownReferences,
+                    MAXIMUM_SUGGESTIONS
+            );
         }
 
         return parser.suggestReferences(
@@ -569,6 +578,44 @@ public final class ReferenceListReviewViewModel
                 current.withReference(
                         suggestion
                 )
+        );
+
+        publish(proposals);
+
+        return ReferenceInputResult.success();
+    }
+
+    public ReferenceInputResult applyQuantitySuggestion(
+            long proposalId,
+            Integer quantity
+    ) {
+        if (quantity == null || quantity <= 0) {
+            return ReferenceInputResult.notFound();
+        }
+
+        List<ReferenceProposal> proposals = mutableProposals();
+        int proposalIndex = findIndex(proposals, proposalId);
+
+        if (proposalIndex < 0) {
+            return ReferenceInputResult.notFound();
+        }
+
+        ReferenceProposal current = proposals.get(proposalIndex);
+        DocumentReferenceData documentData =
+                current.getDocumentData();
+
+        boolean isObservedQuantity =
+                quantity.equals(documentData.getQuantity());
+
+        if (!isObservedQuantity
+                && !documentData.getQuantitySuggestions()
+                .contains(quantity)) {
+            return ReferenceInputResult.notFound();
+        }
+
+        proposals.set(
+                proposalIndex,
+                current.withQuantity(quantity)
         );
 
         publish(proposals);

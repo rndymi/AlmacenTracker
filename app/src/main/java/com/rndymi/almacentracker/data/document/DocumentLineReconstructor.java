@@ -12,26 +12,14 @@ public final class DocumentLineReconstructor {
 
     private static final float MINIMUM_VERTICAL_OVERLAP = 0.35f;
     private static final float MAXIMUM_CENTER_DISTANCE_FACTOR = 0.65f;
-    private static final float MINIMUM_ROW_SPLIT_GAP_FACTOR = 0.10f;
-    private static final float CHARACTER_GAP_SPLIT_FACTOR = 4.5f;
+    private static final float MINIMUM_ROW_SPLIT_GAP_FACTOR = 0.055f;
+    private static final float CHARACTER_GAP_SPLIT_FACTOR = 3.0f;
+    private static final float MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR = 0.12f;
 
-    private final DocumentColumnDetector columnDetector;
-
-    public DocumentLineReconstructor() {
-        this(new DocumentColumnDetector());
-    }
-
-    public DocumentLineReconstructor(
-            DocumentColumnDetector columnDetector
-    ) {
-        if (columnDetector == null) {
-            throw new IllegalArgumentException(
-                    "columnDetector cannot be null"
-            );
-        }
-
-        this.columnDetector = columnDetector;
-    }
+    private final DocumentColumnDetector columnDetector =
+            new DocumentColumnDetector();
+    private final DocumentMergedLineSplitter mergedLineSplitter =
+            new DocumentMergedLineSplitter();
 
     public List<RecognizedTextLine> reconstruct(
             List<RecognizedTextElement> sourceElements
@@ -63,9 +51,12 @@ public final class DocumentLineReconstructor {
         List<RecognizedTextLine> reconstructed =
                 mapLines(separatedRows);
 
+        List<RecognizedTextLine> separated =
+                mergedLineSplitter.split(reconstructed);
+
         List<RecognizedTextLine> ordered =
                 columnDetector.orderByColumns(
-                        reconstructed,
+                        separated,
                         documentWidth
                 );
 
@@ -225,6 +216,12 @@ public final class DocumentLineReconstructor {
                 Float.NEGATIVE_INFINITY;
 
         for (SpatialRow row : rows) {
+            if (row.hasOverlappingElementInDifferentBand(
+                    element
+            )) {
+                continue;
+            }
+
             float overlap =
                     verticalOverlapRatio(
                             row,
@@ -371,6 +368,39 @@ public final class DocumentLineReconstructor {
                     );
         }
 
+        private boolean hasOverlappingElementInDifferentBand(
+                RecognizedTextElement candidate
+        ) {
+            for (RecognizedTextElement current : elements) {
+                int horizontalOverlap =
+                        Math.min(
+                                current.getRight(),
+                                candidate.getRight()
+                        )
+                                - Math.max(
+                                current.getLeft(),
+                                candidate.getLeft()
+                        );
+
+                int verticalOverlap =
+                        Math.min(
+                                current.getBottom(),
+                                candidate.getBottom()
+                        )
+                                - Math.max(
+                                current.getTop(),
+                                candidate.getTop()
+                        );
+
+                if (horizontalOverlap > 0
+                        && verticalOverlap <= 0) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private List<SpatialRow> splitByLargeGaps(
                 int documentWidth
         ) {
@@ -389,7 +419,7 @@ public final class DocumentLineReconstructor {
             float averageCharacterWidth =
                     calculateAverageCharacterWidth();
 
-            float widthThreshold =
+            float documentThreshold =
                     documentWidth > 0
                             ? documentWidth
                               * MINIMUM_ROW_SPLIT_GAP_FACTOR
@@ -399,16 +429,31 @@ public final class DocumentLineReconstructor {
                     averageCharacterWidth
                             * CHARACTER_GAP_SPLIT_FACTOR;
 
-            float splitThreshold =
+            float splitThreshold;
+
+            if (documentThreshold > 0.0f) {
+                splitThreshold =
+                        Math.max(
+                                documentThreshold,
+                                characterThreshold
+                        );
+            } else {
+                splitThreshold =
+                        characterThreshold;
+            }
+
+            splitThreshold =
                     Math.max(
-                            widthThreshold,
-                            characterThreshold
+                            splitThreshold,
+                            averageCharacterWidth
+                                    * 1.5f
                     );
 
             SpatialRow current =
                     new SpatialRow();
 
             RecognizedTextElement previous = null;
+
             boolean currentContainsReferenceStart =
                     false;
 
@@ -427,21 +472,53 @@ public final class DocumentLineReconstructor {
                                 && currentContainsReferenceStart
                                 && !current.elements.isEmpty();
 
+                int horizontalGap =
+                        previous == null
+                                ? 0
+                                : element.getLeft()
+                                  - previous.getRight();
+
                 boolean hasLargeHorizontalGap =
                         previous != null
-                                && element.getLeft()
-                                - previous.getRight()
+                                && horizontalGap
                                 >= splitThreshold;
 
+                boolean changesVerticalBand =
+                        previous != null
+                                && verticalOverlapRatio(
+                                previous,
+                                element
+                        ) < MINIMUM_VERTICAL_OVERLAP;
+
+                boolean separatesWideRegions =
+                        previous != null
+                                && documentWidth > 0
+                                && horizontalGap >= 0
+                                && !continuesCategoryAndCode(
+                                current,
+                                element
+                        )
+                                && previous.getWidth()
+                                >= documentWidth
+                                * MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR
+                                && element.getWidth()
+                                >= documentWidth
+                                * MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR;
+
                 if (beginsSecondReference
-                        || hasLargeHorizontalGap) {
+                        || hasLargeHorizontalGap
+                        || changesVerticalBand
+                        || separatesWideRegions) {
 
                     if (!current.elements.isEmpty()) {
                         result.add(current);
                     }
 
-                    current = new SpatialRow();
-                    currentContainsReferenceStart = false;
+                    current =
+                            new SpatialRow();
+
+                    currentContainsReferenceStart =
+                            false;
                 }
 
                 current.add(element);
@@ -458,6 +535,58 @@ public final class DocumentLineReconstructor {
             }
 
             return result;
+        }
+
+        private boolean continuesCategoryAndCode(
+                SpatialRow current,
+                RecognizedTextElement next
+        ) {
+            if (current.elements.size() != 1) {
+                return false;
+            }
+
+            String category =
+                    compactAlphanumericText(
+                            current.elements.get(0)
+                                    .getRawText()
+                    );
+
+            String code =
+                    compactAlphanumericText(
+                            next.getRawText()
+                    );
+
+            return looksLikeObservedCategory(category)
+                    && looksLikeObservedCode(code);
+        }
+
+        private float verticalOverlapRatio(
+                RecognizedTextElement first,
+                RecognizedTextElement second
+        ) {
+            int overlap =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    first.getBottom(),
+                                    second.getBottom()
+                            )
+                                    - Math.max(
+                                    first.getTop(),
+                                    second.getTop()
+                            )
+                    );
+
+            int minimumHeight =
+                    Math.max(
+                            1,
+                            Math.min(
+                                    first.getHeight(),
+                                    second.getHeight()
+                            )
+                    );
+
+            return overlap / (float) minimumHeight;
         }
 
         private boolean beginsReferenceAt(

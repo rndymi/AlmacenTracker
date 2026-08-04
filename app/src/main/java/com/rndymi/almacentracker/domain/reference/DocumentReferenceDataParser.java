@@ -1,6 +1,7 @@
 package com.rndymi.almacentracker.domain.reference;
 
 import java.util.Locale;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -129,7 +130,14 @@ public final class DocumentReferenceDataParser {
                         matcher.group(1)
                 );
 
-        if (quantity == null) {
+        List<Integer> quantitySuggestions =
+                quantityNormalizer
+                        .suggestZeroSixAlternatives(
+                                matcher.group(1)
+                        );
+
+        if (quantity == null
+                && quantitySuggestions.isEmpty()) {
             return withoutProposal(match);
         }
 
@@ -156,7 +164,8 @@ public final class DocumentReferenceDataParser {
                 quantity,
                 unit,
                 match.getSourceLineIndex(),
-                match.getSourceRawText()
+                match.getSourceRawText(),
+                quantitySuggestions
         );
     }
 

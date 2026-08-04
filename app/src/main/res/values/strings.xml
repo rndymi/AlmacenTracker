@@ -660,6 +660,15 @@
     <string name="reference_list_review_suggestion_description">
         Usar la referencia sugerida %1$s
     </string>
+    <string name="reference_list_review_quantity_suggestions_title">
+        Cantidad detectada: %1$d. Un dígito puede ser 0 o 6
+    </string>
+    <string name="reference_list_review_quantity_unknown_title">
+        Un dígito puede ser 0 o 6. Elige la cantidad correcta
+    </string>
+    <string name="reference_list_review_quantity_suggestion_description">
+        Usar la cantidad %1$d
+    </string>
     <string name="reference_list_review_edit_description">
         Editar referencia %1$s
     </string>

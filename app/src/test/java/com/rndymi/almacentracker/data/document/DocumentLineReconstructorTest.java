@@ -104,10 +104,10 @@ public final class DocumentLineReconstructorTest {
         List<RecognizedTextLine> result =
                 reconstructor.reconstruct(elements);
 
+        assertEquals(1, result.size());
         assertEquals(
                 "M5 5008 - 3pcs",
-                result.get(0)
-                        .getReconstructedText()
+                result.get(0).getReconstructedText()
         );
     }
 
@@ -265,6 +265,7 @@ public final class DocumentLineReconstructorTest {
                 result.get(0)
                         .getReconstructedText()
         );
+
     }
 
     @Test
@@ -718,6 +719,211 @@ public final class DocumentLineReconstructorTest {
     }
 
     @Test
+    public void reconstructReadsThreeColumnsWithoutMixingSeparateBoxes() {
+        List<RecognizedTextElement> resultElements =
+                Arrays.asList(
+                        element("C2", 650, 170, 760, 200),
+                        element("A1", 40, 100, 150, 130),
+                        element("B2", 345, 170, 455, 200),
+                        element("C1", 645, 100, 755, 130),
+                        element("A2", 45, 170, 155, 200),
+                        element("B1", 340, 100, 450, 130)
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(resultElements, 900);
+
+        assertReconstructedTexts(
+                result,
+                "A1", "A2", "B1", "B2", "C1", "C2"
+        );
+    }
+
+    @Test
+    public void reconstructReadsFourColumnsTopToBottom() {
+        List<RecognizedTextElement> resultElements =
+                Arrays.asList(
+                        element("D2", 720, 170, 810, 200),
+                        element("B1", 260, 100, 350, 130),
+                        element("A2", 35, 170, 125, 200),
+                        element("C1", 490, 100, 580, 130),
+                        element("D1", 715, 100, 805, 130),
+                        element("A1", 30, 100, 120, 130),
+                        element("C2", 495, 170, 585, 200),
+                        element("B2", 265, 170, 355, 200)
+                );
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(resultElements, 900);
+
+        assertReconstructedTexts(
+                result,
+                "A1", "A2", "B1", "B2",
+                "C1", "C2", "D1", "D2"
+        );
+    }
+
+    @Test
+    public void reconstructSplitsSingleMergedRegionWithoutCorrectingCharacters() {
+        RecognizedTextElement merged =
+                element("mR22139mA98王", 30, 100, 360, 130);
+
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(merged),
+                        900
+                );
+
+        assertReconstructedTexts(result, "mR22139", "mA98王");
+
+        for (RecognizedTextLine line : result) {
+            assertEquals(1, line.getElements().size());
+            assertEquals(merged, line.getElements().get(0));
+        }
+    }
+
+    @Test
+    public void reconstructSplitsObservedFusionsIntoFourColumnOrder() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("MR21855", 800, 162, 930, 192),
+                                element("AKGPORTOmA988", 20, 20, 440, 55),
+                                element("MA1319", 550, 102, 670, 132),
+                                element("MR22S47mA87", 20, 100, 440, 130),
+                                element("MD803", 550, 162, 660, 192),
+                                element("MR9280", 800, 22, 920, 52),
+                                element("mR22139mA98王", 20, 160, 440, 190),
+                                element("MA1318", 550, 22, 670, 52),
+                                element("MR218S4", 800, 102, 930, 132)
+                        ),
+                        1000
+                );
+
+        assertReconstructedTexts(
+                result,
+                "AKGPORTO", "MR22S47", "mR22139",
+                "mA988", "mA87", "mA98王",
+                "MA1318", "MA1319", "MD803",
+                "MR9280", "MR218S4", "MR21855"
+        );
+    }
+
+    @Test
+    public void reconstructDoesNotSplitSingleReferenceWithSuffixAndQuantity() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element(
+                                        "MR21387X40p",
+                                        30,
+                                        100,
+                                        260,
+                                        130
+                                )
+                        ),
+                        900
+                );
+
+        assertReconstructedTexts(result, "MR21387X40p");
+    }
+
+    @Test
+    public void reconstructDoesNotSplitObservedSuffixesAsReferences() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element(
+                                        "mR2138fX4ρ",
+                                        375,
+                                        331,
+                                        843,
+                                        394
+                                ),
+                                element(
+                                        "mR2OI06",
+                                        785,
+                                        631,
+                                        1093,
+                                        682
+                                )
+                        ),
+                        1426
+                );
+
+        assertReconstructedTexts(
+                result,
+                "mR2138fX4ρ",
+                "mR2OI06"
+        );
+    }
+
+    @Test
+    public void reconstructDoesNotMergeRowsThroughOtherColumns() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("MRZISH", 1088, 473, 1357, 544),
+                                element("MR22319", 401, 499, 674, 555),
+                                element("MR21567", 794, 530, 1088, 598),
+                                element("MR22185", 83, 535, 382, 605),
+                                element("MR21569", 1079, 553, 1375, 624)
+                        ),
+                        1426
+                );
+
+        assertReconstructedTexts(
+                result,
+                "MRZISH",
+                "MR22319",
+                "MR21567",
+                "MR22185",
+                "MR21569"
+        );
+    }
+
+    @Test
+    public void reconstructSeparatesWideRegionsFromAdjacentColumns() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("mA8T", 436, 187, 667, 223),
+                                element("MA319", 807, 197, 1075, 261),
+                                element("m0800", 811, 438, 1056, 505),
+                                element("MRZISH", 1088, 473, 1357, 544)
+                        ),
+                        1426
+                );
+
+        assertReconstructedTexts(
+                result,
+                "mA8T",
+                "MA319",
+                "m0800",
+                "MRZISH"
+        );
+    }
+
+    @Test
+    public void reconstructKeepsObservedReferencesInTheirGeometricColumns() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("MA871", 230, 102, 335, 132),
+                                element("MR22139", 25, 160, 165, 190),
+                                element("MA987", 230, 162, 335, 192),
+                                element("MR22547", 25, 100, 165, 130)
+                        ),
+                        420
+                );
+
+        assertReconstructedTexts(
+                result,
+                "MR22547", "MR22139", "MA871", "MA987"
+        );
+    }
+
+    @Test
     public void reconstructNeverKeepsTwoReferenceStartsInSameLine() {
         List<RecognizedTextElement> elements =
                 Arrays.asList(
@@ -794,5 +1000,20 @@ public final class DocumentLineReconstructorTest {
                 right,
                 bottom
         );
+    }
+
+    private void assertReconstructedTexts(
+            List<RecognizedTextLine> lines,
+            String... expected
+    ) {
+        assertEquals(expected.length, lines.size());
+
+        for (int index = 0; index < expected.length; index++) {
+            assertEquals(
+                    expected[index],
+                    lines.get(index).getReconstructedText()
+            );
+            assertEquals(index, lines.get(index).getIndex());
+        }
     }
 }

@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+
 public final class DocumentReferenceDataParserTest {
 
     private final DocumentReferenceDataParser parser =
@@ -241,6 +243,42 @@ public final class DocumentReferenceDataParserTest {
         assertEquals(
                 "PQT",
                 result.getUnit()
+        );
+    }
+
+    @Test
+    public void parseMarksZeroSixQuantityAsAmbiguous() {
+        DocumentReferenceData result =
+                parser.parse(
+                        match(
+                                "MR",
+                                "21570",
+                                "MR21570-40pcs"
+                        )
+                );
+
+        assertEquals(Integer.valueOf(40), result.getQuantity());
+        assertEquals(
+                Arrays.asList(46),
+                result.getQuantitySuggestions()
+        );
+    }
+
+    @Test
+    public void parseSuggestsSixWhenZeroQuantityWasObserved() {
+        DocumentReferenceData result =
+                parser.parse(
+                        match(
+                                "MR",
+                                "21570",
+                                "MR21570-0pcs"
+                        )
+                );
+
+        assertNull(result.getQuantity());
+        assertEquals(
+                Arrays.asList(6),
+                result.getQuantitySuggestions()
         );
     }
 
