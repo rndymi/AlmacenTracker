@@ -11,33 +11,11 @@ public final class DocumentColumnDetector {
 
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
     private static final int MINIMUM_COLUMN_COUNT = 2;
-
-    /*
-     * Las columnas se detectan principalmente mediante sus bordes izquierdos.
-     * En listas manuscritas, el ancho y el centro de cada texto pueden variar
-     * demasiado para utilizarlos como ancla principal.
-     */
     private static final float MINIMUM_LEFT_GAP_DOCUMENT_FACTOR = 0.075f;
     private static final float MINIMUM_LEFT_GAP_WIDTH_FACTOR = 0.70f;
 
-    /*
-     * Una línea excesivamente ancha no debe participar en la detección de
-     * columnas porque puede ser un título, una anotación o una región OCR
-     * que fusionó contenido de columnas adyacentes.
-     */
     private static final float MAXIMUM_COLUMN_CANDIDATE_WIDTH_FACTOR = 0.32f;
-
-    /*
-     * Variación máxima admitida entre los bordes izquierdos de las líneas
-     * que forman una misma columna.
-     */
     private static final float MAXIMUM_LEFT_SPREAD_FACTOR = 0.10f;
-
-    /*
-     * Distancia máxima para asignar una línea adicional a una columna ya
-     * detectada. Las líneas dudosas se conservan aparte y no contaminan el
-     * orden de las columnas.
-     */
     private static final float MAXIMUM_ASSIGNMENT_DISTANCE_FACTOR = 0.13f;
 
     public List<RecognizedTextLine> orderByColumns(
@@ -283,11 +261,6 @@ public final class DocumentColumnDetector {
                 )
         );
 
-        /*
-         * Las líneas no asignables no se utilizan para determinar columnas.
-         * Se insertan según su posición vertical, sin modificar el orden
-         * interno de las columnas detectadas.
-         */
         List<RecognizedTextLine> orderedColumns =
                 new ArrayList<>();
 
@@ -377,12 +350,6 @@ public final class DocumentColumnDetector {
             return orderedLines.size();
         }
 
-        /*
-         * Solo las líneas situadas claramente antes de todo el bloque de
-         * columnas se presentan al principio. Una anotación ancha que se
-         * solape con la primera fila no desplaza referencias de otras
-         * columnas por sí sola.
-         */
         int minimumTop =
                 Integer.MAX_VALUE;
 
