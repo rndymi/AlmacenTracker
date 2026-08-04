@@ -245,7 +245,7 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineResolvesInvalidCategoryAgainstKnownReference() {
+    public void parseOcrLinePreservesInvalidCategoryForLaterReview() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -261,19 +261,13 @@ public final class WarehouseReferenceParserTest {
         assertEquals(1, matches.size());
 
         assertEquals(
-                "MS 5008",
+                "M5 SOO8",
                 matches.get(0)
                         .getReference()
                         .displayValue()
         );
 
-        assertTrue(
-                parser.isValidCategory(
-                        matches.get(0)
-                                .getReference()
-                                .getCategory()
-                )
-        );
+        assertFalse(matches.get(0).hasResolvedReference());
     }
 
     @Test
@@ -382,7 +376,7 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineDoesNotExposeNumericCategoryWithoutKnownReference() {
+    public void parseOcrLinePreservesNumericCategoryWithoutKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -390,11 +384,15 @@ public final class WarehouseReferenceParserTest {
                         Collections.emptyList()
                 );
 
-        assertTrue(matches.isEmpty());
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M2 215I1",
+                matches.get(0).getReference().displayValue()
+        );
     }
 
     @Test
-    public void parseOcrLineRejectsInvalidCategoryWithQualifierWithoutKnownReference() {
+    public void parseOcrLinePreservesInvalidCategoryWithQualifierWithoutKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -402,11 +400,15 @@ public final class WarehouseReferenceParserTest {
                         Collections.emptyList()
                 );
 
-        assertTrue(matches.isEmpty());
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M2 215L1POS",
+                matches.get(0).getReference().displayValue()
+        );
     }
 
     @Test
-    public void parseOcrLineRejectsInvalidCategoryWithoutKnownReference() {
+    public void parseOcrLinePreservesInvalidCategoryWithoutKnownReference() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -414,7 +416,11 @@ public final class WarehouseReferenceParserTest {
                         Collections.emptyList()
                 );
 
-        assertTrue(matches.isEmpty());
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M5 SOO8POS",
+                matches.get(0).getReference().displayValue()
+        );
     }
 
     @Test
@@ -901,7 +907,7 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineResolvesM2AgainstRoom() {
+    public void parseOcrLinePreservesM2ForContextualResolution() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -917,23 +923,17 @@ public final class WarehouseReferenceParserTest {
         assertEquals(1, matches.size());
 
         assertEquals(
-                "MR 21570",
+                "M2 21570",
                 matches.get(0)
                         .getReference()
                         .displayValue()
         );
 
-        assertTrue(
-                parser.isValidCategory(
-                        matches.get(0)
-                                .getReference()
-                                .getCategory()
-                )
-        );
+        assertFalse(matches.get(0).hasResolvedReference());
     }
 
     @Test
-    public void parseOcrLineResolvesM5AgainstRoom() {
+    public void parseOcrLinePreservesM5ForContextualResolution() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -949,7 +949,7 @@ public final class WarehouseReferenceParserTest {
         assertEquals(1, matches.size());
 
         assertEquals(
-                "MS 5008",
+                "M5 5008",
                 matches.get(0)
                         .getReference()
                         .displayValue()
@@ -957,7 +957,7 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineSelectsUniqueBestCategoryCandidate() {
+    public void parseOcrLineDoesNotSelectCategoryCandidateSilently() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -977,7 +977,7 @@ public final class WarehouseReferenceParserTest {
         assertEquals(1, matches.size());
 
         assertEquals(
-                "MZ 21570",
+                "M2 21570",
                 matches.get(0)
                         .getReference()
                         .displayValue()
@@ -985,7 +985,7 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
-    public void parseOcrLineRejectsEqualBestCategoryCandidates() {
+    public void parseOcrLinePreservesCandidateWhenKnownMatchesAreAmbiguous() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
                         0,
@@ -1002,7 +1002,11 @@ public final class WarehouseReferenceParserTest {
                         )
                 );
 
-        assertTrue(matches.isEmpty());
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M1 21570",
+                matches.get(0).getReference().displayValue()
+        );
     }
 
     @Test

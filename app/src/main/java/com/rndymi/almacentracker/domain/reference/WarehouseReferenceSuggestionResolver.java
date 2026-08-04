@@ -273,6 +273,22 @@ public final class WarehouseReferenceSuggestionResolver {
                 }
             }
 
+            if (source == '4'
+                    && expectedIndex + 1
+                    < expected.length()
+                    && "21".equals(
+                    expected.substring(
+                            expectedIndex,
+                            expectedIndex + 2
+                    )
+            )) {
+                score += 2;
+                changes.add("4 → 21 en código");
+                observedIndex++;
+                expectedIndex += 2;
+                continue;
+            }
+
             if (expectedIndex + 1
                     < expected.length()
                     && source
@@ -287,6 +303,20 @@ public final class WarehouseReferenceSuggestionResolver {
                                 + " omitido"
                 );
 
+                expectedIndex++;
+                continue;
+            }
+
+            if (Character.isDigit(source)
+                    && Character.isDigit(target)) {
+                score += 2;
+                changes.add(
+                        source
+                                + " → "
+                                + target
+                                + " en código"
+                );
+                observedIndex++;
                 expectedIndex++;
                 continue;
             }
@@ -338,6 +368,13 @@ public final class WarehouseReferenceSuggestionResolver {
                 && expected == 'R'
                 || observed == 'R'
                 && expected == 'K'
+                || observed == '2'
+                && expected == 'R'
+                || observed == '5'
+                && expected == 'S'
+                || observed == '0'
+                && (expected == 'O'
+                || expected == 'D')
                 || observed == 'O'
                 && expected == 'D'
                 || observed == 'D'
@@ -357,13 +394,22 @@ public final class WarehouseReferenceSuggestionResolver {
             return true;
         }
 
-        if ((observed == '('
-                || observed == ')')
+        if ((observed == 'I'
+                || observed == 'L')
                 && expected == '1') {
             return true;
         }
 
-        if (observed == '王'
+        if ((observed == '('
+                || observed == ')')
+                && (expected == '1'
+                || expected == '7')) {
+            return true;
+        }
+
+        if ((observed == '王'
+                || observed == 'F'
+                || observed == 'J')
                 && expected == '7') {
             return true;
         }
@@ -374,19 +420,66 @@ public final class WarehouseReferenceSuggestionResolver {
             return true;
         }
 
+        if (observed == 'B'
+                && expected == '8') {
+            return true;
+        }
+
+        if (observed == 'G'
+                && expected == '6') {
+            return true;
+        }
+
+        if (observed == 'Z'
+                && expected == '2') {
+            return true;
+        }
+
+        if ((observed == '0'
+                && expected == '6')
+                || (observed == '6'
+                && expected == '0')) {
+            return true;
+        }
+
+        if (observed == '9'
+                && expected == '7') {
+            return true;
+        }
+
         return observed == 'S'
-                && expected == '5';
+                && (expected == '5'
+                || expected == '6');
     }
 
     private String compact(String value) {
-        return value == null
-                ? ""
-                : value
-                .toUpperCase(Locale.ROOT)
-                .replaceAll(
-                        "[\\p{Z}\\s:;,.]+",
-                        ""
-                );
+        if (value == null) {
+            return "";
+        }
+
+        String normalized =
+                value.toUpperCase(Locale.ROOT);
+        StringBuilder result =
+                new StringBuilder(normalized.length());
+
+        for (int index = 0;
+             index < normalized.length();
+             index++) {
+            char character = normalized.charAt(index);
+
+            if (Character.isWhitespace(character)
+                    || Character.isSpaceChar(character)
+                    || character == ':'
+                    || character == ';'
+                    || character == ','
+                    || character == '.') {
+                continue;
+            }
+
+            result.append(character);
+        }
+
+        return result.toString();
     }
 
     private String joinExplanation(

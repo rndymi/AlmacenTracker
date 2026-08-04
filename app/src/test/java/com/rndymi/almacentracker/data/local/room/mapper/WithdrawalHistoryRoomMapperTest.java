@@ -109,6 +109,7 @@ public class WithdrawalHistoryRoomMapperTest {
                         null,
                         null,
                         null,
+                        null,
                         "NOT_FOUND"
                 );
 
@@ -147,6 +148,7 @@ public class WithdrawalHistoryRoomMapperTest {
                         null,
                         null,
                         null,
+                        null,
                         "NOT_FOUND"
                 );
 
@@ -159,6 +161,7 @@ public class WithdrawalHistoryRoomMapperTest {
                         "001210A",
                         4,
                         "CAJAS",
+                        null,
                         7L,
                         "A1",
                         null,
@@ -194,6 +197,7 @@ public class WithdrawalHistoryRoomMapperTest {
                         0,
                         "MR",
                         "1210",
+                        null,
                         null,
                         null,
                         null,

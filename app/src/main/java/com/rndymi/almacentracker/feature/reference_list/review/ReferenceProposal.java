@@ -256,11 +256,13 @@ public final class ReferenceProposal {
         DocumentReferenceData updatedDocumentData =
                 new DocumentReferenceData(
                         newReference,
+                        documentData.getObservedReference(),
                         documentData.getQuantity(),
                         documentData.getUnit(),
                         documentData.getSourceLineIndex(),
                         documentData.getSourceText(),
-                        documentData.getQuantitySuggestions()
+                        documentData.getQuantitySuggestions(),
+                        documentData.getDestinations()
                 );
 
         return new ReferenceProposal(
@@ -282,10 +284,13 @@ public final class ReferenceProposal {
         DocumentReferenceData updatedDocumentData =
                 new DocumentReferenceData(
                         reference,
+                        documentData.getObservedReference(),
                         quantity,
                         documentData.getUnit(),
                         documentData.getSourceLineIndex(),
-                        documentData.getSourceText()
+                        documentData.getSourceText(),
+                        Collections.emptyList(),
+                        documentData.getDestinations()
                 );
 
         return new ReferenceProposal(

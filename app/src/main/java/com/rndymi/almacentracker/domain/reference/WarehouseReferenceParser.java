@@ -28,13 +28,14 @@ public final class WarehouseReferenceParser {
     private static final Pattern OCR_EXTRACTION_PATTERN =
             Pattern.compile(
                     "(?<![A-Z0-9])"
-                            + "([A-Z0-9]{2})"
+                            + "(?:X[\\p{Z}\\s]*)?"
+                            + "([A-Z0-9()]{2})"
                             + "[\\p{Z}\\s:._-]*"
-                            + "([A-Z0-9]{3,})"
+                            + "([A-Z0-9()王]{2,})"
                             + "(?:[\\p{Z}\\s]+"
                             + "(\\p{L}+(?:[\\p{Z}\\s]+"
                             + "\\p{L}+)*))?"
-                            + "(?![A-Z0-9])"
+                            + "(?![A-Z0-9()王])"
             );
     private static final Pattern CATEGORY_PATTERN =
             Pattern.compile(
@@ -51,6 +52,10 @@ public final class WarehouseReferenceParser {
     private static final Pattern DOCUMENT_DATA_DELIMITER_PATTERN =
             Pattern.compile(
                     "[\\-\u2010\u2011\u2012\u2013\u2014]"
+                            + "|X(?=[\\p{Z}\\s]*"
+                            + "[0-9ILSZGJBOTF()王]{1,3}"
+                            + "[\\p{Z}\\s]*"
+                            + "P(?:CS|QT|QTS)?(?:\\b|$))"
             );
     private static final Pattern OCR_SPACED_CATEGORY_PATTERN =
             Pattern.compile(
@@ -69,6 +74,16 @@ public final class WarehouseReferenceParser {
                             + "((?:[A-Z0-9][\\p{Z}\\s]+){2,4}"
                             + "[A-Z0-9])"
                             + "(?![A-Z0-9])"
+            );
+    private static final Pattern OCR_RAW_CATEGORY_PATTERN =
+            Pattern.compile(
+                    "(?<![\\p{L}0-9])"
+                            + "(X[\\p{Z}\\s]*)?"
+                            + "([\\p{L}0-9()])"
+                            + "([\\p{Z}\\s]*)"
+                            + "([\\p{L}0-9()])"
+                            + "(?=[\\p{Z}\\s:._-]*"
+                            + "[\\p{L}0-9()王]{2,})"
             );
 
     public List<WarehouseReferenceMatch> parseLine(
@@ -573,9 +588,21 @@ public final class WarehouseReferenceParser {
             return numericPart;
         }
 
+        String normalizedSuffix =
+                normalizeSpaces(suffix);
+
+        if (normalizedSuffix.length() == 1
+                && numericPart.length() >= 2
+                && numericPart.length() < 5
+                && isDigitConfusableSuffix(
+                normalizedSuffix.charAt(0)
+        )) {
+            return numericPart + normalizedSuffix;
+        }
+
         return numericPart
                 + " "
-                + normalizeSpaces(suffix);
+                + normalizedSuffix;
     }
 
     private boolean hasQuantityDelimiterAfter(
@@ -648,7 +675,11 @@ public final class WarehouseReferenceParser {
                                     Character::isLetter
                             );
 
-            if (alphabeticQualifier) {
+            if (alphabeticQualifier
+                    && (attachedQualifier.length() > 1
+                    || !isDigitConfusableSuffix(
+                    attachedQualifier.charAt(0)
+            ))) {
                 normalizedObservedCode =
                         normalizedObservedCode.substring(
                                 0,
@@ -1057,6 +1088,20 @@ public final class WarehouseReferenceParser {
         }
     }
 
+    private static final class KnownReferenceCandidate {
+
+        private final WarehouseReference reference;
+        private final String compactIdentity;
+
+        private KnownReferenceCandidate(
+                WarehouseReference reference,
+                String compactIdentity
+        ) {
+            this.reference = reference;
+            this.compactIdentity = compactIdentity;
+        }
+    }
+
     private boolean hasMinimumNumericContent(
             String observedCode
     ) {
@@ -1089,7 +1134,10 @@ public final class WarehouseReferenceParser {
                 || value == 'S'
                 || value == 'Z'
                 || value == 'G'
-                || value == 'J';
+                || value == 'J'
+                || value == 'B'
+                || value == 'T'
+                || value == 'F';
     }
 
     private String referenceSegment(
@@ -1112,9 +1160,50 @@ public final class WarehouseReferenceParser {
     private String normalizeOcrReferenceSpacing(
             String rawText
     ) {
-        String normalized =
-                normalizeSpaces(rawText)
-                        .toUpperCase(Locale.ROOT);
+        String normalized = normalizeSpaces(rawText);
+
+        Matcher rawCategoryMatcher =
+                OCR_RAW_CATEGORY_PATTERN.matcher(
+                        normalized
+                );
+        StringBuffer rawCategoryResult =
+                new StringBuffer();
+
+        while (rawCategoryMatcher.find()) {
+            String marker =
+                    rawCategoryMatcher.group(1) == null
+                            ? ""
+                            : rawCategoryMatcher.group(1);
+            String first = rawCategoryMatcher.group(2);
+            String separator = rawCategoryMatcher.group(3);
+            String second = rawCategoryMatcher.group(4);
+
+            if ("n".equals(first)) {
+                first = "R";
+            }
+
+            if ("n".equals(second)) {
+                second = "R";
+            }
+
+            rawCategoryMatcher.appendReplacement(
+                    rawCategoryResult,
+                    Matcher.quoteReplacement(
+                            marker
+                                    + first
+                                    + separator
+                                    + second
+                    )
+            );
+        }
+
+        rawCategoryMatcher.appendTail(
+                rawCategoryResult
+        );
+
+        normalized = rawCategoryResult
+                .toString()
+                .toUpperCase(Locale.ROOT);
 
         Matcher categoryMatcher =
                 OCR_SPACED_CATEGORY_PATTERN
@@ -1215,7 +1304,7 @@ public final class WarehouseReferenceParser {
                         normalizedOcrText
                 );
 
-        List<WarehouseReference> orderedKnown =
+        List<KnownReferenceCandidate> matchingKnown =
                 new ArrayList<>();
 
         for (WarehouseReference known : knownReferences) {
@@ -1226,22 +1315,41 @@ public final class WarehouseReferenceParser {
             WarehouseReference normalizedKnown =
                     normalizeKnownReference(known);
 
-            if (normalizedKnown != null
-                    && !orderedKnown.contains(
+            if (normalizedKnown == null) {
+                continue;
+            }
+
+            String compactIdentity =
+                    compactReferenceIdentity(
+                            normalizedKnown
+                    );
+
+            if (!compactIdentity.isEmpty()
+                    && compactSource.contains(
+                    compactIdentity
+            )
+                    && !containsKnownCandidate(
+                    matchingKnown,
                     normalizedKnown
             )) {
-                orderedKnown.add(normalizedKnown);
+                matchingKnown.add(
+                        new KnownReferenceCandidate(
+                                normalizedKnown,
+                                compactIdentity
+                        )
+                );
             }
         }
 
-        orderedKnown.sort(
+        matchingKnown.sort(
                 Comparator
                         .comparingInt(
-                                this::compactIdentityLength
+                                (KnownReferenceCandidate value) ->
+                                        value.compactIdentity.length()
                         )
                         .reversed()
                         .thenComparing(
-                                WarehouseReference::displayValue
+                                value -> value.reference.displayValue()
                         )
         );
 
@@ -1250,17 +1358,11 @@ public final class WarehouseReferenceParser {
 
         int occurrenceIndex = 0;
 
-        for (WarehouseReference known : orderedKnown) {
-            String compactIdentity =
-                    compactReferenceIdentity(known);
-
-            if (compactIdentity.isEmpty()) {
-                continue;
-            }
-
+        for (KnownReferenceCandidate candidate
+                : matchingKnown) {
             int start =
                     compactSource.indexOf(
-                            compactIdentity
+                            candidate.compactIdentity
                     );
 
             if (start < 0) {
@@ -1269,7 +1371,7 @@ public final class WarehouseReferenceParser {
 
             result.add(
                     new WarehouseReferenceMatch(
-                            known,
+                            candidate.reference,
                             lineIndex,
                             originalSource,
                             occurrenceIndex++
@@ -1282,17 +1384,30 @@ public final class WarehouseReferenceParser {
                             start
                     )
                             + repeatSpaces(
-                            compactIdentity.length()
+                            candidate.compactIdentity.length()
                     )
                             + compactSource.substring(
                             start
-                                    + compactIdentity.length()
+                                    + candidate.compactIdentity.length()
                     );
         }
 
         return result.isEmpty()
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(result);
+    }
+
+    private boolean containsKnownCandidate(
+            List<KnownReferenceCandidate> values,
+            WarehouseReference reference
+    ) {
+        for (KnownReferenceCandidate value : values) {
+            if (value.reference.equals(reference)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private WarehouseReference normalizeKnownReference(
@@ -1321,14 +1436,6 @@ public final class WarehouseReferenceParser {
                 category,
                 code
         );
-    }
-
-    private int compactIdentityLength(
-            WarehouseReference reference
-    ) {
-        return compactReferenceIdentity(
-                reference
-        ).length();
     }
 
     private String compactReferenceIdentity(

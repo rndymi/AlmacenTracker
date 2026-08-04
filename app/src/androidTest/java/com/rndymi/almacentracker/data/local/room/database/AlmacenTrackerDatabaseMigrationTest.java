@@ -47,7 +47,7 @@ public class AlmacenTrackerDatabaseMigrationTest {
     }
 
     @Test
-    public void migrationFrom1To2PreservesWarehouseItems()
+    public void migrationFrom1To3PreservesWarehouseItemsAndAddsDestinations()
             throws IOException {
 
         SupportSQLiteDatabase versionOneDatabase =
@@ -77,28 +77,33 @@ public class AlmacenTrackerDatabaseMigrationTest {
 
         versionOneDatabase.close();
 
-        SupportSQLiteDatabase versionTwoDatabase =
-                migrateToVersionTwo();
+        SupportSQLiteDatabase migratedDatabase =
+                migrateToLatestVersion();
 
         assertWarehouseItemWasPreserved(
-                versionTwoDatabase
+                migratedDatabase
         );
 
         assertTableExists(
-                versionTwoDatabase,
+                migratedDatabase,
                 "withdrawal_history"
         );
         assertTableExists(
-                versionTwoDatabase,
+                migratedDatabase,
                 "withdrawal_history_entries"
         );
+        assertColumnExists(
+                migratedDatabase,
+                "withdrawal_history_entries",
+                "destinations"
+        );
 
         assertTableIsEmpty(
-                versionTwoDatabase,
+                migratedDatabase,
                 "withdrawal_history"
         );
         assertTableIsEmpty(
-                versionTwoDatabase,
+                migratedDatabase,
                 "withdrawal_history_entries"
         );
 
@@ -113,10 +118,10 @@ public class AlmacenTrackerDatabaseMigrationTest {
 
         versionOneDatabase.close();
 
-        SupportSQLiteDatabase versionTwoDatabase =
-                migrateToVersionTwo();
+        SupportSQLiteDatabase migratedDatabase =
+                migrateToLatestVersion();
 
-        versionTwoDatabase.execSQL(
+        migratedDatabase.execSQL(
                 "INSERT INTO `withdrawal_history` ("
                         + "`id`, "
                         + "`title`, "
@@ -132,7 +137,7 @@ public class AlmacenTrackerDatabaseMigrationTest {
                         + ")"
         );
 
-        versionTwoDatabase.execSQL(
+        migratedDatabase.execSQL(
                 "INSERT INTO `withdrawal_history_entries` ("
                         + "`id`, "
                         + "`history_id`, "
@@ -160,13 +165,13 @@ public class AlmacenTrackerDatabaseMigrationTest {
                         + ")"
         );
 
-        versionTwoDatabase.execSQL(
+        migratedDatabase.execSQL(
                 "DELETE FROM `withdrawal_history` "
                         + "WHERE `id` = 1"
         );
 
         assertTableIsEmpty(
-                versionTwoDatabase,
+                migratedDatabase,
                 "withdrawal_history_entries"
         );
 
@@ -225,13 +230,14 @@ public class AlmacenTrackerDatabaseMigrationTest {
         );
     }
 
-    private SupportSQLiteDatabase migrateToVersionTwo() {
+    private SupportSQLiteDatabase migrateToLatestVersion() {
         roomDatabase = Room.databaseBuilder(
                 context,
                 AlmacenTrackerDatabase.class,
                 TEST_DATABASE
         ).addMigrations(
-                AlmacenTrackerMigrations.MIGRATION_1_2
+                AlmacenTrackerMigrations.MIGRATION_1_2,
+                AlmacenTrackerMigrations.MIGRATION_2_3
         ).allowMainThreadQueries().build();
 
         return roomDatabase
@@ -339,6 +345,37 @@ public class AlmacenTrackerDatabaseMigrationTest {
             assertTrue(cursor.moveToFirst());
             assertEquals(0, cursor.getInt(0));
             assertFalse(cursor.moveToNext());
+        }
+    }
+
+    private void assertColumnExists(
+            SupportSQLiteDatabase database,
+            String tableName,
+            String columnName
+    ) {
+        try (
+                Cursor cursor = database.query(
+                        "PRAGMA table_info(`"
+                                + tableName
+                                + "`)"
+                )
+        ) {
+            boolean found = false;
+
+            while (cursor.moveToNext()) {
+                if (columnName.equals(
+                        cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                        "name"
+                                )
+                        )
+                )) {
+                    found = true;
+                    break;
+                }
+            }
+
+            assertTrue(found);
         }
     }
 }

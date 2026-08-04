@@ -67,6 +67,7 @@ public final class WithdrawalHistoryRoomMapper {
                 entry.getCode(),
                 entry.getQuantity(),
                 entry.getUnit(),
+                null,
                 entry.getWarehouseItemIdSnapshot(),
                 entry.getSiteSnapshot(),
                 entry.getPositionSnapshot(),

@@ -140,6 +140,8 @@ public final class DocumentQuantityNormalizer {
         switch (observed) {
             case 'I':
             case 'L':
+            case '(':
+            case ')':
                 return '1';
 
             case 'Z':
@@ -152,6 +154,9 @@ public final class DocumentQuantityNormalizer {
                 return '6';
 
             case 'J':
+            case 'T':
+            case 'F':
+            case '王':
                 return '7';
 
             case 'B':

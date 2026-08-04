@@ -346,6 +346,13 @@ public final class ReferenceListReviewViewModel
                 )
                         : Collections.emptyList();
 
+        if (knownReferences.contains(observedReference)) {
+            contextualSuggestions =
+                    highConfidenceSuggestions(
+                            contextualSuggestions
+                    );
+        }
+
         List<WarehouseReference> suggestions =
                 referencesFromSuggestions(
                         contextualSuggestions
@@ -354,7 +361,7 @@ public final class ReferenceListReviewViewModel
         ReferenceProposal.MatchStatus matchStatus =
                 contextualMatchStatusFor(
                         observedReference,
-                        suggestions,
+                        contextualSuggestions,
                         knownReferences,
                         knownReferencesAvailable
                 );
@@ -837,7 +844,7 @@ public final class ReferenceListReviewViewModel
     private ReferenceProposal.MatchStatus
     contextualMatchStatusFor(
             WarehouseReference observed,
-            List<WarehouseReference> suggestions,
+            List<WarehouseReferenceSuggestion> suggestions,
             List<WarehouseReference> knownReferences,
             boolean knownReferencesAvailable
     ) {
@@ -848,7 +855,9 @@ public final class ReferenceListReviewViewModel
         }
 
         if (knownReferences.contains(observed)) {
-            return ReferenceProposal.MatchStatus.EXACT;
+            return suggestions.isEmpty()
+                    ? ReferenceProposal.MatchStatus.EXACT
+                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
         }
 
         if (suggestions.size() == 1) {
@@ -858,19 +867,12 @@ public final class ReferenceListReviewViewModel
 
         if (suggestions.size() > 1) {
             int bestScore =
-                    contextualSuggestionsScore(
-                            observed,
-                            knownReferences
-                    );
+                    suggestions.get(0).getScore();
 
             int bestCount = 0;
 
             for (WarehouseReferenceSuggestion suggestion
-                    : suggestionResolver.resolve(
-                    observed,
-                    knownReferences,
-                    MAXIMUM_SUGGESTIONS
-            )) {
+                    : suggestions) {
 
                 if (suggestion.getScore()
                         == bestScore) {
@@ -887,19 +889,25 @@ public final class ReferenceListReviewViewModel
         return ReferenceProposal.MatchStatus.NO_MATCH;
     }
 
-    private int contextualSuggestionsScore(
-            WarehouseReference observed,
-            List<WarehouseReference> knownReferences
+    private List<WarehouseReferenceSuggestion>
+    highConfidenceSuggestions(
+            List<WarehouseReferenceSuggestion> values
     ) {
-        List<WarehouseReferenceSuggestion> values =
-                suggestionResolver.resolve(
-                        observed,
-                        knownReferences,
-                        MAXIMUM_SUGGESTIONS
-                );
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        return values.isEmpty()
-                ? Integer.MAX_VALUE
-                : values.get(0).getScore();
+        List<WarehouseReferenceSuggestion> result =
+                new ArrayList<>();
+
+        for (WarehouseReferenceSuggestion value : values) {
+            if (value.getScore() == 1) {
+                result.add(value);
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
     }
 }

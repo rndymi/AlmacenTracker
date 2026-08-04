@@ -12,16 +12,24 @@ public final class DocumentReferenceDataParser {
     private static final Pattern DOCUMENT_DATA_DELIMITER_PATTERN =
             Pattern.compile(
                     "[\\-\u2010\u2011\u2012\u2013\u2014]"
+                            + "|X(?=[\\p{Z}\\s]*"
+                            + "[0-9ILSZGJBOTF()王]{1,3}"
+                            + "[\\p{Z}\\s]*"
+                            + "P(?:CS|QT|QTS)?(?:\\b|$))"
             );
     private static final Pattern DOCUMENT_DATA_PATTERN =
             Pattern.compile(
                     "^[\\p{Z}\\s:;,.\\-/]*"
-                            + "([0-9ILSZGJBO]{1,9})"
+                            + "([0-9ILSZGJBOTF()王]{1,9})"
                             + "(?:[\\p{Z}\\s]*"
                             + "([\\p{L}0-9]+"
                             + "(?:[\\p{Z}\\s]+"
                             + "[\\p{L}0-9]+){0,2}))?"
                             + "[\\p{Z}\\s:;,.\\-/]*$"
+            );
+    private static final Pattern DOCUMENT_DESTINATION_PATTERN =
+            Pattern.compile(
+                    "[①②③④⑤⑥⑦⑧⑨⑩]"
             );
 
     private final DocumentUnitNormalizer unitNormalizer;
@@ -136,7 +144,11 @@ public final class DocumentReferenceDataParser {
             boolean requireUnit
     ) {
         String normalizedTail =
-                normalize(sourceTail);
+                normalize(
+                        DOCUMENT_DESTINATION_PATTERN
+                                .matcher(sourceTail)
+                                .replaceAll(" ")
+                );
 
         Matcher matcher =
                 DOCUMENT_DATA_PATTERN.matcher(
