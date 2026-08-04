@@ -422,6 +422,33 @@ public final class DocumentColumnDetectorTest {
     }
 
     @Test
+    public void orderByColumnsDoesNotDiscardStableLayoutForIsolatedAnchorNoise() {
+        List<RecognizedTextLine> result =
+                detector.orderByColumns(
+                        Arrays.asList(
+                                line(0, "A1", 30, 100, 120, 130),
+                                line(1, "B1", 280, 100, 370, 130),
+                                line(2, "C1", 530, 100, 620, 130),
+                                line(3, "D1", 780, 100, 870, 130),
+                                line(4, "A2", 35, 170, 125, 200),
+                                line(5, "B2", 285, 170, 375, 200),
+                                line(6, "C2", 535, 170, 625, 200),
+                                line(7, "D2", 785, 170, 875, 200),
+                                line(8, "C3 RUIDOSA", 610, 240, 700, 270)
+                        ),
+                        1000
+                );
+
+        assertTexts(
+                result,
+                "A1", "A2",
+                "B1", "B2",
+                "C1", "C2", "C3 RUIDOSA",
+                "D1", "D2"
+        );
+    }
+
+    @Test
     public void orderByColumnsIsDeterministicForShuffledInput() {
         List<RecognizedTextLine> lines =
                 Arrays.asList(

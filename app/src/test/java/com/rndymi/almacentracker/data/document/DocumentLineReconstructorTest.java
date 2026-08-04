@@ -829,6 +829,60 @@ public final class DocumentLineReconstructorTest {
     }
 
     @Test
+    public void reconstructKeepsSeparatedOcrFragmentsInSameReferenceLine() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("mR2138", 30, 100, 150, 130),
+                                element("fX4p", 230, 102, 300, 132),
+                                element("mR2", 30, 170, 90, 200),
+                                element("Ol06", 180, 172, 260, 202),
+                                element("mR2", 30, 240, 90, 270),
+                                element("lS7o", 180, 242, 260, 272)
+                        ),
+                        1000
+                );
+
+        assertReconstructedTexts(
+                result,
+                "mR2138 fX4p",
+                "mR2 Ol06",
+                "mR2 lS7o"
+        );
+    }
+
+    @Test
+    public void reconstructDoesNotAttachPartialReferenceToPreviousColumn() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("MR10001", 30, 100, 140, 130),
+                                element("MA20001", 280, 100, 390, 130),
+                                element("MD30001", 530, 100, 640, 130),
+                                element("MR40001", 780, 100, 890, 130),
+                                element("MR10002", 35, 170, 145, 200),
+                                element("MA20002", 285, 170, 395, 200),
+                                element("MD30002", 535, 170, 645, 200),
+                                element("MR40002", 785, 170, 895, 200),
+                                element("MR10003", 40, 240, 150, 270),
+                                element("MA20003", 290, 240, 400, 270),
+                                element("mR2", 540, 240, 600, 270),
+                                element("Ol06", 680, 242, 760, 272),
+                                element("MR40003", 790, 240, 900, 270)
+                        ),
+                        1000
+                );
+
+        assertReconstructedTexts(
+                result,
+                "MR10001", "MR10002", "MR10003",
+                "MA20001", "MA20002", "MA20003",
+                "MD30001", "MD30002", "mR2 Ol06",
+                "MR40001", "MR40002", "MR40003"
+        );
+    }
+
+    @Test
     public void reconstructKeepsObservedReferencesInTheirGeometricColumns() {
         List<RecognizedTextLine> result =
                 reconstructor.reconstruct(

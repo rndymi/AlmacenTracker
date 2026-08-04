@@ -477,8 +477,18 @@ public final class DocumentLineReconstructor {
                                 && horizontalGap
                                 >= splitThreshold;
 
+                boolean continuesCurrentReference =
+                        hasLargeHorizontalGap
+                                && continuesReference(
+                                current,
+                                element
+                        );
+
                 if (beginsSecondReference
-                        || hasLargeHorizontalGap) {
+                        || (
+                        hasLargeHorizontalGap
+                                && !continuesCurrentReference
+                )) {
 
                     if (!current.elements.isEmpty()) {
                         result.add(current);
@@ -507,6 +517,51 @@ public final class DocumentLineReconstructor {
             return result;
         }
 
+        private boolean continuesReference(
+                SpatialRow current,
+                RecognizedTextElement next
+        ) {
+            if (current.elements.isEmpty()) {
+                return false;
+            }
+
+            String currentText =
+                    compactAlphanumericText(
+                            current.rawText()
+                    );
+
+            String nextText =
+                    compactAlphanumericText(
+                            next.getRawText()
+                    );
+
+            if (currentText.isEmpty()
+                    || nextText.isEmpty()
+                    || looksLikeCombinedReference(nextText)
+                    || looksLikeObservedReferencePrefix(
+                    nextText
+            )) {
+                return false;
+            }
+
+            return looksLikeCombinedReference(
+                    currentText + nextText
+            );
+        }
+
+        private boolean looksLikeObservedReferencePrefix(
+                String value
+        ) {
+            return value.length() >= 3
+                    && Character.toUpperCase(
+                    value.charAt(0)
+            ) == 'M'
+                    && Character.isLetterOrDigit(
+                    value.charAt(1)
+            )
+                    && containsDigitFrom(value, 2);
+        }
+
         private boolean beginsReferenceAt(
                 int index
         ) {
@@ -521,6 +576,8 @@ public final class DocumentLineReconstructor {
                     );
 
             if (looksLikeCombinedReference(
+                    currentText
+            ) || looksLikeObservedReferencePrefix(
                     currentText
             )) {
                 return true;
