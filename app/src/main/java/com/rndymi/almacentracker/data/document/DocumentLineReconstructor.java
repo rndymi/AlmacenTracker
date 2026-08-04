@@ -403,7 +403,7 @@ public final class DocumentLineReconstructor {
 
             if (documentThreshold > 0.0f) {
                 splitThreshold =
-                        Math.min(
+                        Math.max(
                                 documentThreshold,
                                 characterThreshold
                         );
@@ -453,16 +453,8 @@ public final class DocumentLineReconstructor {
                                 && horizontalGap
                                 >= splitThreshold;
 
-                boolean hasDocumentColumnGap =
-                        previous != null
-                                && documentWidth > 0
-                                && horizontalGap
-                                >= documentWidth
-                                * MINIMUM_ROW_SPLIT_GAP_FACTOR;
-
                 if (beginsSecondReference
-                        || hasLargeHorizontalGap
-                        || hasDocumentColumnGap) {
+                        || hasLargeHorizontalGap) {
 
                     if (!current.elements.isEmpty()) {
                         result.add(current);

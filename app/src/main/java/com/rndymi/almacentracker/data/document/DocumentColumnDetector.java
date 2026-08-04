@@ -14,7 +14,7 @@ public final class DocumentColumnDetector {
     private static final float MINIMUM_LEFT_GAP_DOCUMENT_FACTOR = 0.075f;
     private static final float MINIMUM_LEFT_GAP_WIDTH_FACTOR = 0.70f;
 
-    private static final float MAXIMUM_COLUMN_CANDIDATE_WIDTH_FACTOR = 0.32f;
+    private static final float MAXIMUM_COLUMN_CANDIDATE_WIDTH_FACTOR = 0.50f;
     private static final float MAXIMUM_LEFT_SPREAD_FACTOR = 0.10f;
     private static final float MAXIMUM_ASSIGNMENT_DISTANCE_FACTOR = 0.13f;
 
@@ -39,6 +39,59 @@ public final class DocumentColumnDetector {
             return verticalOrder;
         }
 
+        for (RecognizedTextLine line : verticalOrder) {
+            if (line == null || !line.hasBoundingBox()) {
+                return verticalOrder;
+            }
+        }
+
+        return orderDocumentBlocks(
+                verticalOrder,
+                documentWidth
+        );
+    }
+
+    private List<RecognizedTextLine> orderDocumentBlocks(
+            List<RecognizedTextLine> verticalOrder,
+            int documentWidth
+    ) {
+        List<RecognizedTextLine> result =
+                new ArrayList<>();
+
+        List<RecognizedTextLine> block =
+                new ArrayList<>();
+
+        for (RecognizedTextLine line : verticalOrder) {
+            if (!isGlobalBoundary(line, documentWidth)) {
+                block.add(line);
+                continue;
+            }
+
+            result.addAll(
+                    orderBlock(block, documentWidth)
+            );
+            block.clear();
+            result.add(line);
+        }
+
+        result.addAll(
+                orderBlock(block, documentWidth)
+        );
+
+        return result;
+    }
+
+    private List<RecognizedTextLine> orderBlock(
+            List<RecognizedTextLine> block,
+            int documentWidth
+    ) {
+        if (block.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<RecognizedTextLine> verticalOrder =
+                new ArrayList<>(block);
+
         ColumnLayout layout =
                 detectColumnLayout(
                         verticalOrder,
@@ -54,6 +107,20 @@ public final class DocumentColumnDetector {
                 layout,
                 documentWidth
         );
+    }
+
+    private boolean isGlobalBoundary(
+            RecognizedTextLine line,
+            int documentWidth
+    ) {
+        if (line == null || !line.hasBoundingBox()) {
+            return false;
+        }
+
+        int width = line.getRight() - line.getLeft();
+
+        return width > documentWidth
+                * MAXIMUM_COLUMN_CANDIDATE_WIDTH_FACTOR;
     }
 
     private ColumnLayout detectColumnLayout(
@@ -105,7 +172,9 @@ public final class DocumentColumnDetector {
                         minimumLeftGap
                 );
 
-        removeUnsupportedColumns(columns);
+        if (!retainSupportedColumns(columns)) {
+            return null;
+        }
 
         if (columns.size()
                 < MINIMUM_COLUMN_COUNT) {
@@ -180,14 +249,74 @@ public final class DocumentColumnDetector {
         return nearest;
     }
 
-    private void removeUnsupportedColumns(
+    private boolean retainSupportedColumns(
             List<DocumentColumn> columns
     ) {
-        columns.removeIf(
-                column ->
-                        column.getLines().size()
-                                < MINIMUM_LINES_PER_COLUMN
-        );
+        List<DocumentColumn> repeatedColumns =
+                new ArrayList<>();
+
+        for (DocumentColumn column : columns) {
+            if (column.getLines().size()
+                    >= MINIMUM_LINES_PER_COLUMN) {
+                repeatedColumns.add(column);
+            }
+        }
+
+        if (repeatedColumns.size()
+                < MINIMUM_COLUMN_COUNT) {
+            return false;
+        }
+
+        for (DocumentColumn column : columns) {
+            if (column.getLines().size()
+                    >= MINIMUM_LINES_PER_COLUMN) {
+                continue;
+            }
+
+            if (column.getLines().size() != 1
+                    || !hasRepeatedRowEvidence(
+                    column.getLines().get(0),
+                    repeatedColumns
+            )) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean hasRepeatedRowEvidence(
+            RecognizedTextLine line,
+            List<DocumentColumn> repeatedColumns
+    ) {
+        int alignedColumnCount = 0;
+
+        for (DocumentColumn column : repeatedColumns) {
+            boolean aligned = false;
+
+            for (RecognizedTextLine candidate
+                    : column.getLines()) {
+                if (overlapsVertically(line, candidate)) {
+                    aligned = true;
+                    break;
+                }
+            }
+
+            if (aligned) {
+                alignedColumnCount++;
+            }
+        }
+
+        return alignedColumnCount
+                >= MINIMUM_COLUMN_COUNT;
+    }
+
+    private boolean overlapsVertically(
+            RecognizedTextLine first,
+            RecognizedTextLine second
+    ) {
+        return first.getTop() < second.getBottom()
+                && second.getTop() < first.getBottom();
     }
 
     private boolean hasStableSeparation(

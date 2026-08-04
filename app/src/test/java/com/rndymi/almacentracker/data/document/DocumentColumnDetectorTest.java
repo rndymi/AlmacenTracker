@@ -234,7 +234,7 @@ public final class DocumentColumnDetectorTest {
     }
 
     @Test
-    public void orderByColumnsAppendsUnassignedWideLineAfterColumns() {
+    public void orderByColumnsPreservesGlobalLineBetweenBlocks() {
         List<RecognizedTextLine> result =
                 detector.orderByColumns(
                         Arrays.asList(
@@ -318,14 +318,134 @@ public final class DocumentColumnDetectorTest {
                 result,
                 "A1",
                 "A2",
-                "C1",
-                "C2",
                 "B1",
                 "B2",
+                "SEGUNDO BLOQUE",
+                "C1",
+                "C2",
                 "D1",
-                "D2",
-                "SEGUNDO BLOQUE"
+                "D2"
         );
+    }
+
+    @Test
+    public void orderByColumnsReadsUnequalColumnsWithoutInterleaving() {
+        List<RecognizedTextLine> result =
+                detector.orderByColumns(
+                        Arrays.asList(
+                                line(7, "C2", 650, 170, 760, 200),
+                                line(2, "A3", 40, 240, 150, 270),
+                                line(5, "B2", 345, 170, 455, 200),
+                                line(0, "A1", 35, 100, 145, 130),
+                                line(6, "C1", 645, 100, 755, 130),
+                                line(3, "A4", 45, 310, 155, 340),
+                                line(4, "B1", 340, 100, 450, 130),
+                                line(1, "A2", 38, 170, 148, 200)
+                        ),
+                        900
+                );
+
+        assertTexts(
+                result,
+                "A1", "A2", "A3", "A4",
+                "B1", "B2",
+                "C1", "C2"
+        );
+    }
+
+    @Test
+    public void orderByColumnsAcceptsShortColumnWithRepeatedRowEvidence() {
+        List<RecognizedTextLine> result =
+                detector.orderByColumns(
+                        Arrays.asList(
+                                line(0, "A1", 35, 100, 145, 130),
+                                line(1, "B1", 340, 100, 450, 130),
+                                line(2, "C1", 645, 100, 755, 130),
+                                line(3, "A2", 40, 170, 150, 200),
+                                line(4, "B2", 345, 170, 455, 200),
+                                line(5, "A3", 45, 240, 155, 270),
+                                line(6, "B3", 350, 240, 460, 270)
+                        ),
+                        900
+                );
+
+        assertTexts(
+                result,
+                "A1", "A2", "A3",
+                "B1", "B2", "B3",
+                "C1"
+        );
+    }
+
+    @Test
+    public void orderByColumnsUsesIndependentLayoutsAroundGlobalLine() {
+        List<RecognizedTextLine> result =
+                detector.orderByColumns(
+                        Arrays.asList(
+                                line(0, "A1", 30, 100, 120, 130),
+                                line(1, "B1", 330, 100, 420, 130),
+                                line(2, "C1", 630, 100, 720, 130),
+                                line(3, "A2", 35, 170, 125, 200),
+                                line(4, "B2", 335, 170, 425, 200),
+                                line(5, "C2", 635, 170, 725, 200),
+                                line(6, "BLOQUE SUR", 60, 250, 840, 290),
+                                line(7, "D1", 80, 340, 190, 370),
+                                line(8, "E1", 520, 340, 630, 370),
+                                line(9, "D2", 85, 410, 195, 440),
+                                line(10, "E2", 525, 410, 635, 440)
+                        ),
+                        900
+                );
+
+        assertTexts(
+                result,
+                "A1", "A2", "B1", "B2", "C1", "C2",
+                "BLOQUE SUR",
+                "D1", "D2", "E1", "E2"
+        );
+    }
+
+    @Test
+    public void orderByColumnsFallsBackVerticallyWhenAnchorsAreAmbiguous() {
+        List<RecognizedTextLine> result =
+                detector.orderByColumns(
+                        Arrays.asList(
+                                line(3, "L4", 280, 310, 390, 340),
+                                line(1, "L2", 185, 170, 295, 200),
+                                line(0, "L1", 40, 100, 150, 130),
+                                line(2, "L3", 90, 240, 200, 270)
+                        ),
+                        900
+                );
+
+        assertTexts(result, "L1", "L2", "L3", "L4");
+    }
+
+    @Test
+    public void orderByColumnsIsDeterministicForShuffledInput() {
+        List<RecognizedTextLine> lines =
+                Arrays.asList(
+                        line(5, "C2", 650, 170, 760, 200),
+                        line(0, "A1", 40, 100, 150, 130),
+                        line(3, "B2", 345, 170, 455, 200),
+                        line(4, "C1", 645, 100, 755, 130),
+                        line(1, "A2", 45, 170, 155, 200),
+                        line(2, "B1", 340, 100, 450, 130)
+                );
+
+        List<RecognizedTextLine> first =
+                detector.orderByColumns(lines, 900);
+        List<RecognizedTextLine> second =
+                detector.orderByColumns(
+                        Arrays.asList(
+                                lines.get(2), lines.get(4), lines.get(0),
+                                lines.get(5), lines.get(1), lines.get(3)
+                        ),
+                        900
+                );
+
+        assertTexts(first, "A1", "A2", "B1", "B2", "C1", "C2");
+        assertTexts(second, "A1", "A2", "B1", "B2", "C1", "C2");
     }
 
     @Test

@@ -135,21 +135,21 @@ public final class DocumentReferenceListIntegrationTest {
         );
 
         assertEquals(
-                "MR 21111",
+                "MR 21232",
                 matches.get(5)
                         .getReference()
                         .displayValue()
         );
 
         assertEquals(
-                "MA 930",
+                "MR 21502",
                 matches.get(6)
                         .getReference()
                         .displayValue()
         );
 
         assertEquals(
-                "MR 21232",
+                "MR 21211",
                 matches.get(9)
                         .getReference()
                         .displayValue()
