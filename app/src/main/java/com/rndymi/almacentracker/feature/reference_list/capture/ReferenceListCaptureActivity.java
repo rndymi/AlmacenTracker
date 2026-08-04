@@ -41,11 +41,8 @@ public final class ReferenceListCaptureActivity
     private ActivityReferenceListCaptureBinding binding;
     private ReferenceListCaptureViewModel viewModel;
     private DocumentImageLoader<Bitmap> imageLoader;
-
     private ActivityResultLauncher<Uri> takePictureLauncher;
-
-    private ActivityResultLauncher <PickVisualMediaRequest>
-            photoPickerLauncher;
+    private ActivityResultLauncher <PickVisualMediaRequest> photoPickerLauncher;
 
     private final ExecutorService previewExecutor = Executors.newSingleThreadExecutor();
 
