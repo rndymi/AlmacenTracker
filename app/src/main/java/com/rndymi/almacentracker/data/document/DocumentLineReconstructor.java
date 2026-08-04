@@ -16,13 +16,27 @@ public final class DocumentLineReconstructor {
     private static final float CHARACTER_GAP_SPLIT_FACTOR = 3.0f;
 
     private final DocumentColumnDetector columnDetector;
+    private final DocumentMergedLineSplitter mergedLineSplitter;
 
     public DocumentLineReconstructor() {
-        this(new DocumentColumnDetector());
+        this(
+                new DocumentColumnDetector(),
+                new DocumentMergedLineSplitter()
+        );
     }
 
     public DocumentLineReconstructor(
             DocumentColumnDetector columnDetector
+    ) {
+        this(
+                columnDetector,
+                new DocumentMergedLineSplitter()
+        );
+    }
+
+    DocumentLineReconstructor(
+            DocumentColumnDetector columnDetector,
+            DocumentMergedLineSplitter mergedLineSplitter
     ) {
         if (columnDetector == null) {
             throw new IllegalArgumentException(
@@ -30,7 +44,14 @@ public final class DocumentLineReconstructor {
             );
         }
 
+        if (mergedLineSplitter == null) {
+            throw new IllegalArgumentException(
+                    "mergedLineSplitter cannot be null"
+            );
+        }
+
         this.columnDetector = columnDetector;
+        this.mergedLineSplitter = mergedLineSplitter;
     }
 
     public List<RecognizedTextLine> reconstruct(
@@ -63,9 +84,12 @@ public final class DocumentLineReconstructor {
         List<RecognizedTextLine> reconstructed =
                 mapLines(separatedRows);
 
+        List<RecognizedTextLine> separated =
+                mergedLineSplitter.split(reconstructed);
+
         List<RecognizedTextLine> ordered =
                 columnDetector.orderByColumns(
-                        reconstructed,
+                        separated,
                         documentWidth
                 );
 

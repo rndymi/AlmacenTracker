@@ -764,9 +764,9 @@ public final class DocumentLineReconstructorTest {
     }
 
     @Test
-    public void reconstructCannotSpatiallySplitSingleMergedRegion() {
+    public void reconstructSplitsSingleMergedRegionWithoutCorrectingCharacters() {
         RecognizedTextElement merged =
-                element("MR22547MA871", 30, 100, 360, 130);
+                element("mR22139mA98王", 30, 100, 360, 130);
 
         List<RecognizedTextLine> result =
                 reconstructor.reconstruct(
@@ -774,9 +774,58 @@ public final class DocumentLineReconstructorTest {
                         900
                 );
 
-        assertReconstructedTexts(result, "MR22547MA871");
-        assertEquals(1, result.get(0).getElements().size());
-        assertEquals(merged, result.get(0).getElements().get(0));
+        assertReconstructedTexts(result, "mR22139", "mA98王");
+
+        for (RecognizedTextLine line : result) {
+            assertEquals(1, line.getElements().size());
+            assertEquals(merged, line.getElements().get(0));
+        }
+    }
+
+    @Test
+    public void reconstructSplitsObservedFusionsIntoFourColumnOrder() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("MR21855", 800, 162, 930, 192),
+                                element("AKGPORTOmA988", 20, 20, 440, 55),
+                                element("MA1319", 550, 102, 670, 132),
+                                element("MR22S47mA87", 20, 100, 440, 130),
+                                element("MD803", 550, 162, 660, 192),
+                                element("MR9280", 800, 22, 920, 52),
+                                element("mR22139mA98王", 20, 160, 440, 190),
+                                element("MA1318", 550, 22, 670, 52),
+                                element("MR218S4", 800, 102, 930, 132)
+                        ),
+                        1000
+                );
+
+        assertReconstructedTexts(
+                result,
+                "AKGPORTO", "MR22S47", "mR22139",
+                "mA988", "mA87", "mA98王",
+                "MA1318", "MA1319", "MD803",
+                "MR9280", "MR218S4", "MR21855"
+        );
+    }
+
+    @Test
+    public void reconstructDoesNotSplitSingleReferenceWithSuffixAndQuantity() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element(
+                                        "MR21387X40p",
+                                        30,
+                                        100,
+                                        260,
+                                        130
+                                )
+                        ),
+                        900
+                );
+
+        assertReconstructedTexts(result, "MR21387X40p");
     }
 
     @Test
