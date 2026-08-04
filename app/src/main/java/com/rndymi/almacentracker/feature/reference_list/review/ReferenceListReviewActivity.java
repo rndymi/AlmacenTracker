@@ -191,6 +191,17 @@ public final class ReferenceListReviewActivity
                                     ).show();
                                 }
                             }
+
+                            @Override
+                            public void onQuantitySuggestion(
+                                    ReferenceProposal proposal,
+                                    int quantity
+                            ) {
+                                viewModel.applyQuantitySuggestion(
+                                        proposal.getId(),
+                                        quantity
+                                );
+                            }
                         }
                 );
 

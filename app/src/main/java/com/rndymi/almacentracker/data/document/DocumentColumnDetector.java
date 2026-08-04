@@ -278,16 +278,11 @@ public final class DocumentColumnDetector {
                     column.getLines().get(0),
                     repeatedColumns
             )) {
-                column.markUnsupported();
+                return false;
             }
         }
 
-        columns.removeIf(
-                DocumentColumn::isUnsupported
-        );
-
-        return columns.size()
-                >= MINIMUM_COLUMN_COUNT;
+        return true;
     }
 
     private boolean hasRepeatedRowEvidence(
@@ -640,7 +635,6 @@ public final class DocumentColumnDetector {
                 Integer.MAX_VALUE;
         private int maximumLeft =
                 Integer.MIN_VALUE;
-        private boolean unsupported;
 
         private void add(
                 RecognizedTextLine line
@@ -706,12 +700,5 @@ public final class DocumentColumnDetector {
                     - minimumLeft;
         }
 
-        private void markUnsupported() {
-            unsupported = true;
-        }
-
-        private boolean isUnsupported() {
-            return unsupported;
-        }
     }
 }

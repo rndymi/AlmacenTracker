@@ -853,6 +853,17 @@ public final class ReferenceListReviewViewModelTest {
                 )
         );
 
+        ReferenceProposal quantityProposal =
+                viewModel.getUiState().getValue()
+                        .getProposals().get(0);
+
+        assertFalse(viewModel.getUiState().getValue().canConfirm());
+
+        viewModel.applyQuantitySuggestion(
+                quantityProposal.getId(),
+                20
+        );
+
         viewModel.confirm();
 
         UiEvent<List<DocumentReferenceData>> event =
@@ -1215,6 +1226,106 @@ public final class ReferenceListReviewViewModelTest {
                 "PQTS",
                 third.getDocumentData()
                         .getUnit()
+        );
+    }
+
+    @Test
+    public void exactReferenceShowsZeroSixAlternativeAsAmbiguous() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<List<WarehouseItem>> callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem("MR", "20106"),
+                                                warehouseItem("MR", "20166")
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Collections.singletonList("MR20106")
+        );
+
+        ReferenceProposal proposal =
+                resolvingViewModel.getUiState().getValue()
+                        .getProposals().get(0);
+
+        assertEquals(
+                ReferenceProposal.MatchStatus.AMBIGUOUS,
+                proposal.getMatchStatus()
+        );
+        assertEquals(1, proposal.getSuggestions().size());
+        assertEquals(
+                "MR 20166",
+                proposal.getSuggestions().get(0).displayValue()
+        );
+        assertFalse(
+                resolvingViewModel.getUiState().getValue().canConfirm()
+        );
+    }
+
+    @Test
+    public void quantityZeroSixAmbiguityRequiresExplicitChoice() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<List<WarehouseItem>> callback
+                            ) {
+                                callback.onSuccess(
+                                        Collections.singletonList(
+                                                warehouseItem("MR", "21570")
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Collections.singletonList("MR21570-40pcs")
+        );
+
+        ReferenceProposal proposal =
+                resolvingViewModel.getUiState().getValue()
+                        .getProposals().get(0);
+
+        assertEquals(Integer.valueOf(40),
+                proposal.getDocumentData().getQuantity());
+        assertEquals(
+                Collections.singletonList(46),
+                proposal.getDocumentData().getQuantitySuggestions()
+        );
+        assertFalse(
+                resolvingViewModel.getUiState().getValue().canConfirm()
+        );
+
+        ReferenceInputResult result =
+                resolvingViewModel.applyQuantitySuggestion(
+                        proposal.getId(),
+                        40
+                );
+
+        assertEquals(
+                ReferenceInputResult.Status.SUCCESS,
+                result.getStatus()
+        );
+        assertTrue(
+                resolvingViewModel.getUiState().getValue().canConfirm()
+        );
+        assertTrue(
+                resolvingViewModel.getUiState().getValue()
+                        .getProposals().get(0)
+                        .getDocumentData()
+                        .getQuantitySuggestions().isEmpty()
         );
     }
 

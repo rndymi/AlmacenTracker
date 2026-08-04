@@ -1128,4 +1128,36 @@ public final class WarehouseReferenceParserTest {
 
         assertTrue(suggestions.isEmpty());
     }
+
+    @Test
+    public void suggestReferencesTreatsZeroAndSixAsOcrConfusion() {
+        List<WarehouseReference> suggestions =
+                parser.suggestReferences(
+                        new WarehouseReference("MR", "20106"),
+                        Collections.singletonList(
+                                new WarehouseReference("MR", "20166")
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+        assertEquals("MR 20166", suggestions.get(0).displayValue());
+    }
+
+    @Test
+    public void suggestZeroSixAlternativesRejectsOtherDifferences() {
+        List<WarehouseReference> suggestions =
+                parser.suggestZeroSixAlternatives(
+                        new WarehouseReference("MR", "20106"),
+                        Arrays.asList(
+                                new WarehouseReference("MR", "20170"),
+                                new WarehouseReference("MR", "20166"),
+                                new WarehouseReference("MA", "20166")
+                        ),
+                        5
+                );
+
+        assertEquals(1, suggestions.size());
+        assertEquals("MR 20166", suggestions.get(0).displayValue());
+    }
 }

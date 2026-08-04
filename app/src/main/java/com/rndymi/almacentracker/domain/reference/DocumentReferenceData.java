@@ -1,11 +1,15 @@
 package com.rndymi.almacentracker.domain.reference;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public final class DocumentReferenceData {
 
     private final WarehouseReference reference;
     private final Integer quantity;
+    private final List<Integer> quantitySuggestions;
     private final String unit;
     private final int sourceLineIndex;
     private final String sourceText;
@@ -16,6 +20,24 @@ public final class DocumentReferenceData {
             String unit,
             int sourceLineIndex,
             String sourceText
+    ) {
+        this(
+                reference,
+                quantity,
+                unit,
+                sourceLineIndex,
+                sourceText,
+                Collections.emptyList()
+        );
+    }
+
+    public DocumentReferenceData(
+            WarehouseReference reference,
+            Integer quantity,
+            String unit,
+            int sourceLineIndex,
+            String sourceText,
+            List<Integer> quantitySuggestions
     ) {
         if (sourceLineIndex < 0) {
             throw new IllegalArgumentException(
@@ -35,6 +57,11 @@ public final class DocumentReferenceData {
         );
 
         this.quantity = quantity;
+        this.quantitySuggestions =
+                immutablePositiveQuantities(
+                        quantitySuggestions,
+                        quantity
+                );
         this.unit = normalizeOptional(unit);
         this.sourceLineIndex = sourceLineIndex;
         this.sourceText = sourceText;
@@ -46,6 +73,10 @@ public final class DocumentReferenceData {
 
     public Integer getQuantity() {
         return quantity;
+    }
+
+    public List<Integer> getQuantitySuggestions() {
+        return quantitySuggestions;
     }
 
     public String getUnit() {
@@ -64,6 +95,10 @@ public final class DocumentReferenceData {
         return quantity != null;
     }
 
+    public boolean hasQuantityAmbiguity() {
+        return !quantitySuggestions.isEmpty();
+    }
+
     public boolean hasUnitProposal() {
         return unit != null;
     }
@@ -80,5 +115,29 @@ public final class DocumentReferenceData {
         return normalized.isEmpty()
                 ? null
                 : normalized;
+    }
+
+    private static List<Integer> immutablePositiveQuantities(
+            List<Integer> values,
+            Integer observedQuantity
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Integer> result = new ArrayList<>();
+
+        for (Integer value : values) {
+            if (value != null
+                    && value > 0
+                    && !value.equals(observedQuantity)
+                    && !result.contains(value)) {
+                result.add(value);
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
     }
 }

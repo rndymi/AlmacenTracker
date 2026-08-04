@@ -829,56 +829,78 @@ public final class DocumentLineReconstructorTest {
     }
 
     @Test
-    public void reconstructKeepsSeparatedOcrFragmentsInSameReferenceLine() {
+    public void reconstructDoesNotSplitObservedSuffixesAsReferences() {
         List<RecognizedTextLine> result =
                 reconstructor.reconstruct(
                         Arrays.asList(
-                                element("mR2138", 30, 100, 150, 130),
-                                element("fX4p", 230, 102, 300, 132),
-                                element("mR2", 30, 170, 90, 200),
-                                element("Ol06", 180, 172, 260, 202),
-                                element("mR2", 30, 240, 90, 270),
-                                element("lS7o", 180, 242, 260, 272)
+                                element(
+                                        "mR2138fX4ρ",
+                                        375,
+                                        331,
+                                        843,
+                                        394
+                                ),
+                                element(
+                                        "mR2OI06",
+                                        785,
+                                        631,
+                                        1093,
+                                        682
+                                )
                         ),
-                        1000
+                        1426
                 );
 
         assertReconstructedTexts(
                 result,
-                "mR2138 fX4p",
-                "mR2 Ol06",
-                "mR2 lS7o"
+                "mR2138fX4ρ",
+                "mR2OI06"
         );
     }
 
     @Test
-    public void reconstructDoesNotAttachPartialReferenceToPreviousColumn() {
+    public void reconstructDoesNotMergeRowsThroughOtherColumns() {
         List<RecognizedTextLine> result =
                 reconstructor.reconstruct(
                         Arrays.asList(
-                                element("MR10001", 30, 100, 140, 130),
-                                element("MA20001", 280, 100, 390, 130),
-                                element("MD30001", 530, 100, 640, 130),
-                                element("MR40001", 780, 100, 890, 130),
-                                element("MR10002", 35, 170, 145, 200),
-                                element("MA20002", 285, 170, 395, 200),
-                                element("MD30002", 535, 170, 645, 200),
-                                element("MR40002", 785, 170, 895, 200),
-                                element("MR10003", 40, 240, 150, 270),
-                                element("MA20003", 290, 240, 400, 270),
-                                element("mR2", 540, 240, 600, 270),
-                                element("Ol06", 680, 242, 760, 272),
-                                element("MR40003", 790, 240, 900, 270)
+                                element("MRZISH", 1088, 473, 1357, 544),
+                                element("MR22319", 401, 499, 674, 555),
+                                element("MR21567", 794, 530, 1088, 598),
+                                element("MR22185", 83, 535, 382, 605),
+                                element("MR21569", 1079, 553, 1375, 624)
                         ),
-                        1000
+                        1426
                 );
 
         assertReconstructedTexts(
                 result,
-                "MR10001", "MR10002", "MR10003",
-                "MA20001", "MA20002", "MA20003",
-                "MD30001", "MD30002", "mR2 Ol06",
-                "MR40001", "MR40002", "MR40003"
+                "MRZISH",
+                "MR22319",
+                "MR21567",
+                "MR22185",
+                "MR21569"
+        );
+    }
+
+    @Test
+    public void reconstructSeparatesWideRegionsFromAdjacentColumns() {
+        List<RecognizedTextLine> result =
+                reconstructor.reconstruct(
+                        Arrays.asList(
+                                element("mA8T", 436, 187, 667, 223),
+                                element("MA319", 807, 197, 1075, 261),
+                                element("m0800", 811, 438, 1056, 505),
+                                element("MRZISH", 1088, 473, 1357, 544)
+                        ),
+                        1426
+                );
+
+        assertReconstructedTexts(
+                result,
+                "mA8T",
+                "MA319",
+                "m0800",
+                "MRZISH"
         );
     }
 

@@ -1,5 +1,9 @@
 package com.rndymi.almacentracker.domain.reference;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public final class DocumentQuantityNormalizer {
 
     private static final int MAXIMUM_LENGTH = 9;
@@ -7,20 +11,60 @@ public final class DocumentQuantityNormalizer {
     public Integer normalize(
             String observedValue
     ) {
-        if (observedValue == null) {
-            return null;
+        String digits = normalizedDigits(observedValue);
+
+        return parsePositive(digits);
+    }
+
+    public List<Integer> suggestZeroSixAlternatives(
+            String observedValue
+    ) {
+        String compact = compact(observedValue);
+        String digits = normalizedDigits(observedValue);
+
+        if (compact == null || digits == null) {
+            return Collections.emptyList();
         }
 
-        String compact =
-                observedValue
-                        .replaceAll(
-                                "[\\p{Z}\\s]+",
-                                ""
-                        )
-                        .toUpperCase();
+        Integer observedQuantity = parsePositive(digits);
+        List<Integer> suggestions = new ArrayList<>();
 
-        if (compact.isEmpty()
-                || compact.length() > MAXIMUM_LENGTH) {
+        for (int index = 0; index < digits.length(); index++) {
+            char observedCharacter = compact.charAt(index);
+
+            if (observedCharacter != '0'
+                    && observedCharacter != '6') {
+                continue;
+            }
+
+            char current = digits.charAt(index);
+
+            StringBuilder alternative = new StringBuilder(digits);
+            alternative.setCharAt(
+                    index,
+                    current == '0' ? '6' : '0'
+            );
+
+            Integer quantity = parsePositive(alternative.toString());
+
+            if (quantity != null
+                    && !quantity.equals(observedQuantity)
+                    && !suggestions.contains(quantity)) {
+                suggestions.add(quantity);
+            }
+        }
+
+        return suggestions.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(suggestions);
+    }
+
+    private String normalizedDigits(
+            String observedValue
+    ) {
+        String compact = compact(observedValue);
+
+        if (compact == null) {
             return null;
         }
 
@@ -45,10 +89,37 @@ public final class DocumentQuantityNormalizer {
             digits.append(normalizedDigit);
         }
 
+        return digits.toString();
+    }
+
+    private String compact(String observedValue) {
+        if (observedValue == null) {
+            return null;
+        }
+
+        String compact =
+                observedValue
+                        .replaceAll(
+                                "[\\p{Z}\\s]+",
+                                ""
+                        )
+                        .toUpperCase();
+
+        return compact.isEmpty()
+                || compact.length() > MAXIMUM_LENGTH
+                ? null
+                : compact;
+    }
+
+    private Integer parsePositive(String digits) {
+        if (digits == null || digits.isEmpty()) {
+            return null;
+        }
+
         try {
             int quantity =
                     Integer.parseInt(
-                            digits.toString()
+                            digits
                     );
 
             return quantity > 0

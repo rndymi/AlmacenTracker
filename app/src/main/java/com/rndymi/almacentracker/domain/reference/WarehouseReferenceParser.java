@@ -253,6 +253,58 @@ public final class WarehouseReferenceParser {
                 );
     }
 
+    public List<WarehouseReference> suggestZeroSixAlternatives(
+            WarehouseReference observed,
+            List<WarehouseReference> knownReferences,
+            int maximumSuggestions
+    ) {
+        if (observed == null
+                || knownReferences == null
+                || knownReferences.isEmpty()
+                || maximumSuggestions <= 0) {
+            return Collections.emptyList();
+        }
+
+        List<WarehouseReference> suggestions = new ArrayList<>();
+
+        for (WarehouseReference known : knownReferences) {
+            if (known == null) {
+                continue;
+            }
+
+            WarehouseReference normalizedKnown =
+                    parseInput(
+                            known.getCategory(),
+                            known.getCode()
+                    );
+
+            if (normalizedKnown != null
+                    && isZeroSixAlternative(
+                    observed,
+                    normalizedKnown
+            )
+                    && !suggestions.contains(normalizedKnown)) {
+                suggestions.add(normalizedKnown);
+            }
+        }
+
+        suggestions.sort(
+                Comparator.comparing(
+                        WarehouseReference::displayValue
+                )
+        );
+
+        if (suggestions.size() > maximumSuggestions) {
+            suggestions = new ArrayList<>(
+                    suggestions.subList(0, maximumSuggestions)
+            );
+        }
+
+        return suggestions.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(suggestions);
+    }
+
     private List<WarehouseReferenceMatch> extractOcrCandidates(
             int lineIndex,
             String searchableSource,
@@ -826,12 +878,64 @@ public final class WarehouseReferenceParser {
         if ((observed == '1'
                 && expected == '7')
                 || (observed == '9'
-                && expected == '7')) {
+                && expected == '7')
+                || (observed == '0'
+                && expected == '6')
+                || (observed == '6'
+                && expected == '0')) {
             return 3;
         }
 
 
         return -1;
+    }
+
+    private boolean isZeroSixAlternative(
+            WarehouseReference observed,
+            WarehouseReference expected
+    ) {
+        if (!observed.getCategory().equals(expected.getCategory())) {
+            return false;
+        }
+
+        CodeParts observedParts = codeParts(observed.getCode());
+        CodeParts expectedParts = codeParts(expected.getCode());
+
+        if (!normalizeOcrSuffix(observedParts.suffix)
+                .equals(normalizeOcrSuffix(expectedParts.suffix))
+                || observedParts.numeric.length()
+                != expectedParts.numeric.length()) {
+            return false;
+        }
+
+        boolean differs = false;
+
+        for (int index = 0;
+             index < observedParts.numeric.length();
+             index++) {
+            char observedCharacter =
+                    observedParts.numeric.charAt(index);
+            char expectedCharacter =
+                    expectedParts.numeric.charAt(index);
+
+            if (observedCharacter == expectedCharacter) {
+                continue;
+            }
+
+            boolean zeroSixPair =
+                    (observedCharacter == '0'
+                            && expectedCharacter == '6')
+                            || (observedCharacter == '6'
+                            && expectedCharacter == '0');
+
+            if (!zeroSixPair) {
+                return false;
+            }
+
+            differs = true;
+        }
+
+        return differs;
     }
 
     private int suffixSuggestionScore(

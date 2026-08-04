@@ -38,6 +38,11 @@ public final class ReferenceListReviewAdapter
                 ReferenceProposal proposal,
                 WarehouseReference suggestion
         );
+
+        void onQuantitySuggestion(
+                ReferenceProposal proposal,
+                int quantity
+        );
     }
 
     private final Listener listener;
@@ -154,6 +159,7 @@ public final class ReferenceListReviewAdapter
             }
 
             bindSuggestions(proposal);
+            bindQuantitySuggestions(proposal);
 
             binding.editReferenceButton
                     .setContentDescription(
@@ -326,6 +332,79 @@ public final class ReferenceListReviewAdapter
                 binding.suggestionsGroup.addView(chip);
             }
         }
+
+        private void bindQuantitySuggestions(
+                ReferenceProposal proposal
+        ) {
+            Integer observedQuantity =
+                    proposal.getDocumentData().getQuantity();
+            List<Integer> suggestions =
+                    proposal.getDocumentData()
+                            .getQuantitySuggestions();
+            boolean hasSuggestions =
+                    !suggestions.isEmpty();
+
+            binding.quantitySuggestionsTitle.setVisibility(
+                    hasSuggestions ? View.VISIBLE : View.GONE
+            );
+            binding.quantitySuggestionsGroup.setVisibility(
+                    hasSuggestions ? View.VISIBLE : View.GONE
+            );
+            binding.quantitySuggestionsGroup.removeAllViews();
+
+            if (!hasSuggestions) {
+                return;
+            }
+
+            if (observedQuantity == null) {
+                binding.quantitySuggestionsTitle.setText(
+                        R.string
+                                .reference_list_review_quantity_unknown_title
+                );
+            } else {
+                binding.quantitySuggestionsTitle.setText(
+                        itemView.getContext().getString(
+                                R.string
+                                        .reference_list_review_quantity_suggestions_title,
+                                observedQuantity
+                        )
+                );
+            }
+
+            if (observedQuantity != null) {
+                addQuantitySuggestionChip(proposal, observedQuantity);
+            }
+
+            for (Integer suggestion : suggestions) {
+                addQuantitySuggestionChip(proposal, suggestion);
+            }
+        }
+
+        private void addQuantitySuggestionChip(
+                ReferenceProposal proposal,
+                int quantity
+        ) {
+            Chip chip = new Chip(itemView.getContext());
+
+            chip.setText(String.valueOf(quantity));
+            chip.setCheckable(false);
+            chip.setClickable(true);
+            chip.setContentDescription(
+                    itemView.getContext().getString(
+                            R.string
+                                    .reference_list_review_quantity_suggestion_description,
+                            quantity
+                    )
+            );
+            chip.setOnClickListener(
+                    ignored -> listener.onQuantitySuggestion(
+                            proposal,
+                            quantity
+                    )
+            );
+
+            binding.quantitySuggestionsGroup.addView(chip);
+        }
     }
 
     private static final DiffUtil
@@ -368,6 +447,20 @@ public final class ReferenceListReviewAdapter
                             && oldItem.getSuggestions()
                             .equals(
                                     newItem.getSuggestions()
+                            )
+                            && Objects.equals(
+                            oldItem.getDocumentData().getQuantity(),
+                            newItem.getDocumentData().getQuantity()
+                    )
+                            && Objects.equals(
+                            oldItem.getDocumentData().getUnit(),
+                            newItem.getDocumentData().getUnit()
+                    )
+                            && oldItem.getDocumentData()
+                            .getQuantitySuggestions()
+                            .equals(
+                                    newItem.getDocumentData()
+                                            .getQuantitySuggestions()
                             );
                 }
             };

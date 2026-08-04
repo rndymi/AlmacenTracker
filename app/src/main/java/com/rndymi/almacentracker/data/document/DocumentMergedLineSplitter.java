@@ -112,6 +112,10 @@ final class DocumentMergedLineSplitter {
             return true;
         }
 
+        if (Character.toUpperCase(first) != 'M') {
+            return false;
+        }
+
         char previous = text.charAt(index - 1);
 
         boolean followsCode =

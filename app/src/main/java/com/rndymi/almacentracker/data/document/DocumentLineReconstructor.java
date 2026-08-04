@@ -14,6 +14,7 @@ public final class DocumentLineReconstructor {
     private static final float MAXIMUM_CENTER_DISTANCE_FACTOR = 0.65f;
     private static final float MINIMUM_ROW_SPLIT_GAP_FACTOR = 0.055f;
     private static final float CHARACTER_GAP_SPLIT_FACTOR = 3.0f;
+    private static final float MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR = 0.12f;
 
     private final DocumentColumnDetector columnDetector;
     private final DocumentMergedLineSplitter mergedLineSplitter;
@@ -249,6 +250,12 @@ public final class DocumentLineReconstructor {
                 Float.NEGATIVE_INFINITY;
 
         for (SpatialRow row : rows) {
+            if (row.hasOverlappingElementInDifferentBand(
+                    element
+            )) {
+                continue;
+            }
+
             float overlap =
                     verticalOverlapRatio(
                             row,
@@ -395,6 +402,39 @@ public final class DocumentLineReconstructor {
                     );
         }
 
+        private boolean hasOverlappingElementInDifferentBand(
+                RecognizedTextElement candidate
+        ) {
+            for (RecognizedTextElement current : elements) {
+                int horizontalOverlap =
+                        Math.min(
+                                current.getRight(),
+                                candidate.getRight()
+                        )
+                                - Math.max(
+                                current.getLeft(),
+                                candidate.getLeft()
+                        );
+
+                int verticalOverlap =
+                        Math.min(
+                                current.getBottom(),
+                                candidate.getBottom()
+                        )
+                                - Math.max(
+                                current.getTop(),
+                                candidate.getTop()
+                        );
+
+                if (horizontalOverlap > 0
+                        && verticalOverlap <= 0) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private List<SpatialRow> splitByLargeGaps(
                 int documentWidth
         ) {
@@ -477,18 +517,32 @@ public final class DocumentLineReconstructor {
                                 && horizontalGap
                                 >= splitThreshold;
 
-                boolean continuesCurrentReference =
-                        hasLargeHorizontalGap
-                                && continuesReference(
+                boolean changesVerticalBand =
+                        previous != null
+                                && verticalOverlapRatio(
+                                previous,
+                                element
+                        ) < MINIMUM_VERTICAL_OVERLAP;
+
+                boolean separatesWideRegions =
+                        previous != null
+                                && documentWidth > 0
+                                && horizontalGap >= 0
+                                && !continuesCategoryAndCode(
                                 current,
                                 element
-                        );
+                        )
+                                && previous.getWidth()
+                                >= documentWidth
+                                * MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR
+                                && element.getWidth()
+                                >= documentWidth
+                                * MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR;
 
                 if (beginsSecondReference
-                        || (
-                        hasLargeHorizontalGap
-                                && !continuesCurrentReference
-                )) {
+                        || hasLargeHorizontalGap
+                        || changesVerticalBand
+                        || separatesWideRegions) {
 
                     if (!current.elements.isEmpty()) {
                         result.add(current);
@@ -517,49 +571,56 @@ public final class DocumentLineReconstructor {
             return result;
         }
 
-        private boolean continuesReference(
+        private boolean continuesCategoryAndCode(
                 SpatialRow current,
                 RecognizedTextElement next
         ) {
-            if (current.elements.isEmpty()) {
+            if (current.elements.size() != 1) {
                 return false;
             }
 
-            String currentText =
+            String category =
                     compactAlphanumericText(
-                            current.rawText()
+                            current.elements.get(0)
+                                    .getRawText()
                     );
 
-            String nextText =
+            String code =
                     compactAlphanumericText(
                             next.getRawText()
                     );
 
-            if (currentText.isEmpty()
-                    || nextText.isEmpty()
-                    || looksLikeCombinedReference(nextText)
-                    || looksLikeObservedReferencePrefix(
-                    nextText
-            )) {
-                return false;
-            }
-
-            return looksLikeCombinedReference(
-                    currentText + nextText
-            );
+            return looksLikeObservedCategory(category)
+                    && looksLikeObservedCode(code);
         }
 
-        private boolean looksLikeObservedReferencePrefix(
-                String value
+        private float verticalOverlapRatio(
+                RecognizedTextElement first,
+                RecognizedTextElement second
         ) {
-            return value.length() >= 3
-                    && Character.toUpperCase(
-                    value.charAt(0)
-            ) == 'M'
-                    && Character.isLetterOrDigit(
-                    value.charAt(1)
-            )
-                    && containsDigitFrom(value, 2);
+            int overlap =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    first.getBottom(),
+                                    second.getBottom()
+                            )
+                                    - Math.max(
+                                    first.getTop(),
+                                    second.getTop()
+                            )
+                    );
+
+            int minimumHeight =
+                    Math.max(
+                            1,
+                            Math.min(
+                                    first.getHeight(),
+                                    second.getHeight()
+                            )
+                    );
+
+            return overlap / (float) minimumHeight;
         }
 
         private boolean beginsReferenceAt(
@@ -576,8 +637,6 @@ public final class DocumentLineReconstructor {
                     );
 
             if (looksLikeCombinedReference(
-                    currentText
-            ) || looksLikeObservedReferencePrefix(
                     currentText
             )) {
                 return true;

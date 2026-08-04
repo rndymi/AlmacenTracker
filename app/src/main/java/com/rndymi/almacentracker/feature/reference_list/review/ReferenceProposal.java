@@ -171,7 +171,8 @@ public final class ReferenceProposal {
     }
 
     public boolean requiresCorrection() {
-        return matchStatus
+        return documentData.hasQuantityAmbiguity()
+                || matchStatus
                 == MatchStatus.UNIQUE_SUGGESTION
                 || matchStatus
                 == MatchStatus.AMBIGUOUS
@@ -200,7 +201,8 @@ public final class ReferenceProposal {
                         documentData.getQuantity(),
                         documentData.getUnit(),
                         documentData.getSourceLineIndex(),
-                        documentData.getSourceText()
+                        documentData.getSourceText(),
+                        documentData.getQuantitySuggestions()
                 );
 
         return new ReferenceProposal(
@@ -210,6 +212,29 @@ public final class ReferenceProposal {
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
                 Collections.emptyList(),
+                updatedDocumentData
+        );
+    }
+
+    public ReferenceProposal withQuantity(
+            int quantity
+    ) {
+        DocumentReferenceData updatedDocumentData =
+                new DocumentReferenceData(
+                        reference,
+                        quantity,
+                        documentData.getUnit(),
+                        documentData.getSourceLineIndex(),
+                        documentData.getSourceText()
+                );
+
+        return new ReferenceProposal(
+                id,
+                reference,
+                sourceRawText,
+                manuallyAdded,
+                matchStatus,
+                suggestions,
                 updatedDocumentData
         );
     }

@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+
 public final class DocumentQuantityNormalizerTest {
 
     private final DocumentQuantityNormalizer normalizer =
@@ -68,6 +70,27 @@ public final class DocumentQuantityNormalizerTest {
 
         assertNull(
                 normalizer.normalize("0")
+        );
+    }
+
+    @Test
+    public void suggestZeroSixAlternativesChangesOnePositionAtATime() {
+        assertEquals(
+                Arrays.asList(66),
+                normalizer.suggestZeroSixAlternatives("60")
+        );
+
+        assertEquals(
+                Arrays.asList(16),
+                normalizer.suggestZeroSixAlternatives("10")
+        );
+    }
+
+    @Test
+    public void suggestZeroSixAlternativesRequiresObservedDigit() {
+        assertEquals(
+                Arrays.asList(),
+                normalizer.suggestZeroSixAlternatives("GO")
         );
     }
 }
