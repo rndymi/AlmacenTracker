@@ -16,44 +16,10 @@ public final class DocumentLineReconstructor {
     private static final float CHARACTER_GAP_SPLIT_FACTOR = 3.0f;
     private static final float MINIMUM_COLUMN_ENTRY_WIDTH_FACTOR = 0.12f;
 
-    private final DocumentColumnDetector columnDetector;
-    private final DocumentMergedLineSplitter mergedLineSplitter;
-
-    public DocumentLineReconstructor() {
-        this(
-                new DocumentColumnDetector(),
-                new DocumentMergedLineSplitter()
-        );
-    }
-
-    public DocumentLineReconstructor(
-            DocumentColumnDetector columnDetector
-    ) {
-        this(
-                columnDetector,
-                new DocumentMergedLineSplitter()
-        );
-    }
-
-    DocumentLineReconstructor(
-            DocumentColumnDetector columnDetector,
-            DocumentMergedLineSplitter mergedLineSplitter
-    ) {
-        if (columnDetector == null) {
-            throw new IllegalArgumentException(
-                    "columnDetector cannot be null"
-            );
-        }
-
-        if (mergedLineSplitter == null) {
-            throw new IllegalArgumentException(
-                    "mergedLineSplitter cannot be null"
-            );
-        }
-
-        this.columnDetector = columnDetector;
-        this.mergedLineSplitter = mergedLineSplitter;
-    }
+    private final DocumentColumnDetector columnDetector =
+            new DocumentColumnDetector();
+    private final DocumentMergedLineSplitter mergedLineSplitter =
+            new DocumentMergedLineSplitter();
 
     public List<RecognizedTextLine> reconstruct(
             List<RecognizedTextElement> sourceElements

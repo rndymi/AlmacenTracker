@@ -91,16 +91,8 @@ public final class DocumentReferenceData {
         return sourceText;
     }
 
-    public boolean hasQuantityProposal() {
-        return quantity != null;
-    }
-
     public boolean hasQuantityAmbiguity() {
         return !quantitySuggestions.isEmpty();
-    }
-
-    public boolean hasUnitProposal() {
-        return unit != null;
     }
 
     private static String normalizeOptional(

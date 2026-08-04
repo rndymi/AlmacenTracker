@@ -42,8 +42,7 @@ public final class ScannerActivity
     public static final String EXTRA_SCANNED_FORMAT =
             "extra_scanned_format";
 
-    private static final String TAG =
-            "ScannerActivity";
+    private static final String TAG = "ScannerActivity";
 
     private ActivityScannerBinding binding;
     private ScannerViewModel viewModel;
