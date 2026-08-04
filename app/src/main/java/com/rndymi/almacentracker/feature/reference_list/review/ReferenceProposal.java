@@ -2,6 +2,7 @@ package com.rndymi.almacentracker.feature.reference_list.review;
 
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceSuggestion;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,10 +22,12 @@ public final class ReferenceProposal {
 
     private final long id;
     private final WarehouseReference reference;
+    private final WarehouseReference observedReference;
     private final String sourceRawText;
     private final boolean manuallyAdded;
     private final MatchStatus matchStatus;
     private final List<WarehouseReference> suggestions;
+    private final List<WarehouseReferenceSuggestion> contextualSuggestions;
     private final DocumentReferenceData documentData;
 
     public ReferenceProposal(
@@ -36,9 +39,11 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 null
         );
@@ -54,11 +59,13 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 requiresCorrection
                         ? MatchStatus.NO_MATCH
                         : MatchStatus.EXACT,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 null
         );
@@ -75,12 +82,14 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 requiresCorrection
                         ? statusForSuggestions(suggestions)
                         : MatchStatus.EXACT,
                 suggestions,
+                Collections.emptyList(),
                 null
         );
     }
@@ -96,10 +105,12 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 matchStatus,
                 suggestions,
+                Collections.emptyList(),
                 null
         );
     }
@@ -113,6 +124,30 @@ public final class ReferenceProposal {
             List<WarehouseReference> suggestions,
             DocumentReferenceData documentData
     ) {
+        this(
+                id,
+                reference,
+                reference,
+                sourceRawText,
+                manuallyAdded,
+                matchStatus,
+                suggestions,
+                Collections.emptyList(),
+                documentData
+        );
+    }
+
+    public ReferenceProposal(
+            long id,
+            WarehouseReference reference,
+            WarehouseReference observedReference,
+            String sourceRawText,
+            boolean manuallyAdded,
+            MatchStatus matchStatus,
+            List<WarehouseReference> suggestions,
+            List<WarehouseReferenceSuggestion> contextualSuggestions,
+            DocumentReferenceData documentData
+    ) {
         this.id = id;
 
         this.reference =
@@ -120,6 +155,11 @@ public final class ReferenceProposal {
                         reference,
                         "reference"
                 );
+
+        this.observedReference =
+                observedReference == null
+                        ? reference
+                        : observedReference;
 
         this.sourceRawText =
                 sourceRawText;
@@ -142,6 +182,15 @@ public final class ReferenceProposal {
                         )
                 );
 
+        this.contextualSuggestions =
+                Collections.unmodifiableList(
+                        new ArrayList<>(
+                                contextualSuggestions == null
+                                        ? Collections.emptyList()
+                                        : contextualSuggestions
+                        )
+                );
+
         this.documentData =
                 documentData == null
                         ? new DocumentReferenceData(
@@ -160,6 +209,10 @@ public final class ReferenceProposal {
 
     public WarehouseReference getReference() {
         return reference;
+    }
+
+    public WarehouseReference getObservedReference() {
+        return observedReference;
     }
 
     public String getSourceRawText() {
@@ -188,6 +241,11 @@ public final class ReferenceProposal {
         return suggestions;
     }
 
+    public List<WarehouseReferenceSuggestion>
+    getContextualSuggestions() {
+        return contextualSuggestions;
+    }
+
     public DocumentReferenceData getDocumentData() {
         return documentData;
     }
@@ -208,10 +266,12 @@ public final class ReferenceProposal {
         return new ReferenceProposal(
                 id,
                 newReference,
+                observedReference,
                 sourceRawText,
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
                 Collections.emptyList(),
+                contextualSuggestions,
                 updatedDocumentData
         );
     }
@@ -231,10 +291,12 @@ public final class ReferenceProposal {
         return new ReferenceProposal(
                 id,
                 reference,
+                observedReference,
                 sourceRawText,
                 manuallyAdded,
                 matchStatus,
                 suggestions,
+                contextualSuggestions,
                 updatedDocumentData
         );
     }
