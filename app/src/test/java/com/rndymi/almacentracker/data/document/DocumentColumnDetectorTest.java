@@ -234,7 +234,7 @@ public final class DocumentColumnDetectorTest {
     }
 
     @Test
-    public void orderByColumnsPreservesGlobalLineBetweenBlocks() {
+    public void orderByColumnsAppendsUnassignedWideLineAfterColumns() {
         List<RecognizedTextLine> result =
                 detector.orderByColumns(
                         Arrays.asList(
@@ -318,13 +318,13 @@ public final class DocumentColumnDetectorTest {
                 result,
                 "A1",
                 "A2",
-                "B1",
-                "B2",
-                "SEGUNDO BLOQUE",
                 "C1",
                 "C2",
+                "B1",
+                "B2",
                 "D1",
-                "D2"
+                "D2",
+                "SEGUNDO BLOQUE"
         );
     }
 
@@ -474,13 +474,13 @@ public final class DocumentColumnDetectorTest {
 
         assertTexts(
                 result,
+                "AKGPORTOmA988",
                 "MR1318",
                 "MR9280",
                 "MA1319",
                 "MA763",
                 "MR22140",
-                "MR22143",
-                "AKGPORTOmA988"
+                "MR22143"
         );
     }
 
