@@ -12,6 +12,7 @@ public final class DocumentUnitNormalizer {
             Collections.unmodifiableSet(
                     new HashSet<>(
                             Arrays.asList(
+                                    "P",
                                     "PCS",
                                     "PQT",
                                     "PQTS",
