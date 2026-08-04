@@ -1,5 +1,6 @@
 package com.rndymi.almacentracker.domain.reference;
 
+import java.util.Collections;
 import java.util.Locale;
 import java.util.List;
 import java.util.Objects;
@@ -25,17 +26,41 @@ public final class DocumentReferenceDataParser {
 
     private final DocumentUnitNormalizer unitNormalizer;
     private final DocumentQuantityNormalizer quantityNormalizer;
+    private final DocumentDestinationParser destinationParser;
 
     public DocumentReferenceDataParser() {
         this(
                 new DocumentQuantityNormalizer(),
-                new DocumentUnitNormalizer()
+                new DocumentUnitNormalizer(),
+                new DocumentDestinationParser()
         );
     }
 
     public DocumentReferenceDataParser(
             DocumentQuantityNormalizer quantityNormalizer,
             DocumentUnitNormalizer unitNormalizer
+    ) {
+        this(
+                quantityNormalizer,
+                unitNormalizer,
+                new DocumentDestinationParser()
+        );
+    }
+
+    public DocumentReferenceDataParser(
+            DocumentUnitNormalizer unitNormalizer
+    ) {
+        this(
+                new DocumentQuantityNormalizer(),
+                unitNormalizer,
+                new DocumentDestinationParser()
+        );
+    }
+
+    DocumentReferenceDataParser(
+            DocumentQuantityNormalizer quantityNormalizer,
+            DocumentUnitNormalizer unitNormalizer,
+            DocumentDestinationParser destinationParser
     ) {
         this.quantityNormalizer =
                 Objects.requireNonNull(
@@ -48,15 +73,12 @@ public final class DocumentReferenceDataParser {
                         unitNormalizer,
                         "unitNormalizer"
                 );
-    }
 
-    public DocumentReferenceDataParser(
-            DocumentUnitNormalizer unitNormalizer
-    ) {
-        this(
-                new DocumentQuantityNormalizer(),
-                unitNormalizer
-        );
+        this.destinationParser =
+                Objects.requireNonNull(
+                        destinationParser,
+                        "destinationParser"
+                );
     }
 
     public DocumentReferenceData parse(
@@ -159,13 +181,20 @@ public final class DocumentReferenceDataParser {
             return withoutProposal(match);
         }
 
+        List<String> destinations =
+                destinationParser.parse(
+                        match.getSourceRawText()
+                );
+
         return new DocumentReferenceData(
                 match.getReference(),
+                match.getObservedReference(),
                 quantity,
                 unit,
                 match.getSourceLineIndex(),
                 match.getSourceRawText(),
-                quantitySuggestions
+                quantitySuggestions,
+                destinations
         );
     }
 
@@ -256,10 +285,15 @@ public final class DocumentReferenceDataParser {
     ) {
         return new DocumentReferenceData(
                 match.getReference(),
+                match.getObservedReference(),
                 null,
                 null,
                 match.getSourceLineIndex(),
-                match.getSourceRawText()
+                match.getSourceRawText(),
+                Collections.emptyList(),
+                destinationParser.parse(
+                        match.getSourceRawText()
+                )
         );
     }
 }
