@@ -10,8 +10,15 @@ import java.util.List;
 public final class DocumentColumnDetector {
 
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
+    private static final int MINIMUM_COLUMN_COUNT = 2;
 
-    private static final float MINIMUM_COLUMN_GAP_FACTOR = 0.16f;
+    private static final float GLOBAL_LINE_WIDTH_FACTOR = 0.62f;
+
+    private static final float MINIMUM_COLUMN_GAP_FACTOR = 0.055f;
+    private static final float MINIMUM_WIDTH_BASED_GAP_FACTOR = 0.45f;
+
+    private static final float MAXIMUM_COLUMN_CENTER_SPREAD_FACTOR = 0.14f;
+    private static final float MAXIMUM_COLUMN_OVERLAP_FACTOR = 0.20f;
 
     public List<RecognizedTextLine> orderByColumns(
             List<RecognizedTextLine> sourceLines,
@@ -22,142 +29,375 @@ public final class DocumentColumnDetector {
             return Collections.emptyList();
         }
 
-        List<RecognizedTextLine> lines =
+        List<RecognizedTextLine> verticallyOrdered =
                 new ArrayList<>(sourceLines);
 
+        sortVertically(verticallyOrdered);
+
         if (documentWidth <= 0
-                || lines.size() < 4) {
-            sortVertically(lines);
-            return lines;
-        }
-
-        ColumnDivision division =
-                detectDivision(
-                        lines,
-                        documentWidth
-                );
-
-        if (division == null) {
-            sortVertically(lines);
-            return lines;
-        }
-
-        List<RecognizedTextLine> leftColumn =
-                new ArrayList<>();
-
-        List<RecognizedTextLine> rightColumn =
-                new ArrayList<>();
-
-        for (RecognizedTextLine line : lines) {
-            if (!line.hasBoundingBox()) {
-                leftColumn.add(line);
-                continue;
-            }
-
-            float centerX =
-                    (
-                            line.getLeft()
-                                    + line.getRight()
-                    ) / 2.0f;
-
-            if (centerX <= division.splitX) {
-                leftColumn.add(line);
-            } else {
-                rightColumn.add(line);
-            }
-        }
-
-        if (leftColumn.size()
+                || verticallyOrdered.size()
                 < MINIMUM_LINES_PER_COLUMN
-                || rightColumn.size()
-                < MINIMUM_LINES_PER_COLUMN) {
-            sortVertically(lines);
-            return lines;
+                * MINIMUM_COLUMN_COUNT) {
+            return verticallyOrdered;
         }
-
-        sortVertically(leftColumn);
-        sortVertically(rightColumn);
 
         List<RecognizedTextLine> ordered =
                 new ArrayList<>(
-                        leftColumn.size()
-                                + rightColumn.size()
+                        verticallyOrdered.size()
                 );
 
-        ordered.addAll(leftColumn);
-        ordered.addAll(rightColumn);
+        List<RecognizedTextLine> currentSegment =
+                new ArrayList<>();
+
+        for (RecognizedTextLine line
+                : verticallyOrdered) {
+
+            if (isGlobalLine(
+                    line,
+                    documentWidth
+            )) {
+                appendOrderedSegment(
+                        ordered,
+                        currentSegment,
+                        documentWidth
+                );
+
+                currentSegment.clear();
+
+                ordered.add(line);
+            } else {
+                currentSegment.add(line);
+            }
+        }
+
+        appendOrderedSegment(
+                ordered,
+                currentSegment,
+                documentWidth
+        );
 
         return ordered;
     }
 
-    private ColumnDivision detectDivision(
-            List<RecognizedTextLine> lines,
+    private void appendOrderedSegment(
+            List<RecognizedTextLine> destination,
+            List<RecognizedTextLine> segment,
             int documentWidth
     ) {
-        List<Float> centers =
+        if (segment.isEmpty()) {
+            return;
+        }
+
+        ColumnLayout layout =
+                detectLayout(
+                        segment,
+                        documentWidth
+                );
+
+        if (layout == null) {
+            List<RecognizedTextLine> fallback =
+                    new ArrayList<>(segment);
+
+            sortVertically(fallback);
+
+            destination.addAll(fallback);
+
+            return;
+        }
+
+        for (DocumentColumn column
+                : layout.columns) {
+            destination.addAll(
+                    column.lines
+            );
+        }
+    }
+
+    private ColumnLayout detectLayout(
+            List<RecognizedTextLine> segment,
+            int documentWidth
+    ) {
+        List<RecognizedTextLine> candidates =
                 new ArrayList<>();
 
-        for (RecognizedTextLine line : lines) {
-            if (!line.hasBoundingBox()) {
+        for (RecognizedTextLine line : segment) {
+            if (isColumnCandidate(
+                    line,
+                    documentWidth
+            )) {
+                candidates.add(line);
+            }
+        }
+
+        if (candidates.size()
+                < MINIMUM_LINES_PER_COLUMN
+                * MINIMUM_COLUMN_COUNT) {
+            return null;
+        }
+
+        candidates.sort(
+                Comparator.comparingDouble(
+                        this::centerX
+                )
+        );
+
+        float medianWidth =
+                medianWidth(candidates);
+
+        float minimumGap =
+                Math.max(
+                        documentWidth
+                                * MINIMUM_COLUMN_GAP_FACTOR,
+                        medianWidth
+                                * MINIMUM_WIDTH_BASED_GAP_FACTOR
+                );
+
+        List<DocumentColumn> columns =
+                buildColumns(
+                        candidates,
+                        minimumGap
+                );
+
+        if (columns.size()
+                < MINIMUM_COLUMN_COUNT
+                || !hasValidColumns(
+                columns,
+                documentWidth
+        )) {
+            return null;
+        }
+
+        for (RecognizedTextLine line : segment) {
+            if (candidates.contains(line)) {
                 continue;
             }
 
-            centers.add(
-                    (
-                            line.getLeft()
-                                    + line.getRight()
-                    ) / 2.0f
-            );
+            DocumentColumn nearest =
+                    findNearestColumn(
+                            line,
+                            columns
+                    );
+
+            if (nearest == null) {
+                return null;
+            }
+
+            nearest.lines.add(line);
+            nearest.recalculateBounds();
         }
 
-        if (centers.size() < 4) {
-            return null;
+        columns.sort(
+                Comparator.comparingDouble(
+                        column ->
+                                column.centerX
+                )
+        );
+
+        for (DocumentColumn column : columns) {
+            sortVertically(column.lines);
         }
 
-        centers.sort(Float::compareTo);
+        return new ColumnLayout(columns);
+    }
 
-        float largestGap = 0.0f;
-        float splitX = 0.0f;
-        int splitIndex = -1;
+    private List<DocumentColumn> buildColumns(
+            List<RecognizedTextLine> candidates,
+            float minimumGap
+    ) {
+        List<DocumentColumn> columns =
+                new ArrayList<>();
 
-        for (int index = 0;
-             index < centers.size() - 1;
+        DocumentColumn current =
+                new DocumentColumn();
+
+        current.add(candidates.get(0));
+
+        for (int index = 1;
+             index < candidates.size();
              index++) {
 
-            float current =
-                    centers.get(index);
+            RecognizedTextLine previous =
+                    candidates.get(index - 1);
 
-            float next =
-                    centers.get(index + 1);
+            RecognizedTextLine currentLine =
+                    candidates.get(index);
 
-            float gap = next - current;
+            float centerGap =
+                    centerX(currentLine)
+                            - centerX(previous);
 
-            if (gap > largestGap) {
-                largestGap = gap;
-                splitX = current + gap / 2.0f;
-                splitIndex = index;
+            if (centerGap >= minimumGap) {
+                columns.add(current);
+
+                current =
+                        new DocumentColumn();
+            }
+
+            current.add(currentLine);
+        }
+
+        columns.add(current);
+
+        return columns;
+    }
+
+    private boolean hasValidColumns(
+            List<DocumentColumn> columns,
+            int documentWidth
+    ) {
+        for (DocumentColumn column : columns) {
+            if (column.lines.size()
+                    < MINIMUM_LINES_PER_COLUMN) {
+                return false;
+            }
+
+            if (column.centerSpread()
+                    > documentWidth
+                    * MAXIMUM_COLUMN_CENTER_SPREAD_FACTOR) {
+                return false;
             }
         }
 
-        float minimumGap =
-                documentWidth
-                        * MINIMUM_COLUMN_GAP_FACTOR;
+        columns.sort(
+                Comparator.comparingDouble(
+                        column ->
+                                column.centerX
+                )
+        );
 
-        if (largestGap < minimumGap) {
+        for (int index = 0;
+             index < columns.size() - 1;
+             index++) {
+
+            DocumentColumn left =
+                    columns.get(index);
+
+            DocumentColumn right =
+                    columns.get(index + 1);
+
+            int overlap =
+                    Math.max(
+                            0,
+                            left.right - right.left
+                    );
+
+            int narrowerWidth =
+                    Math.min(
+                            left.width(),
+                            right.width()
+                    );
+
+            if (narrowerWidth > 0
+                    && overlap
+                    > narrowerWidth
+                    * MAXIMUM_COLUMN_OVERLAP_FACTOR) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private DocumentColumn findNearestColumn(
+            RecognizedTextLine line,
+            List<DocumentColumn> columns
+    ) {
+        if (!line.hasBoundingBox()) {
             return null;
         }
 
-        int leftCount = splitIndex + 1;
-        int rightCount =
-                centers.size() - leftCount;
+        DocumentColumn nearest = null;
 
-        if (leftCount < MINIMUM_LINES_PER_COLUMN
-                || rightCount
-                < MINIMUM_LINES_PER_COLUMN) {
-            return null;
+        float nearestDistance =
+                Float.MAX_VALUE;
+
+        for (DocumentColumn column : columns) {
+            float distance =
+                    Math.abs(
+                            centerX(line)
+                                    - column.centerX
+                    );
+
+            if (distance < nearestDistance) {
+                nearest = column;
+                nearestDistance = distance;
+            }
         }
 
-        return new ColumnDivision(splitX);
+        return nearest;
+    }
+
+    private boolean isGlobalLine(
+            RecognizedTextLine line,
+            int documentWidth
+    ) {
+        if (!line.hasBoundingBox()) {
+            return false;
+        }
+
+        int width =
+                line.getRight()
+                        - line.getLeft();
+
+        return width >= documentWidth
+                * GLOBAL_LINE_WIDTH_FACTOR;
+    }
+
+    private boolean isColumnCandidate(
+            RecognizedTextLine line,
+            int documentWidth
+    ) {
+        if (!line.hasBoundingBox()
+                || line.getDisplayText()
+                .trim()
+                .isEmpty()) {
+            return false;
+        }
+
+        int width =
+                line.getRight()
+                        - line.getLeft();
+
+        return width > 0
+                && width < documentWidth
+                * GLOBAL_LINE_WIDTH_FACTOR;
+    }
+
+    private float medianWidth(
+            List<RecognizedTextLine> lines
+    ) {
+        List<Integer> widths =
+                new ArrayList<>();
+
+        for (RecognizedTextLine line : lines) {
+            widths.add(
+                    line.getRight()
+                            - line.getLeft()
+            );
+        }
+
+        widths.sort(Integer::compareTo);
+
+        int middle =
+                widths.size() / 2;
+
+        if (widths.size() % 2 == 0) {
+            return (
+                    widths.get(middle - 1)
+                            + widths.get(middle)
+            ) / 2.0f;
+        }
+
+        return widths.get(middle);
+    }
+
+    private float centerX(
+            RecognizedTextLine line
+    ) {
+        return (
+                line.getLeft()
+                        + line.getRight()
+        ) / 2.0f;
     }
 
     private void sortVertically(
@@ -166,7 +406,9 @@ public final class DocumentColumnDetector {
         lines.sort(
                 Comparator
                         .comparingInt(
-                                (RecognizedTextLine line) ->
+                                (
+                                        RecognizedTextLine line
+                                ) ->
                                         line.getTop() == null
                                                 ? Integer.MAX_VALUE
                                                 : line.getTop()
@@ -177,15 +419,127 @@ public final class DocumentColumnDetector {
                                                 ? Integer.MAX_VALUE
                                                 : line.getLeft()
                         )
+                        .thenComparingInt(
+                                RecognizedTextLine::getIndex
+                        )
         );
     }
 
-    private static final class ColumnDivision {
+    private static final class ColumnLayout {
 
-        private final float splitX;
+        private final List<DocumentColumn> columns;
 
-        private ColumnDivision(float splitX) {
-            this.splitX = splitX;
+        private ColumnLayout(
+                List<DocumentColumn> columns
+        ) {
+            this.columns = columns;
+        }
+    }
+
+    private static final class DocumentColumn {
+
+        private final List<RecognizedTextLine> lines =
+                new ArrayList<>();
+
+        private int left =
+                Integer.MAX_VALUE;
+
+        private int right =
+                Integer.MIN_VALUE;
+
+        private float centerX;
+
+        private float minimumCenter =
+                Float.MAX_VALUE;
+
+        private float maximumCenter =
+                -Float.MAX_VALUE;
+
+        private void add(
+                RecognizedTextLine line
+        ) {
+            lines.add(line);
+            recalculateBounds();
+        }
+
+        private void recalculateBounds() {
+            left = Integer.MAX_VALUE;
+            right = Integer.MIN_VALUE;
+
+            minimumCenter =
+                    Float.MAX_VALUE;
+
+            maximumCenter =
+                    -Float.MAX_VALUE;
+
+            float centerSum = 0.0f;
+
+            int boundedLineCount = 0;
+
+            for (RecognizedTextLine line
+                    : lines) {
+
+                if (!line.hasBoundingBox()) {
+                    continue;
+                }
+
+                left = Math.min(
+                        left,
+                        line.getLeft()
+                );
+
+                right = Math.max(
+                        right,
+                        line.getRight()
+                );
+
+                float lineCenter =
+                        (
+                                line.getLeft()
+                                        + line.getRight()
+                        ) / 2.0f;
+
+                minimumCenter =
+                        Math.min(
+                                minimumCenter,
+                                lineCenter
+                        );
+
+                maximumCenter =
+                        Math.max(
+                                maximumCenter,
+                                lineCenter
+                        );
+
+                centerSum += lineCenter;
+                boundedLineCount++;
+            }
+
+            centerX =
+                    boundedLineCount == 0
+                            ? 0.0f
+                            : centerSum
+                              / boundedLineCount;
+        }
+
+        private float centerSpread() {
+            if (minimumCenter
+                    == Float.MAX_VALUE) {
+                return 0.0f;
+            }
+
+            return maximumCenter
+                    - minimumCenter;
+        }
+
+        private int width() {
+            if (left == Integer.MAX_VALUE
+                    || right
+                    == Integer.MIN_VALUE) {
+                return 0;
+            }
+
+            return right - left;
         }
     }
 }
