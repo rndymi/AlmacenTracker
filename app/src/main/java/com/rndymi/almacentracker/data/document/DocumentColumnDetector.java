@@ -12,13 +12,33 @@ public final class DocumentColumnDetector {
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
     private static final int MINIMUM_COLUMN_COUNT = 2;
 
-    private static final float GLOBAL_LINE_WIDTH_FACTOR = 0.62f;
+    /*
+     * Las columnas se detectan principalmente mediante sus bordes izquierdos.
+     * En listas manuscritas, el ancho y el centro de cada texto pueden variar
+     * demasiado para utilizarlos como ancla principal.
+     */
+    private static final float MINIMUM_LEFT_GAP_DOCUMENT_FACTOR = 0.075f;
+    private static final float MINIMUM_LEFT_GAP_WIDTH_FACTOR = 0.70f;
 
-    private static final float MINIMUM_COLUMN_GAP_FACTOR = 0.055f;
-    private static final float MINIMUM_WIDTH_BASED_GAP_FACTOR = 0.45f;
+    /*
+     * Una línea excesivamente ancha no debe participar en la detección de
+     * columnas porque puede ser un título, una anotación o una región OCR
+     * que fusionó contenido de columnas adyacentes.
+     */
+    private static final float MAXIMUM_COLUMN_CANDIDATE_WIDTH_FACTOR = 0.32f;
 
-    private static final float MAXIMUM_COLUMN_CENTER_SPREAD_FACTOR = 0.14f;
-    private static final float MAXIMUM_COLUMN_OVERLAP_FACTOR = 0.20f;
+    /*
+     * Variación máxima admitida entre los bordes izquierdos de las líneas
+     * que forman una misma columna.
+     */
+    private static final float MAXIMUM_LEFT_SPREAD_FACTOR = 0.10f;
+
+    /*
+     * Distancia máxima para asignar una línea adicional a una columna ya
+     * detectada. Las líneas dudosas se conservan aparte y no contaminan el
+     * orden de las columnas.
+     */
+    private static final float MAXIMUM_ASSIGNMENT_DISTANCE_FACTOR = 0.13f;
 
     public List<RecognizedTextLine> orderByColumns(
             List<RecognizedTextLine> sourceLines,
@@ -29,98 +49,43 @@ public final class DocumentColumnDetector {
             return Collections.emptyList();
         }
 
-        List<RecognizedTextLine> verticallyOrdered =
+        List<RecognizedTextLine> verticalOrder =
                 new ArrayList<>(sourceLines);
 
-        sortVertically(verticallyOrdered);
+        sortVertically(verticalOrder);
 
         if (documentWidth <= 0
-                || verticallyOrdered.size()
+                || verticalOrder.size()
                 < MINIMUM_LINES_PER_COLUMN
                 * MINIMUM_COLUMN_COUNT) {
-            return verticallyOrdered;
-        }
-
-        List<RecognizedTextLine> ordered =
-                new ArrayList<>(
-                        verticallyOrdered.size()
-                );
-
-        List<RecognizedTextLine> currentSegment =
-                new ArrayList<>();
-
-        for (RecognizedTextLine line
-                : verticallyOrdered) {
-
-            if (isGlobalLine(
-                    line,
-                    documentWidth
-            )) {
-                appendOrderedSegment(
-                        ordered,
-                        currentSegment,
-                        documentWidth
-                );
-
-                currentSegment.clear();
-
-                ordered.add(line);
-            } else {
-                currentSegment.add(line);
-            }
-        }
-
-        appendOrderedSegment(
-                ordered,
-                currentSegment,
-                documentWidth
-        );
-
-        return ordered;
-    }
-
-    private void appendOrderedSegment(
-            List<RecognizedTextLine> destination,
-            List<RecognizedTextLine> segment,
-            int documentWidth
-    ) {
-        if (segment.isEmpty()) {
-            return;
+            return verticalOrder;
         }
 
         ColumnLayout layout =
-                detectLayout(
-                        segment,
+                detectColumnLayout(
+                        verticalOrder,
                         documentWidth
                 );
 
         if (layout == null) {
-            List<RecognizedTextLine> fallback =
-                    new ArrayList<>(segment);
-
-            sortVertically(fallback);
-
-            destination.addAll(fallback);
-
-            return;
+            return verticalOrder;
         }
 
-        for (DocumentColumn column
-                : layout.columns) {
-            destination.addAll(
-                    column.lines
-            );
-        }
+        return buildReadingOrder(
+                verticalOrder,
+                layout,
+                documentWidth
+        );
     }
 
-    private ColumnLayout detectLayout(
-            List<RecognizedTextLine> segment,
+    private ColumnLayout detectColumnLayout(
+            List<RecognizedTextLine> lines,
             int documentWidth
     ) {
         List<RecognizedTextLine> candidates =
                 new ArrayList<>();
 
-        for (RecognizedTextLine line : segment) {
+        for (RecognizedTextLine line : lines) {
             if (isColumnCandidate(
                     line,
                     documentWidth
@@ -136,189 +101,99 @@ public final class DocumentColumnDetector {
         }
 
         candidates.sort(
-                Comparator.comparingDouble(
-                        this::centerX
-                )
+                Comparator
+                        .comparingInt(
+                                RecognizedTextLine::getLeft
+                        )
+                        .thenComparingInt(
+                                RecognizedTextLine::getTop
+                        )
         );
 
         float medianWidth =
-                medianWidth(candidates);
+                calculateMedianWidth(candidates);
 
-        float minimumGap =
+        float minimumLeftGap =
                 Math.max(
                         documentWidth
-                                * MINIMUM_COLUMN_GAP_FACTOR,
+                                * MINIMUM_LEFT_GAP_DOCUMENT_FACTOR,
                         medianWidth
-                                * MINIMUM_WIDTH_BASED_GAP_FACTOR
+                                * MINIMUM_LEFT_GAP_WIDTH_FACTOR
                 );
 
         List<DocumentColumn> columns =
-                buildColumns(
+                createColumnGroups(
                         candidates,
-                        minimumGap
+                        minimumLeftGap
                 );
 
+        removeUnsupportedColumns(columns);
+
         if (columns.size()
-                < MINIMUM_COLUMN_COUNT
-                || !hasValidColumns(
+                < MINIMUM_COLUMN_COUNT) {
+            return null;
+        }
+
+        columns.sort(
+                Comparator.comparingDouble(
+                        DocumentColumn::getAnchorLeft
+                )
+        );
+
+        if (!hasStableSeparation(
                 columns,
                 documentWidth
         )) {
             return null;
         }
 
-        for (RecognizedTextLine line : segment) {
-            if (candidates.contains(line)) {
-                continue;
-            }
-
-            DocumentColumn nearest =
-                    findNearestColumn(
-                            line,
-                            columns
-                    );
-
-            if (nearest == null) {
-                return null;
-            }
-
-            nearest.lines.add(line);
-            nearest.recalculateBounds();
-        }
-
-        columns.sort(
-                Comparator.comparingDouble(
-                        column ->
-                                column.centerX
-                )
-        );
-
-        for (DocumentColumn column : columns) {
-            sortVertically(column.lines);
-        }
-
         return new ColumnLayout(columns);
     }
 
-    private List<DocumentColumn> buildColumns(
+    private List<DocumentColumn> createColumnGroups(
             List<RecognizedTextLine> candidates,
-            float minimumGap
+            float minimumLeftGap
     ) {
         List<DocumentColumn> columns =
                 new ArrayList<>();
 
-        DocumentColumn current =
-                new DocumentColumn();
+        for (RecognizedTextLine line : candidates) {
+            DocumentColumn nearest =
+                    findNearestColumnByLeft(
+                            line,
+                            columns,
+                            minimumLeftGap
+                    );
 
-        current.add(candidates.get(0));
-
-        for (int index = 1;
-             index < candidates.size();
-             index++) {
-
-            RecognizedTextLine previous =
-                    candidates.get(index - 1);
-
-            RecognizedTextLine currentLine =
-                    candidates.get(index);
-
-            float centerGap =
-                    centerX(currentLine)
-                            - centerX(previous);
-
-            if (centerGap >= minimumGap) {
-                columns.add(current);
-
-                current =
-                        new DocumentColumn();
+            if (nearest == null) {
+                nearest = new DocumentColumn();
+                columns.add(nearest);
             }
 
-            current.add(currentLine);
+            nearest.add(line);
         }
-
-        columns.add(current);
 
         return columns;
     }
 
-    private boolean hasValidColumns(
-            List<DocumentColumn> columns,
-            int documentWidth
-    ) {
-        for (DocumentColumn column : columns) {
-            if (column.lines.size()
-                    < MINIMUM_LINES_PER_COLUMN) {
-                return false;
-            }
-
-            if (column.centerSpread()
-                    > documentWidth
-                    * MAXIMUM_COLUMN_CENTER_SPREAD_FACTOR) {
-                return false;
-            }
-        }
-
-        columns.sort(
-                Comparator.comparingDouble(
-                        column ->
-                                column.centerX
-                )
-        );
-
-        for (int index = 0;
-             index < columns.size() - 1;
-             index++) {
-
-            DocumentColumn left =
-                    columns.get(index);
-
-            DocumentColumn right =
-                    columns.get(index + 1);
-
-            int overlap =
-                    Math.max(
-                            0,
-                            left.right - right.left
-                    );
-
-            int narrowerWidth =
-                    Math.min(
-                            left.width(),
-                            right.width()
-                    );
-
-            if (narrowerWidth > 0
-                    && overlap
-                    > narrowerWidth
-                    * MAXIMUM_COLUMN_OVERLAP_FACTOR) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private DocumentColumn findNearestColumn(
+    private DocumentColumn findNearestColumnByLeft(
             RecognizedTextLine line,
-            List<DocumentColumn> columns
+            List<DocumentColumn> columns,
+            float maximumDistance
     ) {
-        if (!line.hasBoundingBox()) {
-            return null;
-        }
-
         DocumentColumn nearest = null;
-
         float nearestDistance =
                 Float.MAX_VALUE;
 
         for (DocumentColumn column : columns) {
             float distance =
                     Math.abs(
-                            centerX(line)
-                                    - column.centerX
+                            line.getLeft()
+                                    - column.getAnchorLeft()
                     );
 
-            if (distance < nearestDistance) {
+            if (distance <= maximumDistance
+                    && distance < nearestDistance) {
                 nearest = column;
                 nearestDistance = distance;
             }
@@ -327,27 +202,217 @@ public final class DocumentColumnDetector {
         return nearest;
     }
 
-    private boolean isGlobalLine(
-            RecognizedTextLine line,
+    private void removeUnsupportedColumns(
+            List<DocumentColumn> columns
+    ) {
+        columns.removeIf(
+                column ->
+                        column.getLines().size()
+                                < MINIMUM_LINES_PER_COLUMN
+        );
+    }
+
+    private boolean hasStableSeparation(
+            List<DocumentColumn> columns,
             int documentWidth
     ) {
-        if (!line.hasBoundingBox()) {
-            return false;
+        for (DocumentColumn column : columns) {
+            if (column.getLeftSpread()
+                    > documentWidth
+                    * MAXIMUM_LEFT_SPREAD_FACTOR) {
+                return false;
+            }
         }
 
-        int width =
-                line.getRight()
-                        - line.getLeft();
+        for (int index = 0;
+             index < columns.size() - 1;
+             index++) {
 
-        return width >= documentWidth
-                * GLOBAL_LINE_WIDTH_FACTOR;
+            DocumentColumn current =
+                    columns.get(index);
+
+            DocumentColumn next =
+                    columns.get(index + 1);
+
+            if (next.getAnchorLeft()
+                    <= current.getAnchorLeft()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<RecognizedTextLine> buildReadingOrder(
+            List<RecognizedTextLine> originalLines,
+            ColumnLayout layout,
+            int documentWidth
+    ) {
+        List<DocumentColumn> columns =
+                layout.copyColumns();
+
+        List<RecognizedTextLine> unassigned =
+                new ArrayList<>();
+
+        for (RecognizedTextLine line : originalLines) {
+            if (layout.contains(line)) {
+                continue;
+            }
+
+            DocumentColumn target =
+                    findAssignmentColumn(
+                            line,
+                            columns,
+                            documentWidth
+                    );
+
+            if (target == null) {
+                unassigned.add(line);
+            } else {
+                target.add(line);
+            }
+        }
+
+        for (DocumentColumn column : columns) {
+            sortVertically(column.getLines());
+        }
+
+        columns.sort(
+                Comparator.comparingDouble(
+                        DocumentColumn::getAnchorLeft
+                )
+        );
+
+        /*
+         * Las líneas no asignables no se utilizan para determinar columnas.
+         * Se insertan según su posición vertical, sin modificar el orden
+         * interno de las columnas detectadas.
+         */
+        List<RecognizedTextLine> orderedColumns =
+                new ArrayList<>();
+
+        for (DocumentColumn column : columns) {
+            orderedColumns.addAll(
+                    column.getLines()
+            );
+        }
+
+        if (unassigned.isEmpty()) {
+            return orderedColumns;
+        }
+
+        sortVertically(unassigned);
+
+        return mergeUnassignedLines(
+                orderedColumns,
+                unassigned
+        );
+    }
+
+    private DocumentColumn findAssignmentColumn(
+            RecognizedTextLine line,
+            List<DocumentColumn> columns,
+            int documentWidth
+    ) {
+        if (!isColumnCandidate(
+                line,
+                documentWidth
+        )) {
+            return null;
+        }
+
+        DocumentColumn nearest = null;
+        float nearestDistance =
+                Float.MAX_VALUE;
+
+        float maximumDistance =
+                documentWidth
+                        * MAXIMUM_ASSIGNMENT_DISTANCE_FACTOR;
+
+        for (DocumentColumn column : columns) {
+            float distance =
+                    Math.abs(
+                            line.getLeft()
+                                    - column.getAnchorLeft()
+                    );
+
+            if (distance <= maximumDistance
+                    && distance < nearestDistance) {
+                nearest = column;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
+    private List<RecognizedTextLine> mergeUnassignedLines(
+            List<RecognizedTextLine> orderedColumns,
+            List<RecognizedTextLine> unassigned
+    ) {
+        List<RecognizedTextLine> result =
+                new ArrayList<>(orderedColumns);
+
+        for (RecognizedTextLine line : unassigned) {
+            int insertionIndex =
+                    findSafeInsertionIndex(
+                            result,
+                            line
+                    );
+
+            result.add(
+                    insertionIndex,
+                    line
+            );
+        }
+
+        return result;
+    }
+
+    private int findSafeInsertionIndex(
+            List<RecognizedTextLine> orderedLines,
+            RecognizedTextLine line
+    ) {
+        if (line.getTop() == null) {
+            return orderedLines.size();
+        }
+
+        /*
+         * Solo las líneas situadas claramente antes de todo el bloque de
+         * columnas se presentan al principio. Una anotación ancha que se
+         * solape con la primera fila no desplaza referencias de otras
+         * columnas por sí sola.
+         */
+        int minimumTop =
+                Integer.MAX_VALUE;
+
+        for (RecognizedTextLine current
+                : orderedLines) {
+            if (current.getTop() != null) {
+                minimumTop =
+                        Math.min(
+                                minimumTop,
+                                current.getTop()
+                        );
+            }
+        }
+
+        if (minimumTop != Integer.MAX_VALUE
+                && line.getBottom() != null
+                && line.getBottom()
+                < minimumTop) {
+            return 0;
+        }
+
+        return orderedLines.size();
     }
 
     private boolean isColumnCandidate(
             RecognizedTextLine line,
             int documentWidth
     ) {
-        if (!line.hasBoundingBox()
+        if (line == null
+                || !line.hasBoundingBox()
                 || line.getDisplayText()
                 .trim()
                 .isEmpty()) {
@@ -359,11 +424,12 @@ public final class DocumentColumnDetector {
                         - line.getLeft();
 
         return width > 0
-                && width < documentWidth
-                * GLOBAL_LINE_WIDTH_FACTOR;
+                && width
+                <= documentWidth
+                * MAXIMUM_COLUMN_CANDIDATE_WIDTH_FACTOR;
     }
 
-    private float medianWidth(
+    private float calculateMedianWidth(
             List<RecognizedTextLine> lines
     ) {
         List<Integer> widths =
@@ -389,15 +455,6 @@ public final class DocumentColumnDetector {
         }
 
         return widths.get(middle);
-    }
-
-    private float centerX(
-            RecognizedTextLine line
-    ) {
-        return (
-                line.getLeft()
-                        + line.getRight()
-        ) / 2.0f;
     }
 
     private void sortVertically(
@@ -428,11 +485,47 @@ public final class DocumentColumnDetector {
     private static final class ColumnLayout {
 
         private final List<DocumentColumn> columns;
+        private final List<RecognizedTextLine> detectedLines;
 
         private ColumnLayout(
                 List<DocumentColumn> columns
         ) {
-            this.columns = columns;
+            this.columns =
+                    new ArrayList<>(columns);
+
+            this.detectedLines =
+                    new ArrayList<>();
+
+            for (DocumentColumn column : columns) {
+                detectedLines.addAll(
+                        column.getLines()
+                );
+            }
+        }
+
+        private boolean contains(
+                RecognizedTextLine line
+        ) {
+            return detectedLines.contains(line);
+        }
+
+        private List<DocumentColumn> copyColumns() {
+            List<DocumentColumn> result =
+                    new ArrayList<>();
+
+            for (DocumentColumn source : columns) {
+                DocumentColumn copy =
+                        new DocumentColumn();
+
+                for (RecognizedTextLine line
+                        : source.getLines()) {
+                    copy.add(line);
+                }
+
+                result.add(copy);
+            }
+
+            return result;
         }
     }
 
@@ -441,105 +534,74 @@ public final class DocumentColumnDetector {
         private final List<RecognizedTextLine> lines =
                 new ArrayList<>();
 
-        private int left =
+        private float anchorLeft;
+        private int minimumLeft =
                 Integer.MAX_VALUE;
-
-        private int right =
+        private int maximumLeft =
                 Integer.MIN_VALUE;
-
-        private float centerX;
-
-        private float minimumCenter =
-                Float.MAX_VALUE;
-
-        private float maximumCenter =
-                -Float.MAX_VALUE;
 
         private void add(
                 RecognizedTextLine line
         ) {
             lines.add(line);
-            recalculateBounds();
+            recalculate();
         }
 
-        private void recalculateBounds() {
-            left = Integer.MAX_VALUE;
-            right = Integer.MIN_VALUE;
+        private void recalculate() {
+            float totalLeft = 0.0f;
+            int boundedCount = 0;
 
-            minimumCenter =
-                    Float.MAX_VALUE;
+            minimumLeft =
+                    Integer.MAX_VALUE;
+            maximumLeft =
+                    Integer.MIN_VALUE;
 
-            maximumCenter =
-                    -Float.MAX_VALUE;
-
-            float centerSum = 0.0f;
-
-            int boundedLineCount = 0;
-
-            for (RecognizedTextLine line
-                    : lines) {
-
+            for (RecognizedTextLine line : lines) {
                 if (!line.hasBoundingBox()) {
                     continue;
                 }
 
-                left = Math.min(
-                        left,
-                        line.getLeft()
-                );
+                int left = line.getLeft();
 
-                right = Math.max(
-                        right,
-                        line.getRight()
-                );
+                totalLeft += left;
+                boundedCount++;
 
-                float lineCenter =
-                        (
-                                line.getLeft()
-                                        + line.getRight()
-                        ) / 2.0f;
-
-                minimumCenter =
+                minimumLeft =
                         Math.min(
-                                minimumCenter,
-                                lineCenter
+                                minimumLeft,
+                                left
                         );
 
-                maximumCenter =
+                maximumLeft =
                         Math.max(
-                                maximumCenter,
-                                lineCenter
+                                maximumLeft,
+                                left
                         );
-
-                centerSum += lineCenter;
-                boundedLineCount++;
             }
 
-            centerX =
-                    boundedLineCount == 0
+            anchorLeft =
+                    boundedCount == 0
                             ? 0.0f
-                            : centerSum
-                              / boundedLineCount;
+                            : totalLeft
+                              / boundedCount;
         }
 
-        private float centerSpread() {
-            if (minimumCenter
-                    == Float.MAX_VALUE) {
+        private List<RecognizedTextLine> getLines() {
+            return lines;
+        }
+
+        private float getAnchorLeft() {
+            return anchorLeft;
+        }
+
+        private float getLeftSpread() {
+            if (minimumLeft
+                    == Integer.MAX_VALUE) {
                 return 0.0f;
             }
 
-            return maximumCenter
-                    - minimumCenter;
-        }
-
-        private int width() {
-            if (left == Integer.MAX_VALUE
-                    || right
-                    == Integer.MIN_VALUE) {
-                return 0;
-            }
-
-            return right - left;
+            return maximumLeft
+                    - minimumLeft;
         }
     }
 }
