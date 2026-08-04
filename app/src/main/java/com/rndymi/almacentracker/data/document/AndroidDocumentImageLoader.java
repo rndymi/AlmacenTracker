@@ -10,6 +10,7 @@ import android.net.Uri;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
+import com.rndymi.almacentracker.core.document.DocumentImageRotation;
 
 import java.io.InputStream;
 import java.util.Objects;
@@ -47,9 +48,29 @@ public final class AndroidDocumentImageLoader
     @Override
     public Bitmap loadPreview(
             String imageUri,
-            int targetSize
+            int targetSize,
+            int manualRotationDegrees
     ) {
+        Objects.requireNonNull(
+                imageUri,
+                "imageUri"
+        );
+
+        if (targetSize <= 0) {
+            throw new IllegalArgumentException(
+                    "targetSize must be greater than zero"
+            );
+        }
+
+        int normalizedManualRotation =
+                DocumentImageRotation.normalize(
+                        manualRotationDegrees
+                );
+
         Uri uri = Uri.parse(imageUri);
+
+        Bitmap decoded = null;
+        Bitmap rotated = null;
 
         try {
             BitmapFactory.Options bounds =
@@ -90,8 +111,6 @@ public final class AndroidDocumentImageLoader
             options.inPreferredConfig =
                     Bitmap.Config.ARGB_8888;
 
-            Bitmap decoded;
-
             try (
                     InputStream stream =
                             contentResolver.openInputStream(uri)
@@ -112,17 +131,16 @@ public final class AndroidDocumentImageLoader
                 return null;
             }
 
-            int rotation =
-                    readExifRotation(uri);
+            int effectiveRotation =
+                    DocumentImageRotation.combine(
+                            readExifRotation(uri),
+                            normalizedManualRotation
+                    );
 
-            if (rotation == 0) {
-                return decoded;
-            }
-
-            Bitmap rotated =
+            rotated =
                     rotateBitmap(
                             decoded,
-                            rotation
+                            effectiveRotation
                     );
 
             if (rotated != decoded
@@ -135,6 +153,8 @@ public final class AndroidDocumentImageLoader
                 Exception
                 | OutOfMemoryError error
         ) {
+            recycleIfNecessary(rotated);
+            recycleIfNecessary(decoded);
             return null;
         }
     }
@@ -182,8 +202,15 @@ public final class AndroidDocumentImageLoader
             Bitmap source,
             int rotation
     ) {
+        int normalizedRotation =
+                DocumentImageRotation.normalize(rotation);
+
+        if (normalizedRotation == 0) {
+            return source;
+        }
+
         Matrix matrix = new Matrix();
-        matrix.postRotate(rotation);
+        matrix.postRotate(normalizedRotation);
 
         return Bitmap.createBitmap(
                 source,
@@ -213,5 +240,12 @@ public final class AndroidDocumentImageLoader
         }
 
         return Math.max(1, sampleSize);
+    }
+
+    private void recycleIfNecessary(Bitmap bitmap) {
+        if (bitmap != null
+                && !bitmap.isRecycled()) {
+            bitmap.recycle();
+        }
     }
 }
