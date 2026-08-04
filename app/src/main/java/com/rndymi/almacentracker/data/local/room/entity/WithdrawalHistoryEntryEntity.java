@@ -53,6 +53,9 @@ public class WithdrawalHistoryEntryEntity {
     @ColumnInfo(name = "unit")
     private final String unit;
 
+    @ColumnInfo(name = "destinations")
+    private final String destinations;
+
     @ColumnInfo(name = "warehouse_item_id_snapshot")
     private final Long warehouseItemIdSnapshot;
 
@@ -74,6 +77,7 @@ public class WithdrawalHistoryEntryEntity {
             @NonNull String code,
             Integer quantity,
             String unit,
+            String destinations,
             Long warehouseItemIdSnapshot,
             String siteSnapshot,
             String positionSnapshot,
@@ -86,6 +90,7 @@ public class WithdrawalHistoryEntryEntity {
         this.code = code;
         this.quantity = quantity;
         this.unit = unit;
+        this.destinations = destinations;
         this.warehouseItemIdSnapshot =
                 warehouseItemIdSnapshot;
         this.siteSnapshot = siteSnapshot;
@@ -123,6 +128,10 @@ public class WithdrawalHistoryEntryEntity {
         return unit;
     }
 
+    public String getDestinations() {
+        return destinations;
+    }
+
     public Long getWarehouseItemIdSnapshot() {
         return warehouseItemIdSnapshot;
     }
@@ -151,6 +160,7 @@ public class WithdrawalHistoryEntryEntity {
                 code,
                 quantity,
                 unit,
+                destinations,
                 warehouseItemIdSnapshot,
                 siteSnapshot,
                 positionSnapshot,

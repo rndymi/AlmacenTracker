@@ -65,6 +65,22 @@ public final class AlmacenTrackerMigrations {
                 }
             };
 
+    public static final Migration MIGRATION_2_3 =
+            new Migration(2, 3) {
+
+                @Override
+                public void migrate(
+                        SupportSQLiteDatabase database
+                ) {
+                    database.execSQL(
+                            "ALTER TABLE "
+                                    + "`withdrawal_history_entries` "
+                                    + "ADD COLUMN "
+                                    + "`destinations` TEXT"
+                    );
+                }
+            };
+
     private AlmacenTrackerMigrations() {
         throw new AssertionError(
                 "No instances"
