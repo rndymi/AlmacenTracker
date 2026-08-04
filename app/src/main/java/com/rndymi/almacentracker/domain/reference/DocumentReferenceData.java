@@ -13,6 +13,8 @@ public final class DocumentReferenceData {
     private final String unit;
     private final int sourceLineIndex;
     private final String sourceText;
+    private final WarehouseReference observedReference;
+    private final List<String> destinations;
 
     public DocumentReferenceData(
             WarehouseReference reference,
@@ -23,10 +25,12 @@ public final class DocumentReferenceData {
     ) {
         this(
                 reference,
+                reference,
                 quantity,
                 unit,
                 sourceLineIndex,
                 sourceText,
+                Collections.emptyList(),
                 Collections.emptyList()
         );
     }
@@ -38,6 +42,28 @@ public final class DocumentReferenceData {
             int sourceLineIndex,
             String sourceText,
             List<Integer> quantitySuggestions
+    ) {
+        this(
+                reference,
+                reference,
+                quantity,
+                unit,
+                sourceLineIndex,
+                sourceText,
+                quantitySuggestions,
+                Collections.emptyList()
+        );
+    }
+
+    public DocumentReferenceData(
+            WarehouseReference reference,
+            WarehouseReference observedReference,
+            Integer quantity,
+            String unit,
+            int sourceLineIndex,
+            String sourceText,
+            List<Integer> quantitySuggestions,
+            List<String> destinations
     ) {
         if (sourceLineIndex < 0) {
             throw new IllegalArgumentException(
@@ -51,20 +77,35 @@ public final class DocumentReferenceData {
             );
         }
 
-        this.reference = Objects.requireNonNull(
-                reference,
-                "reference"
-        );
+        this.reference =
+                Objects.requireNonNull(
+                        reference,
+                        "reference"
+                );
+
+        this.observedReference =
+                observedReference == null
+                        ? reference
+                        : observedReference;
 
         this.quantity = quantity;
+
         this.quantitySuggestions =
                 immutablePositiveQuantities(
                         quantitySuggestions,
                         quantity
                 );
+
         this.unit = normalizeOptional(unit);
+
         this.sourceLineIndex = sourceLineIndex;
+
         this.sourceText = sourceText;
+
+        this.destinations =
+                immutableDestinations(
+                        destinations
+                );
     }
 
     public WarehouseReference getReference() {
@@ -89,6 +130,14 @@ public final class DocumentReferenceData {
 
     public String getSourceText() {
         return sourceText;
+    }
+
+    public WarehouseReference getObservedReference() {
+        return observedReference;
+    }
+
+    public List<String> getDestinations() {
+        return destinations;
     }
 
     public boolean hasQuantityAmbiguity() {
@@ -125,6 +174,31 @@ public final class DocumentReferenceData {
                     && !value.equals(observedQuantity)
                     && !result.contains(value)) {
                 result.add(value);
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
+    }
+
+    private static List<String> immutableDestinations(
+            List<String> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> result =
+                new ArrayList<>();
+
+        for (String value : values) {
+            String normalized =
+                    normalizeOptional(value);
+
+            if (normalized != null
+                    && !result.contains(normalized)) {
+                result.add(normalized);
             }
         }
 
