@@ -308,6 +308,25 @@
         app:layout_constraintTop_toBottomOf="@id/filterControls" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fastScrollHandle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:alpha="0"
+        android:clickable="true"
+        android:contentDescription="@string/fast_scroll_to_bottom"
+        android:focusable="true"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorSecondaryContainer"
+        app:elevation="3dp"
+        app:fabCustomSize="40dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/warehouseRecyclerView"
+        app:maxImageSize="20dp"
+        app:srcCompat="@drawable/ic_arrow_downward"
+        app:tint="?attr/colorOnSecondaryContainer" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addWarehouseItemFab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

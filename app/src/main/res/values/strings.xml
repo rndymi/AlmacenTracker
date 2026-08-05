@@ -940,4 +940,7 @@
     <string name="reference_list_rotated_right_announcement">
         Imagen girada a la derecha.
     </string>
+    <string name="fast_scroll_to_top">Ir al inicio de la lista</string>
+    <string name="fast_scroll_to_bottom">Ir al final de la lista</string>
+    <string name="fast_scroll_dragging">Desplazamiento rápido</string>
 </resources>
