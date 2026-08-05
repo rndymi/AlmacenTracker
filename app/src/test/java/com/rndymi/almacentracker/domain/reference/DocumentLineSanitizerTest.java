@@ -40,4 +40,44 @@ public final class DocumentLineSanitizerTest {
         assertFalse(result.contains("A8UTOA3"));
         assertFalse(result.contains("0"));
     }
+
+    @Test
+    public void preservesEarlierOrdinaryReferencesAndTitle() {
+        List<String> source = Arrays.asList(
+                "UTOPYA",
+                "MA710-4pcs",
+                "MA900-3pcs",
+                "MA901-5pqts",
+                "MA930-2pqts",
+                "MR21234-4pqts",
+                "MR21232-2pqts",
+                "MR21502-2pqts",
+                "MR21505-1pqts",
+                "MR21111-2pqts",
+                "MR21211-1pqt"
+        );
+
+        List<String> result = new DocumentLineSanitizer(
+                new WarehouseReferenceParser()
+        ).sanitize(source);
+
+        assertEquals(source, result);
+    }
+
+    @Test
+    public void preservesUncertainReferencesBeforeFirstSafeMatch() {
+        List<String> source = Arrays.asList(
+                "Elena",
+                "MR21570-5pcs",
+                "MR21571-1pcs",
+                "MS5008-3pcs",
+                "ML3923-4pqts"
+        );
+
+        List<String> result = new DocumentLineSanitizer(
+                new WarehouseReferenceParser()
+        ).sanitize(source);
+
+        assertEquals(source, result);
+    }
 }

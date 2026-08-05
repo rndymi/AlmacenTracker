@@ -3,8 +3,18 @@ package com.rndymi.almacentracker.domain.reference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public final class DocumentLineSanitizer {
+
+    private static final Pattern OCR_REFERENCE_LIKE =
+            Pattern.compile(
+                    "^[A-Z0-9()]{1,2}"
+                            + "[\\p{Z}\\s:._-]*"
+                            + "[0-9ILSZGJBOTF()王]{2,}.*$",
+                    Pattern.CASE_INSENSITIVE
+                            | Pattern.UNICODE_CASE
+            );
 
     private final WarehouseReferenceParser referenceParser;
 
@@ -86,9 +96,10 @@ public final class DocumentLineSanitizer {
                 continue;
             }
 
-            if (!line.matches(
-                    "^[\\p{L}]+(?:[\\p{Z}\\s]+\\p{L}+)*$"
-            )) {
+            if (!isHeaderLine(line)
+                    && !OCR_REFERENCE_LIKE
+                    .matcher(line)
+                    .matches()) {
                 break;
             }
 
@@ -96,6 +107,12 @@ public final class DocumentLineSanitizer {
         }
 
         return start;
+    }
+
+    private boolean isHeaderLine(String line) {
+        return line.matches(
+                "^[\\p{L}]+(?:[\\p{Z}\\s]+\\p{L}+)*$"
+        );
     }
 
     private String normalize(String value) {
