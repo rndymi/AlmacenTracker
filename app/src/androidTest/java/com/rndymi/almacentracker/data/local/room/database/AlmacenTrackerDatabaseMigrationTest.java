@@ -237,7 +237,8 @@ public class AlmacenTrackerDatabaseMigrationTest {
                 TEST_DATABASE
         ).addMigrations(
                 AlmacenTrackerMigrations.MIGRATION_1_2,
-                AlmacenTrackerMigrations.MIGRATION_2_3
+                AlmacenTrackerMigrations.MIGRATION_2_3,
+                AlmacenTrackerMigrations.MIGRATION_3_4
         ).allowMainThreadQueries().build();
 
         return roomDatabase

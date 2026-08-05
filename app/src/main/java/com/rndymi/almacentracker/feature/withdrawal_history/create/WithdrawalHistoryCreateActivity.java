@@ -171,6 +171,17 @@ public final class WithdrawalHistoryCreateActivity
                                         value
                                 );
                             }
+
+                            @Override
+                            public void onStoresChanged(
+                                    long stableId,
+                                    String value
+                            ) {
+                                viewModel.onStoresChanged(
+                                        stableId,
+                                        value
+                                );
+                            }
                         }
                 );
 

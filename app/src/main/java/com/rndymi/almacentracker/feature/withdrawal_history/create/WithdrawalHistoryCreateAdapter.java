@@ -1,7 +1,6 @@
 package com.rndymi.almacentracker.feature.withdrawal_history.create;
 
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -30,6 +29,8 @@ public final class WithdrawalHistoryCreateAdapter
                 long stableId,
                 String value
         );
+
+        void onStoresChanged(long stableId, String value);
     }
 
     private final Listener listener;
@@ -101,12 +102,24 @@ public final class WithdrawalHistoryCreateAdapter
                         WithdrawalHistoryDraftEntryUiModel newItem
                 ) {
                     return equalsNullable(
+                            oldItem.getQuantityText(),
+                            newItem.getQuantityText()
+                    ) && equalsNullable(
+                            oldItem.getUnitText(),
+                            newItem.getUnitText()
+                    ) && equalsNullable(
                             oldItem.getQuantityError(),
                             newItem.getQuantityError()
                     )
                             && equalsNullable(
                             oldItem.getUnitError(),
                             newItem.getUnitError()
+                    ) && equalsNullable(
+                            oldItem.getStoresText(),
+                            newItem.getStoresText()
+                    ) && equalsNullable(
+                            oldItem.getStoresError(),
+                            newItem.getStoresError()
                     )
                             && oldItem.getDestinations()
                             .equals(
@@ -170,6 +183,16 @@ public final class WithdrawalHistoryCreateAdapter
                                     }
                             )
                     );
+
+            binding.storesEditText.addTextChangedListener(
+                    SimpleTextWatcher.afterTextChanged(
+                            value -> {
+                                if (!bindingValues) {
+                                    listener.onStoresChanged(stableId, value);
+                                }
+                            }
+                    )
+            );
         }
 
         void bind(
@@ -204,28 +227,6 @@ public final class WithdrawalHistoryCreateAdapter
                             )
             );
 
-            boolean hasDestinations =
-                    !model.getDestinations().isEmpty();
-
-            binding.destinationsText.setVisibility(
-                    hasDestinations
-                            ? View.VISIBLE
-                            : View.GONE
-            );
-            binding.destinationsText.setText(
-                    hasDestinations
-                            ? binding.getRoot()
-                            .getContext()
-                            .getString(
-                                    R.string.withdrawal_history_destinations,
-                                    String.join(
-                                            ", ",
-                                            model.getDestinations()
-                                    )
-                            )
-                            : ""
-            );
-
             if (!binding.quantityEditText.hasFocus()
                     && !binding.quantityEditText
                     .getText()
@@ -250,6 +251,12 @@ public final class WithdrawalHistoryCreateAdapter
                 );
             }
 
+            if (!binding.storesEditText.hasFocus()
+                    && !binding.storesEditText.getText().toString()
+                    .equals(model.getStoresText())) {
+                binding.storesEditText.setText(model.getStoresText());
+            }
+
             binding.quantityInputLayout.setError(
                     model.getQuantityError()
             );
@@ -257,6 +264,8 @@ public final class WithdrawalHistoryCreateAdapter
             binding.unitInputLayout.setError(
                     model.getUnitError()
             );
+
+            binding.storesInputLayout.setError(model.getStoresError());
 
             bindingValues = false;
         }

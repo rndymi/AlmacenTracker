@@ -91,6 +91,93 @@ public final class WithdrawalHistoryCreateViewModelTest {
                         .getEntries().get(0)
                         .getDestinations()
         );
+
+        assertEquals(
+                "2",
+                viewModel.getUiState().getValue()
+                        .getEntries().get(0).getStoresText()
+        );
+    }
+
+    @Test
+    public void storesCanBeEditedWithNormalNumbersAndAreSavedAsCircledValues() {
+        TestDependencies dependencies = new TestDependencies();
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+        initialize(viewModel);
+
+        long stableId = viewModel.getUiState().getValue()
+                .getEntries().get(0).getStableId();
+
+        viewModel.onStoresChanged(stableId, "2, 13");
+        viewModel.requestSaveConfirmation(1000L);
+
+        WithdrawalHistoryDraft draft = viewModel
+                .getConfirmationEvent().getValue()
+                .getContentIfNotHandled();
+
+        assertEquals(
+                Arrays.asList("②", "⑬"),
+                draft.getEntries().get(0).getDestinations()
+        );
+    }
+
+    @Test
+    public void invalidStoreInputPreventsSavingAndExposesFieldError() {
+        TestDependencies dependencies = new TestDependencies();
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+        initialize(viewModel);
+
+        long stableId = viewModel.getUiState().getValue()
+                .getEntries().get(0).getStableId();
+
+        viewModel.onStoresChanged(stableId, "tienda norte");
+        viewModel.requestSaveConfirmation(1000L);
+
+        WithdrawalHistoryCreateUiState state =
+                viewModel.getUiState().getValue();
+
+        assertEquals(
+                WithdrawalHistoryCreateUiState.Status.INVALID_INPUT,
+                state.getStatus()
+        );
+        assertNotNull(state.getEntries().get(0).getStoresError());
+        assertNull(viewModel.getConfirmationEvent().getValue());
+    }
+
+    @Test
+    public void eachMerchandiseKeepsItsOwnQuantityAndStores() {
+        TestDependencies dependencies = new TestDependencies();
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+
+        viewModel.initialize(
+                Arrays.asList(
+                        foundInput(2, "P"),
+                        new WithdrawalHistoryCreateInput(
+                                1, "MR", "21518", 1, "P",
+                                8L, "A1", "3",
+                                WithdrawalLocationStatus.FOUND
+                        )
+                ),
+                1000L
+        );
+
+        List<WithdrawalHistoryDraftEntryUiModel> entries =
+                viewModel.getUiState().getValue().getEntries();
+        viewModel.onStoresChanged(entries.get(0).getStableId(), "2");
+        viewModel.onStoresChanged(entries.get(1).getStableId(), "1");
+        viewModel.requestSaveConfirmation(1000L);
+
+        WithdrawalHistoryDraft draft = viewModel
+                .getConfirmationEvent().getValue()
+                .getContentIfNotHandled();
+
+        assertEquals(Integer.valueOf(2), draft.getEntries().get(0).getQuantity());
+        assertEquals(Arrays.asList("②"), draft.getEntries().get(0).getDestinations());
+        assertEquals(Integer.valueOf(1), draft.getEntries().get(1).getQuantity());
+        assertEquals(Arrays.asList("①"), draft.getEntries().get(1).getDestinations());
     }
 
     @Test

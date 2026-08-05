@@ -760,6 +760,8 @@
         Cantidad
     </string>
     <string name="withdrawal_history_unit"> Unidad </string>
+    <string name="withdrawal_history_stores_optional">Tiendas (opcional)</string>
+    <string name="withdrawal_history_stores_helper">Números separados por comas, por ejemplo: 1, 2, 13</string>
     <string name="withdrawal_history_not_found">
         No encontrada al procesar la lista
     </string>
