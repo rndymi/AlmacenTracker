@@ -146,6 +146,20 @@ public final class WarehouseReferenceSuggestionResolver {
             return CharacterComparison.exact();
         }
 
+        if (expected.length() == observed.length() + 1
+                && expected.startsWith(observed)) {
+            char missing = expected.charAt(
+                    expected.length() - 1
+            );
+
+            return new CharacterComparison(
+                    1,
+                    "letra "
+                            + missing
+                            + " omitida en categoría"
+            );
+        }
+
         if (observed.length()
                 != expected.length()) {
             return null;
@@ -226,6 +240,28 @@ public final class WarehouseReferenceSuggestionResolver {
             if (source == target) {
                 observedIndex++;
                 expectedIndex++;
+                continue;
+            }
+
+            String circledDigits =
+                    CircledNumberNormalizer
+                            .digitsFor(source);
+
+            if (circledDigits != null
+                    && expected.startsWith(
+                    circledDigits,
+                    expectedIndex
+            )) {
+                score++;
+                changes.add(
+                        source
+                                + " → "
+                                + circledDigits
+                                + " en código"
+                );
+                observedIndex++;
+                expectedIndex +=
+                        circledDigits.length();
                 continue;
             }
 

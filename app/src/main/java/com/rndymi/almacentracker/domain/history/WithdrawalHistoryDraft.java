@@ -7,11 +7,21 @@ import java.util.List;
 public final class WithdrawalHistoryDraft {
 
     private final String title;
+    private final String destination;
     private final long registeredAt;
     private final List<WithdrawalHistoryDraftEntry> entries;
 
     public WithdrawalHistoryDraft(
             String title,
+            long registeredAt,
+            List<WithdrawalHistoryDraftEntry> entries
+    ) {
+        this(title, null, registeredAt, entries);
+    }
+
+    public WithdrawalHistoryDraft(
+            String title,
+            String destination,
             long registeredAt,
             List<WithdrawalHistoryDraftEntry> entries
     ) {
@@ -28,6 +38,7 @@ public final class WithdrawalHistoryDraft {
         }
 
         this.title = normalizeOptional(title);
+        this.destination = normalizeOptional(destination);
         this.registeredAt = registeredAt;
         this.entries =
                 Collections.unmodifiableList(
@@ -41,6 +52,10 @@ public final class WithdrawalHistoryDraft {
 
     public long getRegisteredAt() {
         return registeredAt;
+    }
+
+    public String getDestination() {
+        return destination;
     }
 
     public List<WithdrawalHistoryDraftEntry>

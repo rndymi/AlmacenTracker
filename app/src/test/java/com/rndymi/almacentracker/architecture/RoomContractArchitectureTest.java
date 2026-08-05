@@ -44,7 +44,7 @@ public final class RoomContractArchitectureTest {
         );
         assertTrue(
                 "The database version must include the history schema",
-                database.contains("version = 3")
+                database.contains("version = 4")
         );
         assertTrue(
                 "The history schema migration must remain registered",
@@ -56,6 +56,12 @@ public final class RoomContractArchitectureTest {
                 "The destinations migration must remain registered",
                 appContainer.contains(
                         "AlmacenTrackerMigrations.MIGRATION_2_3"
+                )
+        );
+        assertTrue(
+                "The global destination migration must remain registered",
+                appContainer.contains(
+                        "AlmacenTrackerMigrations.MIGRATION_3_4"
                 )
         );
     }

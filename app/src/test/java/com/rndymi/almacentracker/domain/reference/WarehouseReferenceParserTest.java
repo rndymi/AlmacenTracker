@@ -245,6 +245,83 @@ public final class WarehouseReferenceParserTest {
     }
 
     @Test
+    public void parseInputAcceptsSingleLetterSpecialReference() {
+        WarehouseReference reference =
+                parser.parseInput("m", "873-12");
+
+        assertEquals("M", reference.getCategory());
+        assertEquals("873-12", reference.getCode());
+    }
+
+    @Test
+    public void parseOcrLineKeepsSpecialReferenceDashBeforeQuantity() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M873-9 - 1P - ①",
+                        Arrays.asList(
+                                new WarehouseReference("M", "873"),
+                                new WarehouseReference("M", "873-9")
+                        )
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M 873-9",
+                matches.get(0).getReference().displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineFindsKnownSingleLetterBaseReference() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "M873",
+                        Collections.singletonList(
+                                new WarehouseReference("M", "873")
+                        )
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M 873",
+                matches.get(0).getReference().displayValue()
+        );
+    }
+
+    @Test
+    public void circledExtensionProducesKnownReferenceSuggestion() {
+        WarehouseReference observed =
+                parser.parseOcrLine(
+                        0,
+                        "M873-① - 1P - ①②",
+                        Collections.singletonList(
+                                new WarehouseReference("M", "873-1")
+                        )
+                ).get(0).getObservedReference();
+
+        List<WarehouseReferenceSuggestion> suggestions =
+                new WarehouseReferenceSuggestionResolver()
+                        .resolve(
+                                observed,
+                                Collections.singletonList(
+                                        new WarehouseReference("M", "873-1")
+                                ),
+                                5
+                        );
+
+        assertEquals("M 873-①", observed.displayValue());
+        assertEquals(1, suggestions.size());
+        assertEquals(
+                "M 873-1",
+                suggestions.get(0)
+                        .getReference()
+                        .displayValue()
+        );
+    }
+
+    @Test
     public void parseOcrLinePreservesInvalidCategoryForLaterReview() {
         List<WarehouseReferenceMatch> matches =
                 parser.parseOcrLine(
@@ -509,14 +586,14 @@ public final class WarehouseReferenceParserTest {
     public void parseInput_rejectsInvalidCategory() {
         assertNull(
                 parser.parseInput(
-                        "M",
+                        "MRA",
                         "1210"
                 )
         );
 
         assertFalse(
                 parser.isValidCategory(
-                        "M"
+                        "MRA"
                 )
         );
     }
@@ -1236,6 +1313,65 @@ public final class WarehouseReferenceParserTest {
                 ),
                 matches.get(0)
                         .getReference()
+        );
+    }
+
+    @Test
+    public void parseOcrLineTreatsCircledExtensionBeforeUnitAsCode() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "m873-①-p-①②",
+                        Arrays.asList(
+                                new WarehouseReference("M", "873"),
+                                new WarehouseReference("M", "873-1")
+                        )
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M 873-①",
+                matches.get(0).getObservedReference().displayValue()
+        );
+        assertEquals(
+                "M 873-1",
+                matches.get(0).getReference().displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineMovesMisplacedInternalDashIntoCode() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "MR8-250-",
+                        Collections.singletonList(
+                                new WarehouseReference("MR", "8250")
+                        )
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "MR 8250",
+                matches.get(0).getReference().displayValue()
+        );
+    }
+
+    @Test
+    public void parseOcrLineKeepsKnownSupportedMissingCategoryLetter() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "m20156-",
+                        Collections.singletonList(
+                                new WarehouseReference("MR", "20156")
+                        )
+                );
+
+        assertEquals(1, matches.size());
+        assertEquals(
+                "M 20156",
+                matches.get(0).getObservedReference().displayValue()
         );
     }
 }

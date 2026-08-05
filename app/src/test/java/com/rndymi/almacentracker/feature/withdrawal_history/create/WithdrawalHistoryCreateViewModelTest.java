@@ -21,6 +21,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 public final class WithdrawalHistoryCreateViewModelTest {
@@ -56,6 +57,39 @@ public final class WithdrawalHistoryCreateViewModelTest {
                 state.getEntries()
                         .get(0)
                         .getUnitText()
+        );
+    }
+
+    @Test
+    public void initializePreservesDestinations() {
+        TestDependencies dependencies =
+                new TestDependencies();
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+
+        viewModel.initialize(
+                Collections.singletonList(
+                        new WithdrawalHistoryCreateInput(
+                                0,
+                                "M",
+                                "873-9",
+                                2,
+                                "P",
+                                7L,
+                                "A1",
+                                "2",
+                                WithdrawalLocationStatus.FOUND,
+                                Arrays.asList("Tienda 2")
+                        )
+                ),
+                1000L
+        );
+
+        assertEquals(
+                Arrays.asList("Tienda 2"),
+                viewModel.getUiState().getValue()
+                        .getEntries().get(0)
+                        .getDestinations()
         );
     }
 
@@ -100,6 +134,23 @@ public final class WithdrawalHistoryCreateViewModelTest {
                 0,
                 dependencies.repository.insertCalls
         );
+    }
+
+    @Test
+    public void globalDestinationIsStoredOnDraftNotOnEntries() {
+        TestDependencies dependencies = new TestDependencies();
+        WithdrawalHistoryCreateViewModel viewModel =
+                dependencies.createViewModel();
+
+        initialize(viewModel);
+        viewModel.onDestinationChanged("  Zurich  ");
+        viewModel.requestSaveConfirmation(1000L);
+
+        WithdrawalHistoryDraft draft = viewModel
+                .getConfirmationEvent().getValue()
+                .getContentIfNotHandled();
+
+        assertEquals("Zurich", draft.getDestination());
     }
 
     @Test

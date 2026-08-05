@@ -63,7 +63,8 @@ public final class AppContainer {
                 "almacen_tracker.db"
         ).addMigrations(
                 AlmacenTrackerMigrations.MIGRATION_1_2,
-                AlmacenTrackerMigrations.MIGRATION_2_3
+                AlmacenTrackerMigrations.MIGRATION_2_3,
+                AlmacenTrackerMigrations.MIGRATION_3_4
         ).build();
         databaseExecutor =
                 Executors.newSingleThreadExecutor();

@@ -2,6 +2,10 @@ package com.rndymi.almacentracker.feature.withdrawal_history.create;
 
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidator;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
+import com.rndymi.almacentracker.domain.history.WithdrawalDestinationCodec;
+
+import java.util.Collections;
+import java.util.List;
 
 public final class WithdrawalHistoryDraftEntryUiModel
         implements WithdrawalHistoryDraftValidator.EditableEntry {
@@ -18,6 +22,7 @@ public final class WithdrawalHistoryDraftEntryUiModel
     private final WithdrawalLocationStatus locationStatus;
     private final String quantityError;
     private final String unitError;
+    private final List<String> destinations;
 
     public WithdrawalHistoryDraftEntryUiModel(
             long stableId,
@@ -33,6 +38,38 @@ public final class WithdrawalHistoryDraftEntryUiModel
             String quantityError,
             String unitError
     ) {
+        this(
+                stableId,
+                orderIndex,
+                category,
+                code,
+                quantityText,
+                unitText,
+                warehouseItemIdSnapshot,
+                siteSnapshot,
+                positionSnapshot,
+                locationStatus,
+                quantityError,
+                unitError,
+                Collections.emptyList()
+        );
+    }
+
+    public WithdrawalHistoryDraftEntryUiModel(
+            long stableId,
+            int orderIndex,
+            String category,
+            String code,
+            String quantityText,
+            String unitText,
+            Long warehouseItemIdSnapshot,
+            String siteSnapshot,
+            String positionSnapshot,
+            WithdrawalLocationStatus locationStatus,
+            String quantityError,
+            String unitError,
+            List<String> destinations
+    ) {
         this.stableId = stableId;
         this.orderIndex = orderIndex;
         this.category = category;
@@ -46,6 +83,9 @@ public final class WithdrawalHistoryDraftEntryUiModel
         this.locationStatus = locationStatus;
         this.quantityError = quantityError;
         this.unitError = unitError;
+        this.destinations =
+                WithdrawalDestinationCodec
+                        .immutableCopy(destinations);
     }
 
     @Override
@@ -97,6 +137,10 @@ public final class WithdrawalHistoryDraftEntryUiModel
 
     public String getUnitError() {
         return unitError;
+    }
+
+    public List<String> getDestinations() {
+        return destinations;
     }
 
     public WithdrawalHistoryDraftEntryUiModel
@@ -154,7 +198,8 @@ public final class WithdrawalHistoryDraftEntryUiModel
                 positionSnapshot,
                 locationStatus,
                 newQuantityError,
-                newUnitError
+                newUnitError,
+                destinations
         );
     }
 }

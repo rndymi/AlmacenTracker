@@ -20,7 +20,7 @@ public final class WarehouseReferenceParser {
                     "(?<![A-Z0-9])"
                             + "([A-Z]{2})"
                             + "\\s*"
-                            + "([0-9]{3,5})"
+                            + "([0-9]{3,5}(?:-[0-9]{1,3})?)"
                             + "(?:\\s*"
                             + "(\\p{L}+(?:\\s+\\p{L}+)*))?"
                             + "(?![A-Z0-9])"
@@ -39,11 +39,32 @@ public final class WarehouseReferenceParser {
             );
     private static final Pattern CATEGORY_PATTERN =
             Pattern.compile(
-                    "^[A-Z]{2}$"
+                    "^[A-Z]{1,2}$"
             );
     private static final Pattern CODE_PATTERN =
             Pattern.compile(
-                    "^[0-9]{3,5}(?: \\p{L}+)*$"
+                    "^[0-9]{3,5}(?:-[0-9]{1,3})?"
+                            + "(?: \\p{L}+)*$"
+            );
+    private static final Pattern SPECIAL_REFERENCE_PATTERN =
+            Pattern.compile(
+                    "(?<![\\p{L}0-9])"
+                            + "([A-Z]{1,2})"
+                            + "[\\p{Z}\\s]*"
+                            + "([0-9]{3,5})"
+                            + "[\\p{Z}\\s]*"
+                            + "[-\\u2010-\\u2014]"
+                            + "[\\p{Z}\\s]*"
+                            + "([0-9]{1,3}|[①-⑳㉑-㉟㊱-㊿])"
+                            + "(?=[\\p{Z}\\s]*"
+                            + "(?:[-\\u2010-\\u2014]"
+                            + "[\\p{Z}\\s]*"
+                            + "[0-9ILSZGJBOTF()王]{0,3}"
+                            + "[\\p{Z}\\s]*"
+                            + "P(?:CS|QT|QTS)?(?:\\b|$)"
+                            + "|$))",
+                    Pattern.CASE_INSENSITIVE
+                            | Pattern.UNICODE_CASE
             );
     private static final Pattern UNICODE_SPACES =
             Pattern.compile(
@@ -159,6 +180,31 @@ public final class WarehouseReferenceParser {
                         rawText
                 );
 
+        List<WarehouseReferenceMatch> specialMatches =
+                extractSpecialReferenceCandidates(
+                        lineIndex,
+                        normalizedOcrText,
+                        rawText
+                );
+
+        if (!specialMatches.isEmpty()) {
+            return specialMatches;
+        }
+
+        WarehouseReferenceMatch shiftedCandidate =
+                extractKnownSupportedSingleLetterCandidate(
+                        lineIndex,
+                        normalizedOcrText,
+                        rawText,
+                        knownReferences
+                );
+
+        if (shiftedCandidate != null) {
+            return Collections.singletonList(
+                    shiftedCandidate
+            );
+        }
+
         List<WarehouseReferenceMatch> knownMatches =
                 findKnownReferencesInLine(
                         lineIndex,
@@ -189,6 +235,118 @@ public final class WarehouseReferenceParser {
                 normalizedOcrText,
                 rawText
         );
+    }
+
+    private WarehouseReferenceMatch
+    extractKnownSupportedSingleLetterCandidate(
+            int lineIndex,
+            String searchableSource,
+            String originalSource,
+            List<WarehouseReference> knownReferences
+    ) {
+        if (knownReferences == null
+                || knownReferences.isEmpty()) {
+            return null;
+        }
+
+        Matcher matcher = Pattern.compile(
+                "(?<![\\p{L}0-9])([A-Z])"
+                        + "[\\p{Z}\\s]*([0-9]{3,5})"
+                        + "(?=[\\p{Z}\\s]*"
+                        + "(?:[-\\u2010-\\u2014]|$))",
+                Pattern.CASE_INSENSITIVE
+        ).matcher(searchableSource);
+
+        if (!matcher.find()) {
+            return null;
+        }
+
+        String observedCategory = matcher.group(1)
+                .toUpperCase(Locale.ROOT);
+        String observedCode = matcher.group(2);
+
+        for (WarehouseReference known : knownReferences) {
+            WarehouseReference normalizedKnown =
+                    normalizeKnownReference(known);
+
+            if (normalizedKnown != null
+                    && normalizedKnown.getCode()
+                    .equals(observedCode)
+                    && normalizedKnown.getCategory()
+                    .startsWith(observedCategory)) {
+                return new WarehouseReferenceMatch(
+                        new WarehouseReference(
+                                observedCategory,
+                                observedCode
+                        ),
+                        lineIndex,
+                        originalSource,
+                        0
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private List<WarehouseReferenceMatch>
+    extractSpecialReferenceCandidates(
+            int lineIndex,
+            String searchableSource,
+            String originalSource
+    ) {
+        Matcher matcher =
+                SPECIAL_REFERENCE_PATTERN.matcher(
+                        searchableSource
+                );
+
+        List<WarehouseReferenceMatch> matches =
+                new ArrayList<>();
+
+        int occurrenceIndex = 0;
+
+        while (matcher.find()) {
+            String category = matcher.group(1)
+                    .toUpperCase(Locale.ROOT);
+            String extension = matcher.group(3);
+            WarehouseReference observed =
+                    new WarehouseReference(
+                            category,
+                            matcher.group(2) + "-" + extension
+                    );
+            String normalizedExtension =
+                    extension.length() == 1
+                            ? CircledNumberNormalizer.digitsFor(
+                            extension.charAt(0)
+                    )
+                            : null;
+
+            matches.add(
+                    normalizedExtension == null
+                            ? new WarehouseReferenceMatch(
+                            observed,
+                            lineIndex,
+                            originalSource,
+                            occurrenceIndex++
+                    )
+                            : new WarehouseReferenceMatch(
+                            observed,
+                            new WarehouseReference(
+                                    category,
+                                    matcher.group(2)
+                                            + "-"
+                                            + normalizedExtension
+                            ),
+                            lineIndex,
+                            originalSource,
+                            occurrenceIndex++
+                    )
+            );
+        }
+
+        return matches.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(matches);
     }
 
     public List<WarehouseReference> suggestReferences(
@@ -1161,6 +1319,17 @@ public final class WarehouseReferenceParser {
             String rawText
     ) {
         String normalized = normalizeSpaces(rawText);
+
+        normalized = normalized.replaceAll(
+                "(?i)(?<![\\p{L}0-9])"
+                        + "([A-Z]{1,2})[\\p{Z}\\s]*"
+                        + "([0-9]{1,2})[\\p{Z}\\s]*"
+                        + "[-\\u2010-\\u2014][\\p{Z}\\s]*"
+                        + "([0-9]{2,4})"
+                        + "(?=[\\p{Z}\\s]*"
+                        + "(?:[-\\u2010-\\u2014]|$))",
+                "$1 $2$3"
+        );
 
         Matcher rawCategoryMatcher =
                 OCR_RAW_CATEGORY_PATTERN.matcher(

@@ -34,6 +34,7 @@ public class WithdrawalHistoryRoomMapperTest {
                 new WithdrawalHistory(
                         5L,
                         "Lista centro",
+                        "Porto",
                         100L,
                         110L,
                         120L
@@ -50,6 +51,7 @@ public class WithdrawalHistoryRoomMapperTest {
                 "Lista centro",
                 result.getTitle()
         );
+        assertEquals("Porto", result.getDestination());
         assertEquals(100L, result.getRegisteredAt());
         assertEquals(110L, result.getCreatedAt());
         assertEquals(120L, result.getUpdatedAt());
@@ -69,7 +71,8 @@ public class WithdrawalHistoryRoomMapperTest {
                         7L,
                         "A1",
                         "Nivel 2",
-                        WithdrawalLocationStatus.FOUND
+                        WithdrawalLocationStatus.FOUND,
+                        Arrays.asList("Tienda 2")
                 );
 
         WithdrawalHistoryEntryEntity entity =
@@ -77,6 +80,7 @@ public class WithdrawalHistoryRoomMapperTest {
 
         assertEquals("FOUND", entity.getLocationStatus());
         assertEquals("001210A", entity.getCode());
+        assertEquals("8:Tienda 2", entity.getDestinations());
 
         WithdrawalHistoryEntry result =
                 mapper.toDomain(entity);
@@ -92,6 +96,10 @@ public class WithdrawalHistoryRoomMapperTest {
         assertEquals(
                 "Nivel 2",
                 result.getPositionSnapshot()
+        );
+        assertEquals(
+                Arrays.asList("Tienda 2"),
+                result.getDestinations()
         );
     }
 

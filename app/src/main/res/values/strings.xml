@@ -654,6 +654,9 @@
     <string name="reference_list_review_match_user_confirmed">
         Referencia revisada manualmente
     </string>
+    <string name="reference_list_review_match_marked_pending">
+        Marcada para revisar nuevamente
+    </string>
     <string name="reference_list_review_suggestions_title">
         Coincidencias sugeridas
     </string>
@@ -669,6 +672,10 @@
     <string name="reference_list_review_quantity_suggestion_description">
         Usar la cantidad %1$d
     </string>
+    <string name="reference_list_review_quantity_format">Cantidad: %1$d %2$s</string>
+    <string name="reference_list_review_destinations_format">Tiendas: %1$s</string>
+    <string name="reference_list_review_allocation_quantities_format">Cantidad: %1$s</string>
+    <string name="reference_list_review_allocation_stores_format">Tiendas: %1$s</string>
     <string name="reference_list_review_edit_description">
         Editar referencia %1$s
     </string>
@@ -676,10 +683,12 @@
         Eliminar referencia %1$s
     </string>
     <string name="reference_list_review_category_error">
-        Introduce exactamente dos letras.
+        Introduce una o dos letras.
     </string>
+    <string name="reference_list_review_mark_ready">Marcar %1$s como correcta</string>
+    <string name="reference_list_review_mark_pending">Marcar %1$s para revisar nuevamente</string>
     <string name="reference_list_review_code_error">
-        Introduce de 3 a 5 números seguidos y, opcionalmente, palabras después de ellos.
+        Introduce de 3 a 5 números y, opcionalmente, una extensión numérica separada por guion o palabras posteriores.
     </string>
     <string name="reference_list_review_duplicate">
         La referencia ya estaba incluida en la lista.
@@ -854,6 +863,10 @@
     <string name="withdrawal_history_detail_quantity_only">
         Cantidad: %1$d
     </string>
+    <string name="withdrawal_history_destinations">Tiendas: %1$s</string>
+    <string name="withdrawal_history_destination_optional">Destino general (opcional)</string>
+    <string name="withdrawal_history_destination_helper">Ciudad o país del envío completo</string>
+    <string name="withdrawal_history_destination">Destino: %1$s</string>
     <string name="withdrawal_history_detail_without_quantity">
         Sin cantidad documental
     </string>

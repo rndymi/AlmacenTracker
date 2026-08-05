@@ -10,6 +10,8 @@ import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
+import com.rndymi.almacentracker.domain.reference.DocumentSharedAllocationParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceMatch;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
@@ -40,6 +42,7 @@ public final class ReferenceListReviewViewModel
     private final WarehouseItemRepository repository;
     private final DocumentReferenceDataParser documentReferenceDataParser;
     private final WarehouseReferenceSuggestionResolver suggestionResolver;
+    private final DocumentSharedAllocationParser sharedAllocationParser;
 
     private final MutableLiveData
             <ReferenceListReviewUiState> uiState =
@@ -117,6 +120,8 @@ public final class ReferenceListReviewViewModel
                         suggestionResolver,
                         "suggestionResolver"
                 );
+        this.sharedAllocationParser =
+                new DocumentSharedAllocationParser();
     }
 
     public LiveData<ReferenceListReviewUiState>
@@ -197,6 +202,11 @@ public final class ReferenceListReviewViewModel
         Map<String, ReferenceProposal> unique =
                 new LinkedHashMap<>();
 
+        List<String> pendingSharedAllocationKeys =
+                new ArrayList<>();
+        List<DocumentReferenceAllocation> activeSharedAllocations =
+                new ArrayList<>();
+
         int duplicateCount = 0;
 
         if (lines != null) {
@@ -233,6 +243,26 @@ public final class ReferenceListReviewViewModel
                     }
                 }
 
+                if (matches.isEmpty()) {
+                    DocumentReferenceAllocation allocation =
+                            sharedAllocationParser.parse(
+                                    rawLine
+                            );
+
+                    if (allocation != null) {
+                        if (!activeSharedAllocations.contains(allocation)) {
+                            activeSharedAllocations.add(allocation);
+                        }
+                        applySharedAllocation(
+                                unique,
+                                pendingSharedAllocationKeys,
+                                allocation
+                        );
+                    }
+
+                    continue;
+                }
+
                 for (
                         WarehouseReferenceMatch match
                         : matches
@@ -247,15 +277,34 @@ public final class ReferenceListReviewViewModel
                         continue;
                     }
 
-                    unique.put(
-                            reference.identityKey(),
+                    ReferenceProposal proposal =
                             createRecognizedProposal(
                                     nextProposalId++,
                                     match,
                                     knownReferences,
                                     knownReferencesAvailable
-                            )
+                            );
+
+                    if (hasOwnDocumentData(proposal)) {
+                        pendingSharedAllocationKeys.clear();
+                        activeSharedAllocations.clear();
+                    } else {
+                        for (DocumentReferenceAllocation allocation
+                                : activeSharedAllocations) {
+                            proposal = proposal.withAllocation(allocation);
+                        }
+                    }
+
+                    unique.put(
+                            reference.identityKey(),
+                            proposal
                     );
+
+                    if (!hasOwnDocumentData(proposal)) {
+                        pendingSharedAllocationKeys.add(
+                                reference.identityKey()
+                        );
+                    }
                 }
             }
         }
@@ -277,6 +326,35 @@ public final class ReferenceListReviewViewModel
                                     duplicateCount
                             )
                     );
+        }
+    }
+
+    private boolean hasOwnDocumentData(
+            ReferenceProposal proposal
+    ) {
+        DocumentReferenceData data =
+                proposal.getDocumentData();
+
+        return data.getQuantity() != null
+                || data.getUnit() != null
+                || !data.getDestinations().isEmpty();
+    }
+
+    private void applySharedAllocation(
+            Map<String, ReferenceProposal> proposals,
+            List<String> referenceKeys,
+            DocumentReferenceAllocation allocation
+    ) {
+        for (String key : referenceKeys) {
+            ReferenceProposal proposal =
+                    proposals.get(key);
+
+            if (proposal != null) {
+                proposals.put(
+                        key,
+                        proposal.withAllocation(allocation)
+                );
+            }
         }
     }
 
@@ -335,6 +413,8 @@ public final class ReferenceListReviewViewModel
     ) {
         WarehouseReference observedReference =
                 match.getObservedReference();
+        WarehouseReference reference =
+                match.getReference();
 
         List<WarehouseReferenceSuggestion>
                 contextualSuggestions =
@@ -358,17 +438,25 @@ public final class ReferenceListReviewViewModel
                         contextualSuggestions
                 );
 
-        ReferenceProposal.MatchStatus matchStatus =
-                contextualMatchStatusFor(
-                        observedReference,
-                        contextualSuggestions,
-                        knownReferences,
-                        knownReferencesAvailable
-                );
+        ReferenceProposal.MatchStatus matchStatus;
+
+        if (match.hasResolvedReference()
+                && knownReferences.contains(reference)) {
+            matchStatus = ReferenceProposal.MatchStatus.EXACT;
+            suggestions = Collections.emptyList();
+            contextualSuggestions = Collections.emptyList();
+        } else {
+            matchStatus = contextualMatchStatusFor(
+                    observedReference,
+                    contextualSuggestions,
+                    knownReferences,
+                    knownReferencesAvailable
+            );
+        }
 
         return new ReferenceProposal(
                 proposalId,
-                observedReference,
+                reference,
                 observedReference,
                 match.getSourceRawText(),
                 false,
@@ -393,9 +481,7 @@ public final class ReferenceListReviewViewModel
 
         if (isValidReference(reference)
                 && knownReferences.contains(reference)) {
-            return suggestions.isEmpty()
-                    ? ReferenceProposal.MatchStatus.EXACT
-                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
+            return ReferenceProposal.MatchStatus.EXACT;
         }
 
         if (suggestions.size() == 1) {
@@ -621,6 +707,25 @@ public final class ReferenceListReviewViewModel
         publish(proposals);
 
         return ReferenceInputResult.success();
+    }
+
+    public void toggleReferenceReview(
+            long proposalId
+    ) {
+        List<ReferenceProposal> proposals = mutableProposals();
+        int proposalIndex = findIndex(proposals, proposalId);
+
+        if (proposalIndex < 0) {
+            return;
+        }
+
+        proposals.set(
+                proposalIndex,
+                proposals.get(proposalIndex)
+                        .toggleReviewState()
+        );
+
+        publish(proposals);
     }
 
     public ReferenceInputResult applyQuantitySuggestion(
@@ -855,9 +960,7 @@ public final class ReferenceListReviewViewModel
         }
 
         if (knownReferences.contains(observed)) {
-            return suggestions.isEmpty()
-                    ? ReferenceProposal.MatchStatus.EXACT
-                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
+            return ReferenceProposal.MatchStatus.EXACT;
         }
 
         if (suggestions.size() == 1) {

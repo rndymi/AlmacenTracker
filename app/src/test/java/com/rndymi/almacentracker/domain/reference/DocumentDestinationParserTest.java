@@ -31,4 +31,12 @@ public final class DocumentDestinationParserTest {
                         .isEmpty()
         );
     }
+
+    @Test
+    public void parseSupportsCircledDestinationsBeyondTen() {
+        assertEquals(
+                Arrays.asList("⑪", "⑬", "㉑"),
+                parser.parse("1P - ⑪⑬㉑")
+        );
+    }
 }

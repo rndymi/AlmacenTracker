@@ -15,6 +15,7 @@ public final class DocumentReferenceData {
     private final String sourceText;
     private final WarehouseReference observedReference;
     private final List<String> destinations;
+    private final List<DocumentReferenceAllocation> allocations;
 
     public DocumentReferenceData(
             WarehouseReference reference,
@@ -30,6 +31,7 @@ public final class DocumentReferenceData {
                 unit,
                 sourceLineIndex,
                 sourceText,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList()
         );
@@ -51,6 +53,7 @@ public final class DocumentReferenceData {
                 sourceLineIndex,
                 sourceText,
                 quantitySuggestions,
+                Collections.emptyList(),
                 Collections.emptyList()
         );
     }
@@ -64,6 +67,30 @@ public final class DocumentReferenceData {
             String sourceText,
             List<Integer> quantitySuggestions,
             List<String> destinations
+    ) {
+        this(
+                reference,
+                observedReference,
+                quantity,
+                unit,
+                sourceLineIndex,
+                sourceText,
+                quantitySuggestions,
+                destinations,
+                Collections.emptyList()
+        );
+    }
+
+    public DocumentReferenceData(
+            WarehouseReference reference,
+            WarehouseReference observedReference,
+            Integer quantity,
+            String unit,
+            int sourceLineIndex,
+            String sourceText,
+            List<Integer> quantitySuggestions,
+            List<String> destinations,
+            List<DocumentReferenceAllocation> allocations
     ) {
         if (sourceLineIndex < 0) {
             throw new IllegalArgumentException(
@@ -106,6 +133,11 @@ public final class DocumentReferenceData {
                 immutableDestinations(
                         destinations
                 );
+
+        this.allocations =
+                immutableAllocations(
+                        allocations
+                );
     }
 
     public WarehouseReference getReference() {
@@ -138,6 +170,10 @@ public final class DocumentReferenceData {
 
     public List<String> getDestinations() {
         return destinations;
+    }
+
+    public List<DocumentReferenceAllocation> getAllocations() {
+        return allocations;
     }
 
     public boolean hasQuantityAmbiguity() {
@@ -199,6 +235,29 @@ public final class DocumentReferenceData {
             if (normalized != null
                     && !result.contains(normalized)) {
                 result.add(normalized);
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
+    }
+
+    private static List<DocumentReferenceAllocation>
+    immutableAllocations(
+            List<DocumentReferenceAllocation> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<DocumentReferenceAllocation> result =
+                new ArrayList<>();
+
+        for (DocumentReferenceAllocation value : values) {
+            if (value != null
+                    && !result.contains(value)) {
+                result.add(value);
             }
         }
 

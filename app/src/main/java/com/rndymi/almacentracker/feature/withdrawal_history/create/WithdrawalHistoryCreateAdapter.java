@@ -107,7 +107,11 @@ public final class WithdrawalHistoryCreateAdapter
                             && equalsNullable(
                             oldItem.getUnitError(),
                             newItem.getUnitError()
-                    );
+                    )
+                            && oldItem.getDestinations()
+                            .equals(
+                                    newItem.getDestinations()
+                            );
                 }
             };
 
@@ -198,6 +202,28 @@ public final class WithdrawalHistoryCreateAdapter
                                     R.string
                                     .withdrawal_history_not_found
                             )
+            );
+
+            boolean hasDestinations =
+                    !model.getDestinations().isEmpty();
+
+            binding.destinationsText.setVisibility(
+                    hasDestinations
+                            ? View.VISIBLE
+                            : View.GONE
+            );
+            binding.destinationsText.setText(
+                    hasDestinations
+                            ? binding.getRoot()
+                            .getContext()
+                            .getString(
+                                    R.string.withdrawal_history_destinations,
+                                    String.join(
+                                            ", ",
+                                            model.getDestinations()
+                                    )
+                            )
+                            : ""
             );
 
             if (!binding.quantityEditText.hasFocus()

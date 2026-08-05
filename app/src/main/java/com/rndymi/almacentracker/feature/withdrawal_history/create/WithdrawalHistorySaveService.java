@@ -117,6 +117,7 @@ public final class WithdrawalHistorySaveService {
                 new WithdrawalHistory(
                         0L,
                         draft.getTitle(),
+                        draft.getDestination(),
                         draft.getRegisteredAt(),
                         now,
                         now
@@ -145,7 +146,8 @@ public final class WithdrawalHistorySaveService {
                             draftEntry.getSiteSnapshot(),
                             draftEntry
                                     .getPositionSnapshot(),
-                            draftEntry.getLocationStatus()
+                            draftEntry.getLocationStatus(),
+                            draftEntry.getDestinations()
                     )
             );
         }
@@ -176,6 +178,14 @@ public final class WithdrawalHistorySaveService {
                 > MAX_TITLE_LENGTH) {
             throw new IllegalArgumentException(
                     "Title exceeds maximum length"
+            );
+        }
+
+        if (draft.getDestination() != null
+                && draft.getDestination().length()
+                > MAX_TITLE_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Destination exceeds maximum length"
             );
         }
 

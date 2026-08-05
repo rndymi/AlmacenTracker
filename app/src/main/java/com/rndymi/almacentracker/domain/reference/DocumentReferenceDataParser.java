@@ -27,9 +27,24 @@ public final class DocumentReferenceDataParser {
                             + "[\\p{L}0-9]+){0,2}))?"
                             + "[\\p{Z}\\s:;,.\\-/]*$"
             );
+    private static final Pattern MISSING_QUANTITY_PATTERN =
+            Pattern.compile(
+                    "^[\\p{Z}\\s:;,.\\-/]*"
+                            + "(P(?:CS|QT|QTS)?)"
+                            + "[\\p{Z}\\s:;,.\\-/]*$"
+            );
     private static final Pattern DOCUMENT_DESTINATION_PATTERN =
             Pattern.compile(
-                    "[①②③④⑤⑥⑦⑧⑨⑩]"
+                    "[①-⑳㉑-㉟㊱-㊿]"
+            );
+    private static final Pattern MISPLACED_REFERENCE_DASH_PATTERN =
+            Pattern.compile(
+                    "^[\\p{Z}\\s]*([A-Z]{1,2})"
+                            + "[\\p{Z}\\s]*([0-9]{1,2})"
+                            + "[\\p{Z}\\s]*[-\\u2010-\\u2014]"
+                            + "[\\p{Z}\\s]*([0-9]{2,4})"
+                            + "[\\p{Z}\\s]*[-\\u2010-\\u2014]?"
+                            + "[\\p{Z}\\s]*$"
             );
 
     private final DocumentUnitNormalizer unitNormalizer;
@@ -107,6 +122,39 @@ public final class DocumentReferenceDataParser {
         String normalizedSource =
                 normalize(sourceText);
 
+        String referenceTail =
+                findTailAfterReference(
+                        normalizedSource,
+                        match.getObservedReference()
+                );
+
+        if (referenceTail == null
+                && !match.getReference().equals(
+                match.getObservedReference()
+        )) {
+            referenceTail =
+                    findTailAfterReference(
+                            normalizedSource,
+                            match.getReference()
+                    );
+        }
+
+        if (referenceTail != null) {
+            return parseTail(
+                    match,
+                    referenceTail,
+                    true
+            );
+        }
+
+
+        if (isMisplacedDashInsideReference(
+                normalizedSource,
+                match.getObservedReference()
+        )) {
+            return withoutProposal(match);
+        }
+
         Matcher delimiterMatcher =
                 DOCUMENT_DATA_DELIMITER_PATTERN
                         .matcher(normalizedSource);
@@ -121,21 +169,26 @@ public final class DocumentReferenceDataParser {
             );
         }
 
-        String fallbackTail =
-                findTailAfterReference(
-                        normalizedSource,
-                        match.getReference()
-                );
+        return withoutProposal(match);
+    }
 
-        if (fallbackTail == null) {
-            return withoutProposal(match);
+    private boolean isMisplacedDashInsideReference(
+            String normalizedSource,
+            WarehouseReference observedReference
+    ) {
+        if (observedReference == null) {
+            return false;
         }
 
-        return parseTail(
-                match,
-                fallbackTail,
-                true
-        );
+        Matcher matcher = MISPLACED_REFERENCE_DASH_PATTERN
+                .matcher(normalizedSource);
+
+        return matcher.matches()
+                && matcher.group(1).equals(
+                observedReference.getCategory()
+        )
+                && (matcher.group(2) + matcher.group(3))
+                .equals(observedReference.getCode());
     }
 
     private DocumentReferenceData parseTail(
@@ -156,27 +209,45 @@ public final class DocumentReferenceDataParser {
                 );
 
         if (!matcher.matches()) {
+            Matcher missingQuantityMatcher =
+                    MISSING_QUANTITY_PATTERN.matcher(
+                            normalizedTail
+                    );
+
+            if (missingQuantityMatcher.matches()) {
+                return new DocumentReferenceData(
+                        match.getReference(),
+                        match.getObservedReference(),
+                        1,
+                        unitNormalizer.normalize(
+                                missingQuantityMatcher.group(1)
+                        ),
+                        match.getSourceLineIndex(),
+                        match.getSourceRawText(),
+                        Collections.emptyList(),
+                        destinationParser.parse(sourceTail)
+                );
+            }
+
             return withoutProposal(match);
         }
 
-        Integer quantity =
-                quantityNormalizer.normalize(
-                        matcher.group(1)
-                );
+        String observedQuantity = matcher.group(1);
+        String observedUnit = matcher.group(2);
+        Integer quantity = quantityNormalizer.normalize(
+                observedQuantity
+        );
 
         List<Integer> quantitySuggestions =
                 quantityNormalizer
                         .suggestZeroSixAlternatives(
-                                matcher.group(1)
+                                observedQuantity
                         );
 
         if (quantity == null
                 && quantitySuggestions.isEmpty()) {
             return withoutProposal(match);
         }
-
-        String observedUnit =
-                matcher.group(2);
 
         String unit =
                 unitNormalizer.normalize(
@@ -195,7 +266,7 @@ public final class DocumentReferenceDataParser {
 
         List<String> destinations =
                 destinationParser.parse(
-                        match.getSourceRawText()
+                        sourceTail
                 );
 
         return new DocumentReferenceData(
@@ -303,9 +374,27 @@ public final class DocumentReferenceDataParser {
                 match.getSourceLineIndex(),
                 match.getSourceRawText(),
                 Collections.emptyList(),
-                destinationParser.parse(
-                        match.getSourceRawText()
-                )
+                destinationsAfterReference(match)
         );
+    }
+
+    private List<String> destinationsAfterReference(
+            WarehouseReferenceMatch match
+    ) {
+        String sourceText = match.getSourceRawText();
+
+        if (sourceText == null) {
+            return Collections.emptyList();
+        }
+
+        String normalized = normalize(sourceText);
+        String tail = findTailAfterReference(
+                normalized,
+                match.getObservedReference()
+        );
+
+        return tail == null
+                ? Collections.emptyList()
+                : destinationParser.parse(tail);
     }
 }

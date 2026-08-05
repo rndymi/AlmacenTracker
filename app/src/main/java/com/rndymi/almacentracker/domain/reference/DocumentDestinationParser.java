@@ -10,7 +10,7 @@ public final class DocumentDestinationParser {
 
     private static final Pattern CIRCLED_DESTINATION =
             Pattern.compile(
-                    "[①②③④⑤⑥⑦⑧⑨⑩]"
+                    "[①-⑳㉑-㉟㊱-㊿]"
             );
 
     public List<String> parse(

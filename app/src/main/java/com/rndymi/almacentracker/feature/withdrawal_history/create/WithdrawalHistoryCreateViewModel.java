@@ -140,7 +140,8 @@ public final class WithdrawalHistoryCreateViewModel
                             value.getPositionSnapshot(),
                             value.getLocationStatus(),
                             null,
-                            null
+                            null,
+                            value.getDestinations()
                     )
             );
         }
@@ -158,6 +159,7 @@ public final class WithdrawalHistoryCreateViewModel
                         normalizeInitialTitle(
                                 initialTitle
                         ),
+                        "",
                         now,
                         entries
                 )
@@ -176,6 +178,27 @@ public final class WithdrawalHistoryCreateViewModel
 
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.ready(
+                        value == null ? "" : value,
+                        current.getDestination(),
+                        current.getRegisteredAt(),
+                        current.getEntries()
+                )
+        );
+    }
+
+    public void onDestinationChanged(
+            String value
+    ) {
+        WithdrawalHistoryCreateUiState current =
+                currentEditableState();
+
+        if (current == null) {
+            return;
+        }
+
+        uiState.setValue(
+                WithdrawalHistoryCreateUiState.ready(
+                        current.getTitle(),
                         value == null ? "" : value,
                         current.getRegisteredAt(),
                         current.getEntries()
@@ -268,6 +291,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.saving(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         current.getEntries()
                 )
@@ -324,6 +348,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.postValue(
                 WithdrawalHistoryCreateUiState.saved(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         current.getEntries()
                 )
@@ -353,6 +378,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.postValue(
                 WithdrawalHistoryCreateUiState.saveError(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         current.getEntries(),
                         SAVE_ERROR_MESSAGE
@@ -414,7 +440,8 @@ public final class WithdrawalHistoryCreateViewModel
                             entry.getWarehouseItemIdSnapshot(),
                             entry.getSiteSnapshot(),
                             entry.getPositionSnapshot(),
-                            entry.getLocationStatus()
+                            entry.getLocationStatus(),
+                            entry.getDestinations()
                     )
             );
         }
@@ -422,6 +449,9 @@ public final class WithdrawalHistoryCreateViewModel
         return new WithdrawalHistoryDraft(
                 validator.normalizeTitle(
                         current.getTitle()
+                ),
+                normalizeOptionalText(
+                        current.getDestination()
                 ),
                 current.getRegisteredAt(),
                 draftEntries
@@ -467,6 +497,7 @@ public final class WithdrawalHistoryCreateViewModel
 
         return WithdrawalHistoryCreateUiState.invalid(
                 current.getTitle(),
+                current.getDestination(),
                 current.getRegisteredAt(),
                 updatedEntries,
                 result.getTitleError(),
@@ -503,6 +534,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.ready(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         updated
                 )
@@ -534,6 +566,19 @@ public final class WithdrawalHistoryCreateViewModel
                 .trim()
                 .replaceAll("\\s+", " ")
                 .toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeOptionalText(
+            String value
+    ) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim().replaceAll(
+                "[\\p{Z}\\s]+",
+                " "
+        );
     }
 
     private interface EntryUpdater {

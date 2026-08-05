@@ -14,6 +14,7 @@ import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListLocationBinding;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceLocation;
 import com.rndymi.almacentracker.feature.inventory.detail.ItemDetailActivity;
@@ -307,54 +308,11 @@ public final class ReferenceListLocationActivity
                             location.getReference()
                     );
 
-            Integer quantity =
-                    documentData == null
-                            ? null
-                            : documentData.getQuantity();
-
-            String unit =
-                    documentData == null
-                            ? null
-                            : documentData.getUnit();
-
-            if (location.isFound()) {
-                input.add(
-                        new WithdrawalHistoryCreateInput(
-                                index,
-                                location
-                                        .getReference()
-                                        .getCategory(),
-                                location
-                                        .getReference()
-                                        .getCode(),
-                                quantity,
-                                unit,
-                                location.getWarehouseItemId(),
-                                location.getSite(),
-                                location.getPosition(),
-                                WithdrawalLocationStatus.FOUND
-                        )
-                );
-            } else {
-                input.add(
-                        new WithdrawalHistoryCreateInput(
-                                index,
-                                location
-                                        .getReference()
-                                        .getCategory(),
-                                location
-                                        .getReference()
-                                        .getCode(),
-                                quantity,
-                                unit,
-                                null,
-                                null,
-                                null,
-                                WithdrawalLocationStatus
-                                        .NOT_FOUND
-                        )
-                );
-            }
+            addHistoryInputs(
+                    input,
+                    location,
+                    documentData
+            );
         }
 
         startActivity(
@@ -364,6 +322,77 @@ public final class ReferenceListLocationActivity
                                 input,
                                 documentTitle
                         )
+        );
+    }
+
+    private void addHistoryInputs(
+            List<WithdrawalHistoryCreateInput> input,
+            WarehouseReferenceLocation location,
+            @Nullable DocumentReferenceData documentData
+    ) {
+        if (documentData != null
+                && !documentData.getAllocations().isEmpty()) {
+            for (DocumentReferenceAllocation allocation
+                    : documentData.getAllocations()) {
+                input.add(
+                        historyInput(
+                                input.size(),
+                                location,
+                                allocation.getQuantity(),
+                                allocation.getUnit(),
+                                Collections.singletonList(
+                                        allocation.getDestination()
+                                )
+                        )
+                );
+            }
+
+            return;
+        }
+
+        input.add(
+                historyInput(
+                        input.size(),
+                        location,
+                        documentData == null
+                                ? null
+                                : documentData.getQuantity(),
+                        documentData == null
+                                ? null
+                                : documentData.getUnit(),
+                        documentData == null
+                                ? Collections.emptyList()
+                                : documentData.getDestinations()
+                )
+        );
+    }
+
+    private WithdrawalHistoryCreateInput historyInput(
+            int orderIndex,
+            WarehouseReferenceLocation location,
+            Integer quantity,
+            String unit,
+            List<String> destinations
+    ) {
+        return new WithdrawalHistoryCreateInput(
+                orderIndex,
+                location.getReference().getCategory(),
+                location.getReference().getCode(),
+                quantity,
+                unit,
+                location.isFound()
+                        ? location.getWarehouseItemId()
+                        : null,
+                location.isFound()
+                        ? location.getSite()
+                        : null,
+                location.isFound()
+                        ? location.getPosition()
+                        : null,
+                location.isFound()
+                        ? WithdrawalLocationStatus.FOUND
+                        : WithdrawalLocationStatus.NOT_FOUND,
+                destinations
         );
     }
 

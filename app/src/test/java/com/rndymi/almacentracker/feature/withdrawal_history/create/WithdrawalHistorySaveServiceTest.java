@@ -118,6 +118,13 @@ public final class WithdrawalHistorySaveServiceTest {
                         .get(0)
                         .getPositionSnapshot()
         );
+        assertEquals(
+                Arrays.asList("Tienda 2"),
+                repository.insertedRecord
+                        .getEntries()
+                        .get(0)
+                        .getDestinations()
+        );
     }
 
     @Test
@@ -231,7 +238,8 @@ public final class WithdrawalHistorySaveServiceTest {
                         7L,
                         "A1",
                         "2",
-                        WithdrawalLocationStatus.FOUND
+                        WithdrawalLocationStatus.FOUND,
+                        Arrays.asList("Tienda 2")
                 );
 
         WithdrawalHistoryDraftEntry notFound =

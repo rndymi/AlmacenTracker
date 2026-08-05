@@ -332,6 +332,73 @@ public final class DocumentReferenceDataParserTest {
         );
     }
 
+    @Test
+    public void parseSpecialReferenceUsesSecondDashForQuantity() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "M",
+                        "873-9",
+                        "M873-9 - 1P - ①"
+                )
+        );
+
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals("P", result.getUnit());
+        assertEquals(
+                Arrays.asList("①"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void circledCodeExtensionIsNotAlsoADestination() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "M",
+                        "873-①",
+                        "M873-① - 1P - ①②"
+                )
+        );
+
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals(
+                Arrays.asList("①", "②"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void missingQuantityBeforeUnitDefaultsToOne() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "M",
+                        "873-①",
+                        "M873-① - P - ①②"
+                )
+        );
+
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals("P", result.getUnit());
+        assertEquals(
+                Arrays.asList("①", "②"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void misplacedDashCorrectedInsideCodeIsNotQuantity() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "MR",
+                        "8250",
+                        "MR8-250-"
+                )
+        );
+
+        assertNull(result.getQuantity());
+        assertNull(result.getUnit());
+    }
+
     private WarehouseReferenceMatch match(
             String category,
             String code,

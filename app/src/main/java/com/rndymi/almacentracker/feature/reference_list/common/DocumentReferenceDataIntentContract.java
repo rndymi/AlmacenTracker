@@ -5,6 +5,7 @@ import android.content.Intent;
 import androidx.annotation.Nullable;
 
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 
 import java.util.ArrayList;
@@ -24,10 +25,14 @@ public final class DocumentReferenceDataIntentContract {
             "\u001E";
 
     private static final String FORMAT_VERSION =
+            "3";
+
+    private static final String PREVIOUS_FORMAT_VERSION =
             "2";
 
     private static final int LEGACY_FIELD_COUNT = 5;
-    private static final int CURRENT_FIELD_COUNT = 10;
+    private static final int PREVIOUS_FIELD_COUNT = 10;
+    private static final int CURRENT_FIELD_COUNT = 11;
 
     private DocumentReferenceDataIntentContract() {
     }
@@ -135,6 +140,10 @@ public final class DocumentReferenceDataIntentContract {
                 value.getDestinations()
         )
                 + FIELD_SEPARATOR
+                + encodeAllocations(
+                value.getAllocations()
+        )
+                + FIELD_SEPARATOR
                 + value.getSourceLineIndex()
                 + FIELD_SEPARATOR
                 + encodeField(
@@ -157,6 +166,13 @@ public final class DocumentReferenceDataIntentContract {
 
         if (parts.length == LEGACY_FIELD_COUNT) {
             return decodeLegacy(parts);
+        }
+
+        if (parts.length == PREVIOUS_FIELD_COUNT
+                && PREVIOUS_FORMAT_VERSION.equals(
+                parts[0]
+        )) {
+            return decodeVersionTwo(parts);
         }
 
         if (parts.length != CURRENT_FIELD_COUNT
@@ -194,18 +210,21 @@ public final class DocumentReferenceDataIntentContract {
         List<String> destinations =
                 decodeDestinations(parts[7]);
 
+        List<DocumentReferenceAllocation> allocations =
+                decodeAllocations(parts[8]);
+
         int sourceLineIndex;
 
         try {
             sourceLineIndex =
-                    Integer.parseInt(parts[8]);
+                    Integer.parseInt(parts[9]);
         } catch (NumberFormatException exception) {
             return null;
         }
 
         String sourceText =
                 emptyToNull(
-                        decodeField(parts[9])
+                        decodeField(parts[10])
                 );
 
         try {
@@ -223,11 +242,31 @@ public final class DocumentReferenceDataIntentContract {
                     sourceLineIndex,
                     sourceText,
                     Collections.emptyList(),
-                    destinations
+                    destinations,
+                    allocations
             );
         } catch (IllegalArgumentException exception) {
             return null;
         }
+    }
+
+    private static DocumentReferenceData decodeVersionTwo(
+            String[] parts
+    ) {
+        String[] upgraded = new String[CURRENT_FIELD_COUNT];
+        upgraded[0] = FORMAT_VERSION;
+
+        System.arraycopy(parts, 1, upgraded, 1, 7);
+        upgraded[8] = "";
+        upgraded[9] = parts[8];
+        upgraded[10] = parts[9];
+
+        return decode(
+                String.join(
+                        FIELD_SEPARATOR,
+                        upgraded
+                )
+        );
     }
 
     private static DocumentReferenceData decodeLegacy(
@@ -340,6 +379,72 @@ public final class DocumentReferenceDataIntentContract {
                     decoded.trim()
             )) {
                 result.add(decoded.trim());
+            }
+        }
+
+        return result;
+    }
+
+    private static String encodeAllocations(
+            List<DocumentReferenceAllocation> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+
+        List<String> encoded = new ArrayList<>();
+
+        for (DocumentReferenceAllocation value : values) {
+            if (value == null) {
+                continue;
+            }
+
+            encoded.add(
+                    value.getQuantity()
+                            + ":"
+                            + encodeField(value.getUnit())
+                            + ":"
+                            + encodeField(
+                            value.getDestination()
+                    )
+            );
+        }
+
+        return String.join(LIST_SEPARATOR, encoded);
+    }
+
+    private static List<DocumentReferenceAllocation>
+    decodeAllocations(String value) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<DocumentReferenceAllocation> result =
+                new ArrayList<>();
+
+        for (String encoded : value.split(
+                LIST_SEPARATOR,
+                -1
+        )) {
+            String[] parts = encoded.split(":", 3);
+
+            if (parts.length != 3) {
+                continue;
+            }
+
+            try {
+                DocumentReferenceAllocation allocation =
+                        new DocumentReferenceAllocation(
+                                Integer.parseInt(parts[0]),
+                                decodeField(parts[1]),
+                                decodeField(parts[2])
+                        );
+
+                if (!result.contains(allocation)) {
+                    result.add(allocation);
+                }
+            } catch (IllegalArgumentException exception) {
+                // Ignore malformed optional allocation data.
             }
         }
 

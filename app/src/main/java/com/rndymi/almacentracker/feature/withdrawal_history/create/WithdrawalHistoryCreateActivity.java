@@ -207,6 +207,15 @@ public final class WithdrawalHistoryCreateActivity
                         }
                 )
         );
+        binding.destinationEditText.addTextChangedListener(
+                SimpleTextWatcher.afterTextChanged(
+                        value -> {
+                            if (!rendering) {
+                                viewModel.onDestinationChanged(value);
+                            }
+                        }
+                )
+        );
     }
 
     private void configureActions() {
@@ -282,6 +291,14 @@ public final class WithdrawalHistoryCreateActivity
                 state.getTitleError()
         );
 
+        if (!binding.destinationEditText
+                .getText().toString()
+                .equals(state.getDestination())) {
+            binding.destinationEditText.setText(
+                    state.getDestination()
+            );
+        }
+
         binding.dateText.setText(
                 DateFormat
                         .getDateTimeInstance(
@@ -321,6 +338,7 @@ public final class WithdrawalHistoryCreateActivity
         binding.titleEditText.setEnabled(
                 editable
         );
+        binding.destinationEditText.setEnabled(editable);
 
         binding.entriesRecyclerView.setEnabled(
                 editable

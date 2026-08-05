@@ -8,6 +8,7 @@ import com.rndymi.almacentracker.domain.history.WithdrawalHistory;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryEntry;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryRecord;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistorySummary;
+import com.rndymi.almacentracker.domain.history.WithdrawalDestinationCodec;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public final class WithdrawalHistoryRoomMapper {
         return new WithdrawalHistoryEntity(
                 history.getId(),
                 history.getTitle(),
+                history.getDestination(),
                 history.getRegisteredAt(),
                 history.getCreatedAt(),
                 history.getUpdatedAt()
@@ -45,6 +47,7 @@ public final class WithdrawalHistoryRoomMapper {
         return new WithdrawalHistory(
                 entity.getId(),
                 entity.getTitle(),
+                entity.getDestination(),
                 entity.getRegisteredAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
@@ -67,7 +70,9 @@ public final class WithdrawalHistoryRoomMapper {
                 entry.getCode(),
                 entry.getQuantity(),
                 entry.getUnit(),
-                null,
+                WithdrawalDestinationCodec.encode(
+                        entry.getDestinations()
+                ),
                 entry.getWarehouseItemIdSnapshot(),
                 entry.getSiteSnapshot(),
                 entry.getPositionSnapshot(),
@@ -96,6 +101,9 @@ public final class WithdrawalHistoryRoomMapper {
                 entity.getPositionSnapshot(),
                 parseLocationStatus(
                         entity.getLocationStatus()
+                ),
+                WithdrawalDestinationCodec.decode(
+                        entity.getDestinations()
                 )
         );
     }

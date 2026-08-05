@@ -8,6 +8,7 @@ import android.content.Intent;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 
 import org.junit.Test;
@@ -22,7 +23,7 @@ import java.util.List;
 public final class DocumentReferenceDataIntentContractTest {
 
     @Test
-    public void roundTripPreservesVersionTwoDocumentData() {
+    public void roundTripPreservesVersionThreeDocumentData() {
         WarehouseReference confirmed =
                 new WarehouseReference("MR", "8665");
         WarehouseReference observed =
@@ -36,7 +37,19 @@ public final class DocumentReferenceDataIntentContractTest {
                         4,
                         "MK866S - 1 P - ①②",
                         Collections.emptyList(),
-                        Arrays.asList("①", "②")
+                        Arrays.asList("①", "②"),
+                        Arrays.asList(
+                                new DocumentReferenceAllocation(
+                                        2,
+                                        "P",
+                                        "Tienda 2"
+                                ),
+                                new DocumentReferenceAllocation(
+                                        1,
+                                        "P",
+                                        "Tienda 1"
+                                )
+                        )
                 );
         Intent intent = new Intent();
 
@@ -64,6 +77,18 @@ public final class DocumentReferenceDataIntentContractTest {
         assertEquals(
                 Arrays.asList("①", "②"),
                 decoded.getDestinations()
+        );
+        assertEquals(
+                "Tienda 2",
+                decoded.getAllocations()
+                        .get(0)
+                        .getDestination()
+        );
+        assertEquals(
+                1,
+                decoded.getAllocations()
+                        .get(1)
+                        .getQuantity()
         );
     }
 
@@ -100,6 +125,37 @@ public final class DocumentReferenceDataIntentContractTest {
         assertEquals(
                 Collections.emptyList(),
                 result.getDestinations()
+        );
+    }
+
+    @Test
+    public void decodeSupportsPreviousVersionTwoFormat() {
+        Intent intent = new Intent();
+        ArrayList<String> encoded = new ArrayList<>();
+        encoded.add(
+                "2\u001FM\u001F873-9\u001FM\u001F873-9"
+                        + "\u001F1\u001FP\u001F"
+                        + "\u001F2\u001FM873-9%20-%201P"
+        );
+        intent.putStringArrayListExtra(
+                DocumentReferenceDataIntentContract
+                        .EXTRA_DOCUMENT_REFERENCES,
+                encoded
+        );
+
+        DocumentReferenceData result =
+                DocumentReferenceDataIntentContract
+                        .getDocumentReferences(intent)
+                        .get(0);
+
+        assertEquals("M", result.getReference().getCategory());
+        assertEquals("873-9", result.getReference().getCode());
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals("P", result.getUnit());
+        assertEquals(2, result.getSourceLineIndex());
+        assertEquals(
+                Collections.emptyList(),
+                result.getAllocations()
         );
     }
 }

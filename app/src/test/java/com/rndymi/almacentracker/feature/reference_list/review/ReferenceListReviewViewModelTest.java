@@ -12,6 +12,7 @@ import com.rndymi.almacentracker.core.common.event.UiEvent;
 import com.rndymi.almacentracker.data.repository.RepositoryCallback;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentLineSanitizer;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 import com.rndymi.almacentracker.testutil.WarehouseItemRepositoryStub;
@@ -1255,7 +1256,7 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
-    public void exactReferenceShowsHighConfidenceAlternativeAsAmbiguous() {
+    public void exactReferenceKeepsAlternativesWithoutBlocking() {
         ReferenceListReviewViewModel resolvingViewModel =
                 new ReferenceListReviewViewModel(
                         new WarehouseReferenceParser(),
@@ -1283,7 +1284,7 @@ public final class ReferenceListReviewViewModelTest {
                         .getProposals().get(0);
 
         assertEquals(
-                ReferenceProposal.MatchStatus.AMBIGUOUS,
+                ReferenceProposal.MatchStatus.EXACT,
                 proposal.getMatchStatus()
         );
         assertEquals(1, proposal.getSuggestions().size());
@@ -1291,9 +1292,27 @@ public final class ReferenceListReviewViewModelTest {
                 "MR 20166",
                 proposal.getSuggestions().get(0).displayValue()
         );
-        assertFalse(
+        assertFalse(proposal.shouldShowSuggestions());
+        assertTrue(
                 resolvingViewModel.getUiState().getValue().canConfirm()
         );
+
+        resolvingViewModel.toggleReferenceReview(proposal.getId());
+
+        ReferenceProposal pending = resolvingViewModel
+                .getUiState().getValue().getProposals().get(0);
+        assertTrue(pending.shouldShowSuggestions());
+        assertFalse(resolvingViewModel.getUiState()
+                .getValue().canConfirm());
+
+        resolvingViewModel.toggleReferenceReview(pending.getId());
+
+        ReferenceProposal approved = resolvingViewModel
+                .getUiState().getValue().getProposals().get(0);
+        assertFalse(approved.shouldShowSuggestions());
+        assertEquals(1, approved.getSuggestions().size());
+        assertTrue(resolvingViewModel.getUiState()
+                .getValue().canConfirm());
     }
 
     @Test
@@ -1352,6 +1371,127 @@ public final class ReferenceListReviewViewModelTest {
                         .getDocumentData()
                         .getQuantitySuggestions().isEmpty()
         );
+    }
+
+    @Test
+    public void sharedStoreAllocationsApplyToPrecedingReferenceGroup() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<List<WarehouseItem>> callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem("MR", "21518"),
+                                                warehouseItem("MR", "8250"),
+                                                warehouseItem("MR", "20566")
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Arrays.asList(
+                        "DA KE",
+                        "MR21518 -",
+                        "MR8250 -",
+                        ">",
+                        "2P - tienda 2",
+                        "MR20566 -",
+                        "P - tienda 1"
+                )
+        );
+
+        List<ReferenceProposal> proposals = resolvingViewModel
+                .getUiState().getValue().getProposals();
+
+        assertEquals(3, proposals.size());
+        assertEquals(
+                2,
+                proposals.get(0).getDocumentData()
+                        .getAllocations().size()
+        );
+        assertEquals(
+                "Tienda 2",
+                proposals.get(1).getDocumentData()
+                        .getAllocations().get(0)
+                        .getDestination()
+        );
+        assertEquals(
+                1,
+                proposals.get(1).getDocumentData()
+                        .getAllocations().get(1)
+                        .getQuantity()
+        );
+        assertEquals(
+                2,
+                proposals.get(2).getDocumentData()
+                        .getAllocations().size()
+        );
+    }
+
+    @Test
+    public void daKeOcrRegionsProduceElevenRealReferences() {
+        WarehouseReferenceParser parser =
+                new WarehouseReferenceParser();
+        List<WarehouseItem> known = Arrays.asList(
+                warehouseItem("M", "873-9"),
+                warehouseItem("M", "873-1"),
+                warehouseItem("MR", "21518"),
+                warehouseItem("MR", "8250"),
+                warehouseItem("MR", "20566"),
+                warehouseItem("MR", "8251"),
+                warehouseItem("MR", "20565"),
+                warehouseItem("MR", "9612"),
+                warehouseItem("MR", "20156"),
+                warehouseItem("MR", "19786"),
+                warehouseItem("MR", "21835")
+        );
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        parser,
+                        new WarehouseItemRepositoryStub() {
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<List<WarehouseItem>> callback
+                            ) {
+                                callback.onSuccess(known);
+                            }
+                        }
+                );
+        List<String> lines = new DocumentLineSanitizer(parser)
+                .sanitize(Arrays.asList(
+                        "om", "A8UTOA3", "DAKE",
+                        "m873-9-1p-①",
+                        "m873-①-p-①②",
+                        "mR21518-", "MR8-250-",
+                        "2p-tienda2", "mR20566-",
+                        "mR8251-", "p-tienda1",
+                        "mR20565-", "0", "mR9612-",
+                        "m20156-", "mr19786-", "mR21835-"
+                ));
+
+        resolvingViewModel.applyInitialLines(lines);
+
+        List<ReferenceProposal> proposals = resolvingViewModel
+                .getUiState().getValue().getProposals();
+        assertEquals(11, proposals.size());
+        assertEquals("M 873-1", proposals.get(1)
+                .getReference().displayValue());
+        assertEquals("MR 8250", proposals.get(3)
+                .getReference().displayValue());
+        assertEquals(null, proposals.get(3)
+                .getDocumentData().getQuantity());
+        assertEquals(2, proposals.get(2).getDocumentData()
+                .getAllocations().size());
+        assertEquals("M 20156", proposals.get(8)
+                .getObservedReference().displayValue());
+        assertEquals(2, proposals.get(10).getDocumentData()
+                .getAllocations().size());
     }
 
     private WarehouseItem warehouseItem(

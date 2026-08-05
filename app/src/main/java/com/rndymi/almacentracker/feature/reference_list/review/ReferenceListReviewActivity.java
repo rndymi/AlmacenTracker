@@ -18,6 +18,7 @@ import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListReviewBinding;
 import com.rndymi.almacentracker.databinding.DialogReferenceEditorBinding;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentLineSanitizer;
 import com.rndymi.almacentracker.domain.reference.DocumentTitleParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 
@@ -108,6 +109,10 @@ public final class ReferenceListReviewActivity
             recognizedLines =
                     Collections.emptyList();
         }
+
+        recognizedLines = new DocumentLineSanitizer(
+                new WarehouseReferenceParser()
+        ).sanitize(recognizedLines);
 
         documentTitle =
                 new DocumentTitleParser(
@@ -200,6 +205,15 @@ public final class ReferenceListReviewActivity
                                 viewModel.applyQuantitySuggestion(
                                         proposal.getId(),
                                         quantity
+                                );
+                            }
+
+                            @Override
+                            public void onReviewToggle(
+                                    ReferenceProposal proposal
+                            ) {
+                                viewModel.toggleReferenceReview(
+                                        proposal.getId()
                                 );
                             }
                         }

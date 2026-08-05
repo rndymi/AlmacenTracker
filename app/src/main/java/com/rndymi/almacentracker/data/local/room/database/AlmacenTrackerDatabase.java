@@ -15,7 +15,7 @@ import com.rndymi.almacentracker.data.local.room.entity.WithdrawalHistoryEntryEn
                 WithdrawalHistoryEntity.class,
                 WithdrawalHistoryEntryEntity.class
         },
-        version = 3,
+        version = 4,
         exportSchema = true
 )
 public abstract class AlmacenTrackerDatabase
