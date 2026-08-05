@@ -1,6 +1,8 @@
 package com.rndymi.almacentracker.domain.history;
 
 import java.util.Objects;
+import java.util.Collections;
+import java.util.List;
 
 public final class WithdrawalHistoryEntry {
 
@@ -15,6 +17,7 @@ public final class WithdrawalHistoryEntry {
     private final String siteSnapshot;
     private final String positionSnapshot;
     private final WithdrawalLocationStatus locationStatus;
+    private final List<String> destinations;
 
     public WithdrawalHistoryEntry(
             long id,
@@ -28,6 +31,36 @@ public final class WithdrawalHistoryEntry {
             String siteSnapshot,
             String positionSnapshot,
             WithdrawalLocationStatus locationStatus
+    ) {
+        this(
+                id,
+                historyId,
+                orderIndex,
+                category,
+                code,
+                quantity,
+                unit,
+                warehouseItemIdSnapshot,
+                siteSnapshot,
+                positionSnapshot,
+                locationStatus,
+                Collections.emptyList()
+        );
+    }
+
+    public WithdrawalHistoryEntry(
+            long id,
+            long historyId,
+            int orderIndex,
+            String category,
+            String code,
+            Integer quantity,
+            String unit,
+            Long warehouseItemIdSnapshot,
+            String siteSnapshot,
+            String positionSnapshot,
+            WithdrawalLocationStatus locationStatus,
+            List<String> destinations
     ) {
         if (id < 0L) {
             throw new IllegalArgumentException(
@@ -66,6 +99,9 @@ public final class WithdrawalHistoryEntry {
                 locationStatus,
                 "Location status cannot be null"
         );
+        this.destinations =
+                WithdrawalDestinationCodec
+                        .immutableCopy(destinations);
 
         String normalizedUnit = normalizeOptional(unit);
         String normalizedSite = normalizeOptional(siteSnapshot);
@@ -132,6 +168,10 @@ public final class WithdrawalHistoryEntry {
 
     public WithdrawalLocationStatus getLocationStatus() {
         return locationStatus;
+    }
+
+    public List<String> getDestinations() {
+        return destinations;
     }
 
     public boolean hasQuantity() {

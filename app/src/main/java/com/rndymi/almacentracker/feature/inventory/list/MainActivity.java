@@ -43,6 +43,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private WarehouseItemAdapter warehouseItemAdapter;
+    private WarehouseItemFastScroller fastScroller;
     private WarehouseItemListViewModel viewModel;
     private ActivityResultLauncher<Intent> scannerActivityLauncher;
 
@@ -137,8 +138,11 @@ public final class MainActivity extends AppCompatActivity {
                         }
                 );
 
+        LinearLayoutManager layoutManager =
+                new LinearLayoutManager(this);
+
         binding.warehouseRecyclerView.setLayoutManager(
-                new LinearLayoutManager(this)
+                layoutManager
         );
 
         binding.warehouseRecyclerView.setAdapter(
@@ -146,6 +150,13 @@ public final class MainActivity extends AppCompatActivity {
         );
 
         binding.warehouseRecyclerView.setHasFixedSize(true);
+
+        fastScroller =
+                new WarehouseItemFastScroller(
+                        binding.warehouseRecyclerView,
+                        layoutManager,
+                        binding.fastScrollHandle
+                );
     }
 
     private void configureViewModel() {
@@ -664,6 +675,10 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void hideAllContentStates() {
+        if (fastScroller != null) {
+            fastScroller.hideNow();
+        }
+
         binding.loadingProgress.setVisibility(View.GONE);
         binding.warehouseRecyclerView.setVisibility(View.GONE);
         binding.emptyState.setVisibility(View.GONE);
@@ -674,6 +689,11 @@ public final class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        if (fastScroller != null) {
+            fastScroller.detach();
+            fastScroller = null;
+        }
 
         binding.warehouseRecyclerView.setAdapter(null);
         binding = null;

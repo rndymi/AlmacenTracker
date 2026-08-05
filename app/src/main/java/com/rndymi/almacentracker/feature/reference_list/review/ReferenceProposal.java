@@ -1,7 +1,9 @@
 package com.rndymi.almacentracker.feature.reference_list.review;
 
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceSuggestion;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,12 +21,21 @@ public final class ReferenceProposal {
         USER_CONFIRMED
     }
 
+    public enum ReviewState {
+        AUTOMATIC,
+        APPROVED,
+        NEEDS_REVIEW
+    }
+
     private final long id;
     private final WarehouseReference reference;
+    private final WarehouseReference observedReference;
     private final String sourceRawText;
     private final boolean manuallyAdded;
     private final MatchStatus matchStatus;
+    private final ReviewState reviewState;
     private final List<WarehouseReference> suggestions;
+    private final List<WarehouseReferenceSuggestion> contextualSuggestions;
     private final DocumentReferenceData documentData;
 
     public ReferenceProposal(
@@ -36,9 +47,12 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
+                ReviewState.AUTOMATIC,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 null
         );
@@ -54,11 +68,13 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 requiresCorrection
                         ? MatchStatus.NO_MATCH
                         : MatchStatus.EXACT,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 null
         );
@@ -75,12 +91,14 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 requiresCorrection
                         ? statusForSuggestions(suggestions)
                         : MatchStatus.EXACT,
                 suggestions,
+                Collections.emptyList(),
                 null
         );
     }
@@ -96,10 +114,13 @@ public final class ReferenceProposal {
         this(
                 id,
                 reference,
+                reference,
                 sourceRawText,
                 manuallyAdded,
                 matchStatus,
+                ReviewState.AUTOMATIC,
                 suggestions,
+                Collections.emptyList(),
                 null
         );
     }
@@ -113,6 +134,57 @@ public final class ReferenceProposal {
             List<WarehouseReference> suggestions,
             DocumentReferenceData documentData
     ) {
+        this(
+                id,
+                reference,
+                reference,
+                sourceRawText,
+                manuallyAdded,
+                matchStatus,
+                ReviewState.AUTOMATIC,
+                suggestions,
+                Collections.emptyList(),
+                documentData
+        );
+    }
+
+    public ReferenceProposal(
+            long id,
+            WarehouseReference reference,
+            WarehouseReference observedReference,
+            String sourceRawText,
+            boolean manuallyAdded,
+            MatchStatus matchStatus,
+            List<WarehouseReference> suggestions,
+            List<WarehouseReferenceSuggestion> contextualSuggestions,
+            DocumentReferenceData documentData
+    ) {
+        this(
+                id,
+                reference,
+                observedReference,
+                sourceRawText,
+                manuallyAdded,
+                matchStatus,
+                ReviewState.AUTOMATIC,
+                suggestions,
+                contextualSuggestions,
+                documentData
+        );
+    }
+
+    private ReferenceProposal(
+            long id,
+            WarehouseReference reference,
+            WarehouseReference observedReference,
+            String sourceRawText,
+            boolean manuallyAdded,
+            MatchStatus matchStatus,
+            ReviewState reviewState,
+            List<WarehouseReference> suggestions,
+            List<WarehouseReferenceSuggestion> contextualSuggestions,
+            DocumentReferenceData documentData
+    ) {
         this.id = id;
 
         this.reference =
@@ -120,6 +192,11 @@ public final class ReferenceProposal {
                         reference,
                         "reference"
                 );
+
+        this.observedReference =
+                observedReference == null
+                        ? reference
+                        : observedReference;
 
         this.sourceRawText =
                 sourceRawText;
@@ -133,12 +210,27 @@ public final class ReferenceProposal {
                         "matchStatus"
                 );
 
+        this.reviewState =
+                Objects.requireNonNull(
+                        reviewState,
+                        "reviewState"
+                );
+
         this.suggestions =
                 Collections.unmodifiableList(
                         new ArrayList<>(
                                 suggestions == null
                                         ? Collections.emptyList()
                                         : suggestions
+                        )
+                );
+
+        this.contextualSuggestions =
+                Collections.unmodifiableList(
+                        new ArrayList<>(
+                                contextualSuggestions == null
+                                        ? Collections.emptyList()
+                                        : contextualSuggestions
                         )
                 );
 
@@ -162,6 +254,10 @@ public final class ReferenceProposal {
         return reference;
     }
 
+    public WarehouseReference getObservedReference() {
+        return observedReference;
+    }
+
     public String getSourceRawText() {
         return sourceRawText;
     }
@@ -172,20 +268,55 @@ public final class ReferenceProposal {
 
     public boolean requiresCorrection() {
         return documentData.hasQuantityAmbiguity()
-                || matchStatus
-                == MatchStatus.UNIQUE_SUGGESTION
-                || matchStatus
-                == MatchStatus.AMBIGUOUS
-                || matchStatus
-                == MatchStatus.NO_MATCH;
+                || !isCodeAccepted();
+    }
+
+    public boolean isCodeAccepted() {
+        if (reviewState == ReviewState.APPROVED) {
+            return true;
+        }
+
+        if (reviewState == ReviewState.NEEDS_REVIEW) {
+            return false;
+        }
+
+        return matchStatus == MatchStatus.EXACT
+                || matchStatus == MatchStatus.USER_CONFIRMED
+                || matchStatus == MatchStatus.UNVERIFIED;
     }
 
     public MatchStatus getMatchStatus() {
         return matchStatus;
     }
 
+    public ReviewState getReviewState() {
+        return reviewState;
+    }
+
+    public boolean shouldShowSuggestions() {
+        return !isCodeAccepted();
+    }
+
+    public ReferenceProposal toggleReviewState() {
+        return copy(
+                reference,
+                matchStatus,
+                isCodeAccepted()
+                        ? ReviewState.NEEDS_REVIEW
+                        : ReviewState.APPROVED,
+                suggestions,
+                contextualSuggestions,
+                documentData
+        );
+    }
+
     public List<WarehouseReference> getSuggestions() {
         return suggestions;
+    }
+
+    public List<WarehouseReferenceSuggestion>
+    getContextualSuggestions() {
+        return contextualSuggestions;
     }
 
     public DocumentReferenceData getDocumentData() {
@@ -198,20 +329,26 @@ public final class ReferenceProposal {
         DocumentReferenceData updatedDocumentData =
                 new DocumentReferenceData(
                         newReference,
+                        documentData.getObservedReference(),
                         documentData.getQuantity(),
                         documentData.getUnit(),
                         documentData.getSourceLineIndex(),
                         documentData.getSourceText(),
-                        documentData.getQuantitySuggestions()
+                        documentData.getQuantitySuggestions(),
+                        documentData.getDestinations(),
+                        documentData.getAllocations()
                 );
 
         return new ReferenceProposal(
                 id,
                 newReference,
+                observedReference,
                 sourceRawText,
                 manuallyAdded,
                 MatchStatus.USER_CONFIRMED,
+                ReviewState.AUTOMATIC,
                 Collections.emptyList(),
+                contextualSuggestions,
                 updatedDocumentData
         );
     }
@@ -222,19 +359,88 @@ public final class ReferenceProposal {
         DocumentReferenceData updatedDocumentData =
                 new DocumentReferenceData(
                         reference,
+                        documentData.getObservedReference(),
                         quantity,
                         documentData.getUnit(),
                         documentData.getSourceLineIndex(),
-                        documentData.getSourceText()
+                        documentData.getSourceText(),
+                        Collections.emptyList(),
+                        documentData.getDestinations(),
+                        documentData.getAllocations()
                 );
 
         return new ReferenceProposal(
                 id,
                 reference,
+                observedReference,
                 sourceRawText,
                 manuallyAdded,
                 matchStatus,
+                reviewState,
                 suggestions,
+                contextualSuggestions,
+                updatedDocumentData
+        );
+    }
+
+    private ReferenceProposal copy(
+            WarehouseReference updatedReference,
+            MatchStatus updatedMatchStatus,
+            ReviewState updatedReviewState,
+            List<WarehouseReference> updatedSuggestions,
+            List<WarehouseReferenceSuggestion> updatedContextualSuggestions,
+            DocumentReferenceData updatedDocumentData
+    ) {
+        return new ReferenceProposal(
+                id,
+                updatedReference,
+                observedReference,
+                sourceRawText,
+                manuallyAdded,
+                updatedMatchStatus,
+                updatedReviewState,
+                updatedSuggestions,
+                updatedContextualSuggestions,
+                updatedDocumentData
+        );
+    }
+
+    public ReferenceProposal withAllocation(
+            DocumentReferenceAllocation allocation
+    ) {
+        List<DocumentReferenceAllocation> allocations =
+                new ArrayList<>(
+                        documentData.getAllocations()
+                );
+
+        if (allocation != null
+                && !allocations.contains(allocation)) {
+            allocations.add(allocation);
+        }
+
+        DocumentReferenceData updatedDocumentData =
+                new DocumentReferenceData(
+                        reference,
+                        documentData.getObservedReference(),
+                        documentData.getQuantity(),
+                        documentData.getUnit(),
+                        documentData.getSourceLineIndex(),
+                        documentData.getSourceText(),
+                        documentData.getQuantitySuggestions(),
+                        documentData.getDestinations(),
+                        allocations
+                );
+
+        return new ReferenceProposal(
+                id,
+                reference,
+                observedReference,
+                sourceRawText,
+                manuallyAdded,
+                matchStatus,
+                reviewState,
+                suggestions,
+                contextualSuggestions,
                 updatedDocumentData
         );
     }

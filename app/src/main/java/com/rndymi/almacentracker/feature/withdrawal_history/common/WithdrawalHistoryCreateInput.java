@@ -3,6 +3,9 @@ package com.rndymi.almacentracker.feature.withdrawal_history.common;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class WithdrawalHistoryCreateInput {
 
@@ -15,6 +18,7 @@ public final class WithdrawalHistoryCreateInput {
     private final String siteSnapshot;
     private final String positionSnapshot;
     private final WithdrawalLocationStatus locationStatus;
+    private final List<String> destinations;
 
     public WithdrawalHistoryCreateInput(
             int orderIndex,
@@ -26,6 +30,32 @@ public final class WithdrawalHistoryCreateInput {
             String siteSnapshot,
             String positionSnapshot,
             WithdrawalLocationStatus locationStatus
+    ) {
+        this(
+                orderIndex,
+                category,
+                code,
+                quantityProposal,
+                unitProposal,
+                warehouseItemIdSnapshot,
+                siteSnapshot,
+                positionSnapshot,
+                locationStatus,
+                Collections.emptyList()
+        );
+    }
+
+    public WithdrawalHistoryCreateInput(
+            int orderIndex,
+            String category,
+            String code,
+            Integer quantityProposal,
+            String unitProposal,
+            Long warehouseItemIdSnapshot,
+            String siteSnapshot,
+            String positionSnapshot,
+            WithdrawalLocationStatus locationStatus,
+            List<String> destinations
     ) {
         if (orderIndex < 0) {
             throw new IllegalArgumentException(
@@ -53,6 +83,9 @@ public final class WithdrawalHistoryCreateInput {
                         locationStatus,
                         "locationStatus"
                 );
+        this.destinations = immutableDestinations(
+                destinations
+        );
     }
 
     public int getOrderIndex() {
@@ -89,5 +122,31 @@ public final class WithdrawalHistoryCreateInput {
 
     public WithdrawalLocationStatus getLocationStatus() {
         return locationStatus;
+    }
+
+    public List<String> getDestinations() {
+        return destinations;
+    }
+
+    private static List<String> immutableDestinations(
+            List<String> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> result = new ArrayList<>();
+
+        for (String value : values) {
+            if (value != null
+                    && !value.trim().isEmpty()
+                    && !result.contains(value.trim())) {
+                result.add(value.trim());
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
     }
 }

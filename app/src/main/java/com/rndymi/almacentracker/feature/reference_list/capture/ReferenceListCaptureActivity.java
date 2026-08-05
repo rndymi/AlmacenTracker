@@ -22,6 +22,8 @@ import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.document.DocumentImageLoader;
 import com.rndymi.almacentracker.core.document.DocumentImageSource;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListCaptureBinding;
+import com.rndymi.almacentracker.domain.reference.DocumentLineSanitizer;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
 import com.rndymi.almacentracker.feature.reference_list.review.ReferenceListReviewActivity;
 
 import java.io.File;
@@ -640,8 +642,10 @@ public final class ReferenceListCaptureActivity
         }
 
         List<String> reconstructedLines =
-                state.getRecognizedDocument()
-                        .getReconstructedLines();
+                sanitizeDocumentLines(
+                        state.getRecognizedDocument()
+                                .getReconstructedLines()
+                );
 
         List<String> rawLines =
                 state.getRecognizedDocument()
@@ -833,8 +837,10 @@ public final class ReferenceListCaptureActivity
         }
 
         List<String> recognizedLines =
-                state.getRecognizedDocument()
-                        .getReconstructedLines();
+                sanitizeDocumentLines(
+                        state.getRecognizedDocument()
+                                .getReconstructedLines()
+                );
 
         startActivity(
                 ReferenceListReviewActivity
@@ -843,6 +849,14 @@ public final class ReferenceListCaptureActivity
                                 recognizedLines
                         )
         );
+    }
+
+    private List<String> sanitizeDocumentLines(
+            List<String> lines
+    ) {
+        return new DocumentLineSanitizer(
+                new WarehouseReferenceParser()
+        ).sanitize(lines);
     }
 
     private void clearRenderedPreview() {

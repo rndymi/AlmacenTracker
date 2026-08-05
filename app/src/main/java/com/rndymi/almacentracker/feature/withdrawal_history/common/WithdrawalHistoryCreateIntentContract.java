@@ -18,6 +18,8 @@ public final class WithdrawalHistoryCreateIntentContract {
 
     private static final String SEPARATOR =
             "\u001F";
+    private static final String LIST_SEPARATOR =
+            "\u001E";
 
     private WithdrawalHistoryCreateIntentContract() {
     }
@@ -107,7 +109,11 @@ public final class WithdrawalHistoryCreateIntentContract {
                 value.getPositionSnapshot()
         )
                 + SEPARATOR
-                + value.getLocationStatus().name();
+                + value.getLocationStatus().name()
+                + SEPARATOR
+                + encodeDestinations(
+                value.getDestinations()
+        );
     }
 
     private static WithdrawalHistoryCreateInput decode(
@@ -120,7 +126,8 @@ public final class WithdrawalHistoryCreateIntentContract {
         String[] parts =
                 value.split(SEPARATOR, -1);
 
-        if (parts.length != 9) {
+        if (parts.length != 9
+                && parts.length != 10) {
             return null;
         }
 
@@ -136,7 +143,10 @@ public final class WithdrawalHistoryCreateIntentContract {
                     emptyToNull(parts[7]),
                     WithdrawalLocationStatus.valueOf(
                             parts[8]
-                    )
+                    ),
+                    parts.length == 10
+                            ? decodeDestinations(parts[9])
+                            : Collections.emptyList()
             );
         } catch (
                 IllegalArgumentException exception
@@ -190,5 +200,51 @@ public final class WithdrawalHistoryCreateIntentContract {
         return value.isEmpty()
                 ? null
                 : Long.valueOf(value);
+    }
+
+    private static String encodeDestinations(
+            List<String> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+
+        List<String> encoded = new ArrayList<>();
+
+        for (String value : values) {
+            if (value != null
+                    && !value.trim().isEmpty()) {
+                encoded.add(
+                        android.net.Uri.encode(value.trim())
+                );
+            }
+        }
+
+        return String.join(LIST_SEPARATOR, encoded);
+    }
+
+    private static List<String> decodeDestinations(
+            String value
+    ) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> result = new ArrayList<>();
+
+        for (String part : value.split(
+                LIST_SEPARATOR,
+                -1
+        )) {
+            String decoded = android.net.Uri.decode(part);
+
+            if (decoded != null
+                    && !decoded.trim().isEmpty()
+                    && !result.contains(decoded.trim())) {
+                result.add(decoded.trim());
+            }
+        }
+
+        return result;
     }
 }

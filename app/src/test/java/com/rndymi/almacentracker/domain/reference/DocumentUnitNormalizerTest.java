@@ -13,6 +13,11 @@ public final class DocumentUnitNormalizerTest {
     @Test
     public void normalizePreservesCleanUnits() {
         assertEquals(
+                "P",
+                normalizer.normalize("p")
+        );
+
+        assertEquals(
                 "PCS",
                 normalizer.normalize("pcs")
         );

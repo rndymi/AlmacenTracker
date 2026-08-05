@@ -10,6 +10,7 @@ import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraft;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftEntry;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidationResult;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidator;
+import com.rndymi.almacentracker.domain.history.WithdrawalStoreInputParser;
 import com.rndymi.almacentracker.feature.withdrawal_history.common.WithdrawalHistoryCreateInput;
 
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ public final class WithdrawalHistoryCreateViewModel
 
     private static final String SAVE_ERROR_MESSAGE =
             "No se pudo guardar el historial.";
+    private static final String STORES_ERROR_MESSAGE =
+            "Usa números de tienda entre 1 y 50, separados por comas.";
 
     private final WithdrawalHistorySaveService saveService;
     private final WithdrawalHistoryDraftValidator validator;
@@ -140,7 +143,8 @@ public final class WithdrawalHistoryCreateViewModel
                             value.getPositionSnapshot(),
                             value.getLocationStatus(),
                             null,
-                            null
+                            null,
+                            value.getDestinations()
                     )
             );
         }
@@ -158,6 +162,7 @@ public final class WithdrawalHistoryCreateViewModel
                         normalizeInitialTitle(
                                 initialTitle
                         ),
+                        "",
                         now,
                         entries
                 )
@@ -176,6 +181,27 @@ public final class WithdrawalHistoryCreateViewModel
 
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.ready(
+                        value == null ? "" : value,
+                        current.getDestination(),
+                        current.getRegisteredAt(),
+                        current.getEntries()
+                )
+        );
+    }
+
+    public void onDestinationChanged(
+            String value
+    ) {
+        WithdrawalHistoryCreateUiState current =
+                currentEditableState();
+
+        if (current == null) {
+            return;
+        }
+
+        uiState.setValue(
+                WithdrawalHistoryCreateUiState.ready(
+                        current.getTitle(),
                         value == null ? "" : value,
                         current.getRegisteredAt(),
                         current.getEntries()
@@ -203,6 +229,28 @@ public final class WithdrawalHistoryCreateViewModel
                 stableId,
                 entry -> entry.withUnit(
                         value == null ? "" : value
+                )
+        );
+    }
+
+    public void onStoresChanged(
+            long stableId,
+            String value
+    ) {
+        String input = value == null ? "" : value;
+        WithdrawalStoreInputParser.Result result =
+                WithdrawalStoreInputParser.parse(input);
+
+        updateEntry(
+                stableId,
+                entry -> entry.withStores(
+                        input,
+                        result.isValid()
+                                ? result.getDestinations()
+                                : entry.getDestinations(),
+                        result.isValid()
+                                ? null
+                                : STORES_ERROR_MESSAGE
                 )
         );
     }
@@ -268,6 +316,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.saving(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         current.getEntries()
                 )
@@ -324,6 +373,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.postValue(
                 WithdrawalHistoryCreateUiState.saved(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         current.getEntries()
                 )
@@ -353,6 +403,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.postValue(
                 WithdrawalHistoryCreateUiState.saveError(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         current.getEntries(),
                         SAVE_ERROR_MESSAGE
@@ -372,6 +423,20 @@ public final class WithdrawalHistoryCreateViewModel
             WithdrawalHistoryCreateUiState current,
             long now
     ) {
+        if (hasStoresError(current.getEntries())) {
+            uiState.setValue(
+                    WithdrawalHistoryCreateUiState.invalid(
+                            current.getTitle(),
+                            current.getDestination(),
+                            current.getRegisteredAt(),
+                            current.getEntries(),
+                            null,
+                            null
+                    )
+            );
+            return null;
+        }
+
         WithdrawalHistoryDraftValidationResult result =
                 validator.validate(
                         current.getTitle(),
@@ -414,7 +479,8 @@ public final class WithdrawalHistoryCreateViewModel
                             entry.getWarehouseItemIdSnapshot(),
                             entry.getSiteSnapshot(),
                             entry.getPositionSnapshot(),
-                            entry.getLocationStatus()
+                            entry.getLocationStatus(),
+                            entry.getDestinations()
                     )
             );
         }
@@ -423,9 +489,24 @@ public final class WithdrawalHistoryCreateViewModel
                 validator.normalizeTitle(
                         current.getTitle()
                 ),
+                normalizeOptionalText(
+                        current.getDestination()
+                ),
                 current.getRegisteredAt(),
                 draftEntries
         );
+    }
+
+    private static boolean hasStoresError(
+            List<WithdrawalHistoryDraftEntryUiModel> entries
+    ) {
+        for (WithdrawalHistoryDraftEntryUiModel entry : entries) {
+            if (entry.getStoresError() != null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private WithdrawalHistoryCreateUiState
@@ -467,6 +548,7 @@ public final class WithdrawalHistoryCreateViewModel
 
         return WithdrawalHistoryCreateUiState.invalid(
                 current.getTitle(),
+                current.getDestination(),
                 current.getRegisteredAt(),
                 updatedEntries,
                 result.getTitleError(),
@@ -503,6 +585,7 @@ public final class WithdrawalHistoryCreateViewModel
         uiState.setValue(
                 WithdrawalHistoryCreateUiState.ready(
                         current.getTitle(),
+                        current.getDestination(),
                         current.getRegisteredAt(),
                         updated
                 )
@@ -534,6 +617,19 @@ public final class WithdrawalHistoryCreateViewModel
                 .trim()
                 .replaceAll("\\s+", " ")
                 .toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeOptionalText(
+            String value
+    ) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim().replaceAll(
+                "[\\p{Z}\\s]+",
+                " "
+        );
     }
 
     private interface EntryUpdater {

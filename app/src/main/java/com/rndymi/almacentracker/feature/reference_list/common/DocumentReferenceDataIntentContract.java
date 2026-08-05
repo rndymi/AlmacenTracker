@@ -5,6 +5,7 @@ import android.content.Intent;
 import androidx.annotation.Nullable;
 
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 
 import java.util.ArrayList;
@@ -19,6 +20,19 @@ public final class DocumentReferenceDataIntentContract {
 
     private static final String FIELD_SEPARATOR =
             "\u001F";
+
+    private static final String LIST_SEPARATOR =
+            "\u001E";
+
+    private static final String FORMAT_VERSION =
+            "3";
+
+    private static final String PREVIOUS_FORMAT_VERSION =
+            "2";
+
+    private static final int LEGACY_FIELD_COUNT = 5;
+    private static final int PREVIOUS_FIELD_COUNT = 10;
+    private static final int CURRENT_FIELD_COUNT = 11;
 
     private DocumentReferenceDataIntentContract() {
     }
@@ -97,15 +111,44 @@ public final class DocumentReferenceDataIntentContract {
                         ? ""
                         : value.getUnit();
 
-        return value.getReference().getCategory()
+        WarehouseReference observed =
+                value.getObservedReference();
+
+        return FORMAT_VERSION
                 + FIELD_SEPARATOR
-                + value.getReference().getCode()
+                + encodeField(
+                value.getReference().getCategory()
+        )
+                + FIELD_SEPARATOR
+                + encodeField(
+                value.getReference().getCode()
+        )
+                + FIELD_SEPARATOR
+                + encodeField(
+                observed.getCategory()
+        )
+                + FIELD_SEPARATOR
+                + encodeField(
+                observed.getCode()
+        )
                 + FIELD_SEPARATOR
                 + quantity
                 + FIELD_SEPARATOR
-                + unit
+                + encodeField(unit)
                 + FIELD_SEPARATOR
-                + value.getSourceLineIndex();
+                + encodeDestinations(
+                value.getDestinations()
+        )
+                + FIELD_SEPARATOR
+                + encodeAllocations(
+                value.getAllocations()
+        )
+                + FIELD_SEPARATOR
+                + value.getSourceLineIndex()
+                + FIELD_SEPARATOR
+                + encodeField(
+                value.getSourceText()
+        );
     }
 
     private static DocumentReferenceData decode(
@@ -121,10 +164,114 @@ public final class DocumentReferenceDataIntentContract {
                         -1
                 );
 
-        if (parts.length != 5) {
+        if (parts.length == LEGACY_FIELD_COUNT) {
+            return decodeLegacy(parts);
+        }
+
+        if (parts.length == PREVIOUS_FIELD_COUNT
+                && PREVIOUS_FORMAT_VERSION.equals(
+                parts[0]
+        )) {
+            return decodeVersionTwo(parts);
+        }
+
+        if (parts.length != CURRENT_FIELD_COUNT
+                || !FORMAT_VERSION.equals(parts[0])) {
             return null;
         }
 
+        String category =
+                decodeField(parts[1]);
+
+        String code =
+                decodeField(parts[2]);
+
+        String observedCategory =
+                decodeField(parts[3]);
+
+        String observedCode =
+                decodeField(parts[4]);
+
+        if (isBlank(category)
+                || isBlank(code)
+                || isBlank(observedCategory)
+                || isBlank(observedCode)) {
+            return null;
+        }
+
+        Integer quantity =
+                parseQuantity(parts[5]);
+
+        String unit =
+                emptyToNull(
+                        decodeField(parts[6])
+                );
+
+        List<String> destinations =
+                decodeDestinations(parts[7]);
+
+        List<DocumentReferenceAllocation> allocations =
+                decodeAllocations(parts[8]);
+
+        int sourceLineIndex;
+
+        try {
+            sourceLineIndex =
+                    Integer.parseInt(parts[9]);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+
+        String sourceText =
+                emptyToNull(
+                        decodeField(parts[10])
+                );
+
+        try {
+            return new DocumentReferenceData(
+                    new WarehouseReference(
+                            category,
+                            code
+                    ),
+                    new WarehouseReference(
+                            observedCategory,
+                            observedCode
+                    ),
+                    quantity,
+                    unit,
+                    sourceLineIndex,
+                    sourceText,
+                    Collections.emptyList(),
+                    destinations,
+                    allocations
+            );
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private static DocumentReferenceData decodeVersionTwo(
+            String[] parts
+    ) {
+        String[] upgraded = new String[CURRENT_FIELD_COUNT];
+        upgraded[0] = FORMAT_VERSION;
+
+        System.arraycopy(parts, 1, upgraded, 1, 7);
+        upgraded[8] = "";
+        upgraded[9] = parts[8];
+        upgraded[10] = parts[9];
+
+        return decode(
+                String.join(
+                        FIELD_SEPARATOR,
+                        upgraded
+                )
+        );
+    }
+
+    private static DocumentReferenceData decodeLegacy(
+            String[] parts
+    ) {
         String category = parts[0].trim();
         String code = parts[1].trim();
 
@@ -163,6 +310,156 @@ public final class DocumentReferenceDataIntentContract {
         } catch (IllegalArgumentException exception) {
             return null;
         }
+    }
+
+    private static String encodeField(
+            String value
+    ) {
+        return value == null
+                ? ""
+                : android.net.Uri.encode(value);
+    }
+
+    private static String decodeField(
+            String value
+    ) {
+        return value == null
+                ? null
+                : android.net.Uri.decode(value);
+    }
+
+    private static String encodeDestinations(
+            List<String> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+
+        List<String> encoded =
+                new ArrayList<>();
+
+        for (String value : values) {
+            if (value != null
+                    && !value.trim().isEmpty()) {
+                encoded.add(
+                        encodeField(value.trim())
+                );
+            }
+        }
+
+        return String.join(
+                LIST_SEPARATOR,
+                encoded
+        );
+    }
+
+    private static List<String> decodeDestinations(
+            String value
+    ) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String[] parts =
+                value.split(
+                        LIST_SEPARATOR,
+                        -1
+                );
+
+        List<String> result =
+                new ArrayList<>();
+
+        for (String part : parts) {
+            String decoded =
+                    decodeField(part);
+
+            if (decoded != null
+                    && !decoded.trim().isEmpty()
+                    && !result.contains(
+                    decoded.trim()
+            )) {
+                result.add(decoded.trim());
+            }
+        }
+
+        return result;
+    }
+
+    private static String encodeAllocations(
+            List<DocumentReferenceAllocation> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+
+        List<String> encoded = new ArrayList<>();
+
+        for (DocumentReferenceAllocation value : values) {
+            if (value == null) {
+                continue;
+            }
+
+            encoded.add(
+                    value.getQuantity()
+                            + ":"
+                            + encodeField(value.getUnit())
+                            + ":"
+                            + encodeField(
+                            value.getDestination()
+                    )
+            );
+        }
+
+        return String.join(LIST_SEPARATOR, encoded);
+    }
+
+    private static List<DocumentReferenceAllocation>
+    decodeAllocations(String value) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<DocumentReferenceAllocation> result =
+                new ArrayList<>();
+
+        for (String encoded : value.split(
+                LIST_SEPARATOR,
+                -1
+        )) {
+            String[] parts = encoded.split(":", 3);
+
+            if (parts.length != 3) {
+                continue;
+            }
+
+            try {
+                DocumentReferenceAllocation allocation =
+                        new DocumentReferenceAllocation(
+                                Integer.parseInt(parts[0]),
+                                decodeField(parts[1]),
+                                decodeField(parts[2])
+                        );
+
+                if (!result.contains(allocation)) {
+                    result.add(allocation);
+                }
+            } catch (IllegalArgumentException exception) {
+                // Ignore malformed optional allocation data.
+            }
+        }
+
+        return result;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null
+                || value.trim().isEmpty();
+    }
+
+    private static String emptyToNull(String value) {
+        return isBlank(value)
+                ? null
+                : value.trim();
     }
 
     private static Integer parseQuantity(

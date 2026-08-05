@@ -43,6 +43,34 @@ public final class DocumentTitleParserTest {
     }
 
     @Test
+    public void parsePreservesDaKeStoreTitle() {
+        assertEquals(
+                "DA KE",
+                parser.parse(
+                        Arrays.asList(
+                                "DA KE",
+                                "M873-9 - 1P - ①"
+                        )
+                )
+        );
+    }
+
+    @Test
+    public void parsePreservesStoreActionAndArbitraryDestination() {
+        assertEquals(
+                "DA KE · RESERVAR · ZÜRICH",
+                parser.parse(
+                        Arrays.asList(
+                                "DA KE",
+                                "RESERVAR",
+                                "ZÜRICH",
+                                "M873-9 - 1P - ①"
+                        )
+                )
+        );
+    }
+
+    @Test
     public void parsePreservesChineseTitle() {
         assertEquals(
                 "王小明",
@@ -75,6 +103,18 @@ public final class DocumentTitleParserTest {
                         Arrays.asList(
                                 "MR21570-5pcs",
                                 "MR21571-1pcs"
+                        )
+                )
+        );
+    }
+
+    @Test
+    public void parseDoesNotTreatSingleLetterReferenceAsTitle() {
+        assertNull(
+                parser.parse(
+                        Arrays.asList(
+                                "M873",
+                                "M873-9 - 1P - ①"
                         )
                 )
         );

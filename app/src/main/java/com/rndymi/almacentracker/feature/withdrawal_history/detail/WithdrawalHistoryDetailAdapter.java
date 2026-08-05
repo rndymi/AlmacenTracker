@@ -71,6 +71,10 @@ public final class WithdrawalHistoryDetailAdapter
                             newItem.getUnit()
                     )
                             && valuesEqual(
+                            oldItem.getDestinations(),
+                            newItem.getDestinations()
+                    )
+                            && valuesEqual(
                             oldItem.getWarehouseItemIdSnapshot(),
                             newItem.getWarehouseItemIdSnapshot()
                     )
@@ -170,6 +174,7 @@ public final class WithdrawalHistoryDetailAdapter
             binding.referenceText.setText(reference);
 
             bindDocumentData(context, entry);
+            bindDestinations(context, entry);
             bindHistoricalLocation(context, entry);
 
             binding.getRoot().setContentDescription(
@@ -178,6 +183,31 @@ public final class WithdrawalHistoryDetailAdapter
                             entry,
                             reference
                     )
+            );
+        }
+
+        private void bindDestinations(
+                Context context,
+                WithdrawalHistoryEntry entry
+        ) {
+            boolean hasDestinations =
+                    !entry.getDestinations().isEmpty();
+
+            binding.destinationsText.setVisibility(
+                    hasDestinations
+                            ? View.VISIBLE
+                            : View.GONE
+            );
+            binding.destinationsText.setText(
+                    hasDestinations
+                            ? context.getString(
+                            R.string.withdrawal_history_destinations,
+                            String.join(
+                                    ", ",
+                                    entry.getDestinations()
+                            )
+                    )
+                            : ""
             );
         }
 
@@ -269,6 +299,14 @@ public final class WithdrawalHistoryDetailAdapter
                             R.string
                             .withdrawal_history_detail_without_quantity
                     );
+
+            if (!entry.getDestinations().isEmpty()) {
+                documentData = documentData
+                        + ". "
+                        + binding.destinationsText
+                        .getText()
+                        .toString();
+            }
 
             String location =
                     binding.historicalLocationText

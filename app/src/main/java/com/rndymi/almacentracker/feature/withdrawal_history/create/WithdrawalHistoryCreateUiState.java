@@ -17,6 +17,7 @@ public final class WithdrawalHistoryCreateUiState {
 
     private final Status status;
     private final String title;
+    private final String destination;
     private final long registeredAt;
     private final List<WithdrawalHistoryDraftEntryUiModel>
             entries;
@@ -27,6 +28,7 @@ public final class WithdrawalHistoryCreateUiState {
     private WithdrawalHistoryCreateUiState(
             Status status,
             String title,
+            String destination,
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries,
             String titleError,
@@ -35,6 +37,7 @@ public final class WithdrawalHistoryCreateUiState {
     ) {
         this.status = status;
         this.title = title == null ? "" : title;
+        this.destination = destination == null ? "" : destination;
         this.registeredAt = registeredAt;
         this.entries =
                 Collections.unmodifiableList(
@@ -50,6 +53,7 @@ public final class WithdrawalHistoryCreateUiState {
         return new WithdrawalHistoryCreateUiState(
                 Status.INITIALIZING,
                 "",
+                "",
                 0L,
                 Collections.emptyList(),
                 null,
@@ -63,9 +67,19 @@ public final class WithdrawalHistoryCreateUiState {
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries
     ) {
+        return ready(title, "", registeredAt, entries);
+    }
+
+    public static WithdrawalHistoryCreateUiState ready(
+            String title,
+            String destination,
+            long registeredAt,
+            List<WithdrawalHistoryDraftEntryUiModel> entries
+    ) {
         return new WithdrawalHistoryCreateUiState(
                 Status.READY,
                 title,
+                destination,
                 registeredAt,
                 entries,
                 null,
@@ -76,6 +90,7 @@ public final class WithdrawalHistoryCreateUiState {
 
     public static WithdrawalHistoryCreateUiState invalid(
             String title,
+            String destination,
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries,
             String titleError,
@@ -84,6 +99,7 @@ public final class WithdrawalHistoryCreateUiState {
         return new WithdrawalHistoryCreateUiState(
                 Status.INVALID_INPUT,
                 title,
+                destination,
                 registeredAt,
                 entries,
                 titleError,
@@ -94,12 +110,14 @@ public final class WithdrawalHistoryCreateUiState {
 
     public static WithdrawalHistoryCreateUiState saving(
             String title,
+            String destination,
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries
     ) {
         return new WithdrawalHistoryCreateUiState(
                 Status.SAVING,
                 title,
+                destination,
                 registeredAt,
                 entries,
                 null,
@@ -110,12 +128,14 @@ public final class WithdrawalHistoryCreateUiState {
 
     public static WithdrawalHistoryCreateUiState saved(
             String title,
+            String destination,
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries
     ) {
         return new WithdrawalHistoryCreateUiState(
                 Status.SAVED,
                 title,
+                destination,
                 registeredAt,
                 entries,
                 null,
@@ -126,6 +146,7 @@ public final class WithdrawalHistoryCreateUiState {
 
     public static WithdrawalHistoryCreateUiState saveError(
             String title,
+            String destination,
             long registeredAt,
             List<WithdrawalHistoryDraftEntryUiModel> entries,
             String message
@@ -133,6 +154,7 @@ public final class WithdrawalHistoryCreateUiState {
         return new WithdrawalHistoryCreateUiState(
                 Status.ERROR,
                 title,
+                destination,
                 registeredAt,
                 entries,
                 null,
@@ -145,6 +167,7 @@ public final class WithdrawalHistoryCreateUiState {
     invalidInitialInput() {
         return new WithdrawalHistoryCreateUiState(
                 Status.ERROR,
+                "",
                 "",
                 0L,
                 Collections.emptyList(),
@@ -160,6 +183,10 @@ public final class WithdrawalHistoryCreateUiState {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getDestination() {
+        return destination;
     }
 
     public long getRegisteredAt() {

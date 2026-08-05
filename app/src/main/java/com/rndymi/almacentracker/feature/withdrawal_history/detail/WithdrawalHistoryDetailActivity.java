@@ -374,6 +374,20 @@ public final class WithdrawalHistoryDetailActivity
 
         binding.historyTitleText.setText(title);
 
+        binding.historyDestinationText.setVisibility(
+                history.hasDestination()
+                        ? View.VISIBLE
+                        : View.GONE
+        );
+        if (history.hasDestination()) {
+            binding.historyDestinationText.setText(
+                    getString(
+                            R.string.withdrawal_history_destination,
+                            history.getDestination()
+                    )
+            );
+        }
+
         binding.historyDateText.setText(
                 formatDate(
                         history.getRegisteredAt()

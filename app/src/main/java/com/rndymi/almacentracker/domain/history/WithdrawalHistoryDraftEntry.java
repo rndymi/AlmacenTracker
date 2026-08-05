@@ -2,6 +2,8 @@ package com.rndymi.almacentracker.domain.history;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Collections;
+import java.util.List;
 
 public final class WithdrawalHistoryDraftEntry {
 
@@ -14,6 +16,7 @@ public final class WithdrawalHistoryDraftEntry {
     private final String siteSnapshot;
     private final String positionSnapshot;
     private final WithdrawalLocationStatus locationStatus;
+    private final List<String> destinations;
 
     public WithdrawalHistoryDraftEntry(
             int orderIndex,
@@ -25,6 +28,32 @@ public final class WithdrawalHistoryDraftEntry {
             String siteSnapshot,
             String positionSnapshot,
             WithdrawalLocationStatus locationStatus
+    ) {
+        this(
+                orderIndex,
+                category,
+                code,
+                quantity,
+                unit,
+                warehouseItemIdSnapshot,
+                siteSnapshot,
+                positionSnapshot,
+                locationStatus,
+                Collections.emptyList()
+        );
+    }
+
+    public WithdrawalHistoryDraftEntry(
+            int orderIndex,
+            String category,
+            String code,
+            Integer quantity,
+            String unit,
+            Long warehouseItemIdSnapshot,
+            String siteSnapshot,
+            String positionSnapshot,
+            WithdrawalLocationStatus locationStatus,
+            List<String> destinations
     ) {
         if (orderIndex < 0) {
             throw new IllegalArgumentException(
@@ -55,6 +84,9 @@ public final class WithdrawalHistoryDraftEntry {
                         locationStatus,
                         "locationStatus"
                 );
+        this.destinations =
+                WithdrawalDestinationCodec
+                        .immutableCopy(destinations);
 
         if (locationStatus
                 == WithdrawalLocationStatus.FOUND) {
@@ -121,6 +153,10 @@ public final class WithdrawalHistoryDraftEntry {
 
     public WithdrawalLocationStatus getLocationStatus() {
         return locationStatus;
+    }
+
+    public List<String> getDestinations() {
+        return destinations;
     }
 
     private static String normalizeRequired(

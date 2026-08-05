@@ -2,6 +2,11 @@ package com.rndymi.almacentracker.feature.withdrawal_history.create;
 
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftValidator;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
+import com.rndymi.almacentracker.domain.history.WithdrawalDestinationCodec;
+import com.rndymi.almacentracker.domain.history.WithdrawalStoreInputParser;
+
+import java.util.Collections;
+import java.util.List;
 
 public final class WithdrawalHistoryDraftEntryUiModel
         implements WithdrawalHistoryDraftValidator.EditableEntry {
@@ -18,6 +23,9 @@ public final class WithdrawalHistoryDraftEntryUiModel
     private final WithdrawalLocationStatus locationStatus;
     private final String quantityError;
     private final String unitError;
+    private final List<String> destinations;
+    private final String storesText;
+    private final String storesError;
 
     public WithdrawalHistoryDraftEntryUiModel(
             long stableId,
@@ -33,6 +41,66 @@ public final class WithdrawalHistoryDraftEntryUiModel
             String quantityError,
             String unitError
     ) {
+        this(
+                stableId,
+                orderIndex,
+                category,
+                code,
+                quantityText,
+                unitText,
+                warehouseItemIdSnapshot,
+                siteSnapshot,
+                positionSnapshot,
+                locationStatus,
+                quantityError,
+                unitError,
+                Collections.emptyList(),
+                "",
+                null
+        );
+    }
+
+    public WithdrawalHistoryDraftEntryUiModel(
+            long stableId,
+            int orderIndex,
+            String category,
+            String code,
+            String quantityText,
+            String unitText,
+            Long warehouseItemIdSnapshot,
+            String siteSnapshot,
+            String positionSnapshot,
+            WithdrawalLocationStatus locationStatus,
+            String quantityError,
+            String unitError,
+            List<String> destinations
+    ) {
+        this(
+                stableId, orderIndex, category, code, quantityText,
+                unitText, warehouseItemIdSnapshot, siteSnapshot,
+                positionSnapshot, locationStatus, quantityError,
+                unitError, destinations,
+                WithdrawalStoreInputParser.format(destinations), null
+        );
+    }
+
+    private WithdrawalHistoryDraftEntryUiModel(
+            long stableId,
+            int orderIndex,
+            String category,
+            String code,
+            String quantityText,
+            String unitText,
+            Long warehouseItemIdSnapshot,
+            String siteSnapshot,
+            String positionSnapshot,
+            WithdrawalLocationStatus locationStatus,
+            String quantityError,
+            String unitError,
+            List<String> destinations,
+            String storesText,
+            String storesError
+    ) {
         this.stableId = stableId;
         this.orderIndex = orderIndex;
         this.category = category;
@@ -46,6 +114,11 @@ public final class WithdrawalHistoryDraftEntryUiModel
         this.locationStatus = locationStatus;
         this.quantityError = quantityError;
         this.unitError = unitError;
+        this.destinations =
+                WithdrawalDestinationCodec
+                        .immutableCopy(destinations);
+        this.storesText = storesText == null ? "" : storesText;
+        this.storesError = storesError;
     }
 
     @Override
@@ -99,6 +172,18 @@ public final class WithdrawalHistoryDraftEntryUiModel
         return unitError;
     }
 
+    public List<String> getDestinations() {
+        return destinations;
+    }
+
+    public String getStoresText() {
+        return storesText;
+    }
+
+    public String getStoresError() {
+        return storesError;
+    }
+
     public WithdrawalHistoryDraftEntryUiModel
     withQuantity(
             String value
@@ -136,6 +221,19 @@ public final class WithdrawalHistoryDraftEntryUiModel
         );
     }
 
+    public WithdrawalHistoryDraftEntryUiModel withStores(
+            String value,
+            List<String> newDestinations,
+            String error
+    ) {
+        return new WithdrawalHistoryDraftEntryUiModel(
+                stableId, orderIndex, category, code, quantityText,
+                unitText, warehouseItemIdSnapshot, siteSnapshot,
+                positionSnapshot, locationStatus, quantityError,
+                unitError, newDestinations, value, error
+        );
+    }
+
     private WithdrawalHistoryDraftEntryUiModel copy(
             String newQuantity,
             String newUnit,
@@ -154,7 +252,10 @@ public final class WithdrawalHistoryDraftEntryUiModel
                 positionSnapshot,
                 locationStatus,
                 newQuantityError,
-                newUnitError
+                newUnitError,
+                destinations,
+                storesText,
+                storesError
         );
     }
 }

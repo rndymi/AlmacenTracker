@@ -74,6 +74,26 @@
 
         </LinearLayout>
 
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/storesInputLayout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/withdrawal_history_stores_optional"
+            app:helperText="@string/withdrawal_history_stores_helper">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/storesEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:digits="0123456789,; "
+                android:inputType="numberDecimal"
+                android:maxLength="150"
+                android:singleLine="true" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

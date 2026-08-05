@@ -10,9 +10,13 @@ import com.rndymi.almacentracker.data.repository.WarehouseItemRepository;
 import com.rndymi.almacentracker.domain.model.WarehouseItem;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceDataParser;
+import com.rndymi.almacentracker.domain.reference.DocumentReferenceAllocation;
+import com.rndymi.almacentracker.domain.reference.DocumentSharedAllocationParser;
 import com.rndymi.almacentracker.domain.reference.WarehouseReference;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceMatch;
 import com.rndymi.almacentracker.domain.reference.WarehouseReferenceParser;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceSuggestion;
+import com.rndymi.almacentracker.domain.reference.WarehouseReferenceSuggestionResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,8 +40,9 @@ public final class ReferenceListReviewViewModel
 
     private final WarehouseReferenceParser parser;
     private final WarehouseItemRepository repository;
-    private final DocumentReferenceDataParser
-            documentReferenceDataParser;
+    private final DocumentReferenceDataParser documentReferenceDataParser;
+    private final WarehouseReferenceSuggestionResolver suggestionResolver;
+    private final DocumentSharedAllocationParser sharedAllocationParser;
 
     private final MutableLiveData
             <ReferenceListReviewUiState> uiState =
@@ -85,6 +90,20 @@ public final class ReferenceListReviewViewModel
             WarehouseItemRepository repository,
             DocumentReferenceDataParser documentReferenceDataParser
     ) {
+        this(
+                parser,
+                repository,
+                documentReferenceDataParser,
+                new WarehouseReferenceSuggestionResolver()
+        );
+    }
+
+    ReferenceListReviewViewModel(
+            WarehouseReferenceParser parser,
+            WarehouseItemRepository repository,
+            DocumentReferenceDataParser documentReferenceDataParser,
+            WarehouseReferenceSuggestionResolver suggestionResolver
+    ) {
         this.parser =
                 Objects.requireNonNull(
                         parser,
@@ -96,6 +115,13 @@ public final class ReferenceListReviewViewModel
                         documentReferenceDataParser,
                         "documentReferenceDataParser"
                 );
+        this.suggestionResolver =
+                Objects.requireNonNull(
+                        suggestionResolver,
+                        "suggestionResolver"
+                );
+        this.sharedAllocationParser =
+                new DocumentSharedAllocationParser();
     }
 
     public LiveData<ReferenceListReviewUiState>
@@ -176,6 +202,11 @@ public final class ReferenceListReviewViewModel
         Map<String, ReferenceProposal> unique =
                 new LinkedHashMap<>();
 
+        List<String> pendingSharedAllocationKeys =
+                new ArrayList<>();
+        List<DocumentReferenceAllocation> activeSharedAllocations =
+                new ArrayList<>();
+
         int duplicateCount = 0;
 
         if (lines != null) {
@@ -212,12 +243,32 @@ public final class ReferenceListReviewViewModel
                     }
                 }
 
+                if (matches.isEmpty()) {
+                    DocumentReferenceAllocation allocation =
+                            sharedAllocationParser.parse(
+                                    rawLine
+                            );
+
+                    if (allocation != null) {
+                        if (!activeSharedAllocations.contains(allocation)) {
+                            activeSharedAllocations.add(allocation);
+                        }
+                        applySharedAllocation(
+                                unique,
+                                pendingSharedAllocationKeys,
+                                allocation
+                        );
+                    }
+
+                    continue;
+                }
+
                 for (
                         WarehouseReferenceMatch match
                         : matches
                 ) {
                     WarehouseReference reference =
-                            match.getReference();
+                            match.getObservedReference();
 
                     if (unique.containsKey(
                             reference.identityKey()
@@ -226,15 +277,34 @@ public final class ReferenceListReviewViewModel
                         continue;
                     }
 
-                    unique.put(
-                            reference.identityKey(),
+                    ReferenceProposal proposal =
                             createRecognizedProposal(
                                     nextProposalId++,
                                     match,
                                     knownReferences,
                                     knownReferencesAvailable
-                            )
+                            );
+
+                    if (hasOwnDocumentData(proposal)) {
+                        pendingSharedAllocationKeys.clear();
+                        activeSharedAllocations.clear();
+                    } else {
+                        for (DocumentReferenceAllocation allocation
+                                : activeSharedAllocations) {
+                            proposal = proposal.withAllocation(allocation);
+                        }
+                    }
+
+                    unique.put(
+                            reference.identityKey(),
+                            proposal
                     );
+
+                    if (!hasOwnDocumentData(proposal)) {
+                        pendingSharedAllocationKeys.add(
+                                reference.identityKey()
+                        );
+                    }
                 }
             }
         }
@@ -256,6 +326,35 @@ public final class ReferenceListReviewViewModel
                                     duplicateCount
                             )
                     );
+        }
+    }
+
+    private boolean hasOwnDocumentData(
+            ReferenceProposal proposal
+    ) {
+        DocumentReferenceData data =
+                proposal.getDocumentData();
+
+        return data.getQuantity() != null
+                || data.getUnit() != null
+                || !data.getDestinations().isEmpty();
+    }
+
+    private void applySharedAllocation(
+            Map<String, ReferenceProposal> proposals,
+            List<String> referenceKeys,
+            DocumentReferenceAllocation allocation
+    ) {
+        for (String key : referenceKeys) {
+            ReferenceProposal proposal =
+                    proposals.get(key);
+
+            if (proposal != null) {
+                proposals.put(
+                        key,
+                        proposal.withAllocation(allocation)
+                );
+            }
         }
     }
 
@@ -312,31 +411,58 @@ public final class ReferenceListReviewViewModel
             List<WarehouseReference> knownReferences,
             boolean knownReferencesAvailable
     ) {
+        WarehouseReference observedReference =
+                match.getObservedReference();
         WarehouseReference reference =
                 match.getReference();
 
-        List<WarehouseReference> suggestions =
-                suggestionsFor(
-                        reference,
+        List<WarehouseReferenceSuggestion>
+                contextualSuggestions =
+                knownReferencesAvailable
+                        ? suggestionResolver.resolve(
+                        observedReference,
                         knownReferences,
-                        knownReferencesAvailable
+                        MAXIMUM_SUGGESTIONS
+                )
+                        : Collections.emptyList();
+
+        if (knownReferences.contains(observedReference)) {
+            contextualSuggestions =
+                    highConfidenceSuggestions(
+                            contextualSuggestions
+                    );
+        }
+
+        List<WarehouseReference> suggestions =
+                referencesFromSuggestions(
+                        contextualSuggestions
                 );
 
-        ReferenceProposal.MatchStatus matchStatus =
-                matchStatusFor(
-                        reference,
-                        suggestions,
-                        knownReferences,
-                        knownReferencesAvailable
-                );
+        ReferenceProposal.MatchStatus matchStatus;
+
+        if (match.hasResolvedReference()
+                && knownReferences.contains(reference)) {
+            matchStatus = ReferenceProposal.MatchStatus.EXACT;
+            suggestions = Collections.emptyList();
+            contextualSuggestions = Collections.emptyList();
+        } else {
+            matchStatus = contextualMatchStatusFor(
+                    observedReference,
+                    contextualSuggestions,
+                    knownReferences,
+                    knownReferencesAvailable
+            );
+        }
 
         return new ReferenceProposal(
                 proposalId,
                 reference,
+                observedReference,
                 match.getSourceRawText(),
                 false,
                 matchStatus,
                 suggestions,
+                contextualSuggestions,
                 documentReferenceDataParser.parse(match)
         );
     }
@@ -355,9 +481,7 @@ public final class ReferenceListReviewViewModel
 
         if (isValidReference(reference)
                 && knownReferences.contains(reference)) {
-            return suggestions.isEmpty()
-                    ? ReferenceProposal.MatchStatus.EXACT
-                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
+            return ReferenceProposal.MatchStatus.EXACT;
         }
 
         if (suggestions.size() == 1) {
@@ -585,6 +709,25 @@ public final class ReferenceListReviewViewModel
         return ReferenceInputResult.success();
     }
 
+    public void toggleReferenceReview(
+            long proposalId
+    ) {
+        List<ReferenceProposal> proposals = mutableProposals();
+        int proposalIndex = findIndex(proposals, proposalId);
+
+        if (proposalIndex < 0) {
+            return;
+        }
+
+        proposals.set(
+                proposalIndex,
+                proposals.get(proposalIndex)
+                        .toggleReviewState()
+        );
+
+        publish(proposals);
+    }
+
     public ReferenceInputResult applyQuantitySuggestion(
             long proposalId,
             Integer quantity
@@ -774,5 +917,100 @@ public final class ReferenceListReviewViewModel
         }
 
         return -1;
+    }
+
+    private List<WarehouseReference>
+    referencesFromSuggestions(
+            List<WarehouseReferenceSuggestion> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<WarehouseReference> result =
+                new ArrayList<>(values.size());
+
+        for (WarehouseReferenceSuggestion value : values) {
+            if (value != null
+                    && !result.contains(
+                    value.getReference()
+            )) {
+                result.add(
+                        value.getReference()
+                );
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
+    }
+
+    private ReferenceProposal.MatchStatus
+    contextualMatchStatusFor(
+            WarehouseReference observed,
+            List<WarehouseReferenceSuggestion> suggestions,
+            List<WarehouseReference> knownReferences,
+            boolean knownReferencesAvailable
+    ) {
+        if (!knownReferencesAvailable) {
+            return isValidReference(observed)
+                    ? ReferenceProposal.MatchStatus.UNVERIFIED
+                    : ReferenceProposal.MatchStatus.NO_MATCH;
+        }
+
+        if (knownReferences.contains(observed)) {
+            return ReferenceProposal.MatchStatus.EXACT;
+        }
+
+        if (suggestions.size() == 1) {
+            return ReferenceProposal.MatchStatus
+                    .UNIQUE_SUGGESTION;
+        }
+
+        if (suggestions.size() > 1) {
+            int bestScore =
+                    suggestions.get(0).getScore();
+
+            int bestCount = 0;
+
+            for (WarehouseReferenceSuggestion suggestion
+                    : suggestions) {
+
+                if (suggestion.getScore()
+                        == bestScore) {
+                    bestCount++;
+                }
+            }
+
+            return bestCount == 1
+                    ? ReferenceProposal.MatchStatus
+                      .UNIQUE_SUGGESTION
+                    : ReferenceProposal.MatchStatus.AMBIGUOUS;
+        }
+
+        return ReferenceProposal.MatchStatus.NO_MATCH;
+    }
+
+    private List<WarehouseReferenceSuggestion>
+    highConfidenceSuggestions(
+            List<WarehouseReferenceSuggestion> values
+    ) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<WarehouseReferenceSuggestion> result =
+                new ArrayList<>();
+
+        for (WarehouseReferenceSuggestion value : values) {
+            if (value.getScore() == 1) {
+                result.add(value);
+            }
+        }
+
+        return result.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(result);
     }
 }

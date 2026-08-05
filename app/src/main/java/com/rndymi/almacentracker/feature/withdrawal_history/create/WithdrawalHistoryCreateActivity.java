@@ -171,6 +171,17 @@ public final class WithdrawalHistoryCreateActivity
                                         value
                                 );
                             }
+
+                            @Override
+                            public void onStoresChanged(
+                                    long stableId,
+                                    String value
+                            ) {
+                                viewModel.onStoresChanged(
+                                        stableId,
+                                        value
+                                );
+                            }
                         }
                 );
 
@@ -203,6 +214,15 @@ public final class WithdrawalHistoryCreateActivity
                                 viewModel.onTitleChanged(
                                         value
                                 );
+                            }
+                        }
+                )
+        );
+        binding.destinationEditText.addTextChangedListener(
+                SimpleTextWatcher.afterTextChanged(
+                        value -> {
+                            if (!rendering) {
+                                viewModel.onDestinationChanged(value);
                             }
                         }
                 )
@@ -282,6 +302,14 @@ public final class WithdrawalHistoryCreateActivity
                 state.getTitleError()
         );
 
+        if (!binding.destinationEditText
+                .getText().toString()
+                .equals(state.getDestination())) {
+            binding.destinationEditText.setText(
+                    state.getDestination()
+            );
+        }
+
         binding.dateText.setText(
                 DateFormat
                         .getDateTimeInstance(
@@ -321,6 +349,7 @@ public final class WithdrawalHistoryCreateActivity
         binding.titleEditText.setEnabled(
                 editable
         );
+        binding.destinationEditText.setEnabled(editable);
 
         binding.entriesRecyclerView.setEnabled(
                 editable

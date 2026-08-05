@@ -282,6 +282,123 @@ public final class DocumentReferenceDataParserTest {
         );
     }
 
+    @Test
+    public void parsePreservesObservedReferenceAndExtractsDestinations() {
+        WarehouseReference observed =
+                new WarehouseReference("MK", "866S");
+        WarehouseReference resolved =
+                new WarehouseReference("MR", "8665");
+        WarehouseReferenceMatch match =
+                new WarehouseReferenceMatch(
+                        observed,
+                        3,
+                        "MK866S-1P-①②①",
+                        0
+                ).withResolvedReference(resolved);
+
+        DocumentReferenceData result = parser.parse(match);
+
+        assertEquals(resolved, result.getReference());
+        assertEquals(observed, result.getObservedReference());
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals("P", result.getUnit());
+        assertEquals(
+                Arrays.asList("①", "②"),
+                result.getDestinations()
+        );
+        assertEquals(3, result.getSourceLineIndex());
+        assertEquals(
+                "MK866S-1P-①②①",
+                result.getSourceText()
+        );
+    }
+
+    @Test
+    public void parseKeepsDestinationsWhenQuantityCannotBeParsed() {
+        DocumentReferenceData result =
+                parser.parse(
+                        match(
+                                "MR",
+                                "21570",
+                                "MR21570 - destino ③"
+                        )
+                );
+
+        assertNull(result.getQuantity());
+        assertNull(result.getUnit());
+        assertEquals(
+                Arrays.asList("③"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void parseSpecialReferenceUsesSecondDashForQuantity() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "M",
+                        "873-9",
+                        "M873-9 - 1P - ①"
+                )
+        );
+
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals("P", result.getUnit());
+        assertEquals(
+                Arrays.asList("①"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void circledCodeExtensionIsNotAlsoADestination() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "M",
+                        "873-①",
+                        "M873-① - 1P - ①②"
+                )
+        );
+
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals(
+                Arrays.asList("①", "②"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void missingQuantityBeforeUnitDefaultsToOne() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "M",
+                        "873-①",
+                        "M873-① - P - ①②"
+                )
+        );
+
+        assertEquals(Integer.valueOf(1), result.getQuantity());
+        assertEquals("P", result.getUnit());
+        assertEquals(
+                Arrays.asList("①", "②"),
+                result.getDestinations()
+        );
+    }
+
+    @Test
+    public void misplacedDashCorrectedInsideCodeIsNotQuantity() {
+        DocumentReferenceData result = parser.parse(
+                match(
+                        "MR",
+                        "8250",
+                        "MR8-250-"
+                )
+        );
+
+        assertNull(result.getQuantity());
+        assertNull(result.getUnit());
+    }
+
     private WarehouseReferenceMatch match(
             String category,
             String code,
