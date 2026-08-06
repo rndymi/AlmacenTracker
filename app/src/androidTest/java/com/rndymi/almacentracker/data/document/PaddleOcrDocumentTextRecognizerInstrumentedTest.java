@@ -10,6 +10,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.os.Debug;
+import android.os.SystemClock;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -619,6 +621,42 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         );
     }
 
+    @Test
+    public void recognize_sequentialRunsDoNotRetainUnboundedMemory()
+            throws Exception {
+        forceBestEffortCollection();
+
+        long memoryBefore =
+                approximateUsedMemoryBytes();
+
+        for (int runIndex = 0;
+             runIndex < SEQUENTIAL_RUN_COUNT;
+             runIndex++) {
+            recognizeAndAwaitSuccess();
+        }
+
+        forceBestEffortCollection();
+
+        long memoryAfter =
+                approximateUsedMemoryBytes();
+
+        long retainedGrowth =
+                Math.max(
+                        0L,
+                        memoryAfter - memoryBefore
+                );
+
+        long diagnosticLimit =
+                96L * 1024L * 1024L;
+
+        assertTrue(
+                "Approximate retained memory grew by "
+                        + retainedGrowth
+                        + " bytes",
+                retainedGrowth <= diagnosticLimit
+        );
+    }
+
     private Bitmap createDocumentBitmap() {
         Bitmap bitmap =
                 Bitmap.createBitmap(
@@ -664,5 +702,103 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         );
 
         return bitmap;
+    }
+
+    private void recognizeAndAwaitSuccess()
+            throws Exception {
+        Bitmap bitmap =
+                createDocumentBitmap();
+
+        AndroidDocumentImage documentImage =
+                new AndroidDocumentImage(
+                        bitmap,
+                        bitmap.getWidth(),
+                        bitmap.getHeight(),
+                        0
+                );
+
+        CountDownLatch latch =
+                new CountDownLatch(1);
+
+        AtomicReference<RecognizedDocument>
+                document =
+                new AtomicReference<>();
+
+        AtomicReference<String> error =
+                new AtomicReference<>();
+
+        textRecognizer.recognize(
+                documentImage,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument result
+                    ) {
+                        document.set(result);
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        error.set("image");
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        error.set("recognition");
+                        latch.countDown();
+                    }
+                }
+        );
+
+        assertTrue(
+                latch.await(
+                        RECOGNITION_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS
+                )
+        );
+
+        assertEquals(
+                null,
+                error.get()
+        );
+
+        assertNotNull(
+                document.get()
+        );
+
+        assertTrue(
+                documentImage.isClosed()
+        );
+
+        assertTrue(
+                bitmap.isRecycled()
+        );
+    }
+
+    private void forceBestEffortCollection() {
+        Runtime.getRuntime().gc();
+        System.runFinalization();
+        SystemClock.sleep(250L);
+
+        Runtime.getRuntime().gc();
+        SystemClock.sleep(250L);
+    }
+
+    private long approximateUsedMemoryBytes() {
+        Runtime runtime =
+                Runtime.getRuntime();
+
+        long javaUsed =
+                runtime.totalMemory()
+                        - runtime.freeMemory();
+
+        long nativeUsed =
+                Debug.getNativeHeapAllocatedSize();
+
+        return javaUsed + nativeUsed;
     }
 }
