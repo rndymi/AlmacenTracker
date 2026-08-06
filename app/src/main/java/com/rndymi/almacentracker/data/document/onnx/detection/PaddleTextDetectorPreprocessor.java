@@ -1,7 +1,6 @@
 package com.rndymi.almacentracker.data.document.onnx.detection;
 
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 
 import ai.onnxruntime.OnnxTensor;
@@ -39,7 +38,6 @@ public final class PaddleTextDetectorPreprocessor {
         validateBitmap(sourceBitmap);
 
         Bitmap resizedBitmap = null;
-        Bitmap paddedBitmap = null;
 
         try {
             DetectorImageTransform transform =
@@ -55,23 +53,11 @@ public final class PaddleTextDetectorPreprocessor {
                     true
             );
 
-            paddedBitmap = Bitmap.createBitmap(
-                    transform.getPaddedWidth(),
-                    transform.getPaddedHeight(),
-                    Bitmap.Config.ARGB_8888
-            );
-
-            Canvas canvas = new Canvas(paddedBitmap);
-            canvas.drawColor(Color.BLACK);
-            canvas.drawBitmap(
-                    resizedBitmap,
-                    transform.getPaddingLeft(),
-                    transform.getPaddingTop(),
-                    null
-            );
-
             FloatBuffer inputBuffer =
-                    createNchwBuffer(paddedBitmap);
+                    createNchwBuffer(
+                            resizedBitmap,
+                            transform
+                    );
 
             long[] inputShape = {
                     1L,
@@ -80,11 +66,12 @@ public final class PaddleTextDetectorPreprocessor {
                     transform.getPaddedWidth()
             };
 
-            OnnxTensor tensor = OnnxTensor.createTensor(
-                    environment,
-                    inputBuffer,
-                    inputShape
-            );
+            OnnxTensor tensor =
+                    OnnxTensor.createTensor(
+                            environment,
+                            inputBuffer,
+                            inputShape
+                    );
 
             return new DetectorInput(
                     tensor,
@@ -111,10 +98,6 @@ public final class PaddleTextDetectorPreprocessor {
                     exception
             );
         } finally {
-            recycleOwnedBitmap(
-                    paddedBitmap,
-                    sourceBitmap
-            );
             recycleOwnedBitmap(
                     resizedBitmap,
                     sourceBitmap
@@ -176,78 +159,185 @@ public final class PaddleTextDetectorPreprocessor {
     }
 
     FloatBuffer createNchwBuffer(
-            Bitmap bitmap
+            Bitmap resizedBitmap,
+            DetectorImageTransform transform
     ) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        int pixelCount = width * height;
+        Objects.requireNonNull(
+                resizedBitmap,
+                "resizedBitmap"
+        );
 
-        int[] pixels = new int[pixelCount];
+        Objects.requireNonNull(
+                transform,
+                "transform"
+        );
 
-        bitmap.getPixels(
+        int resizedWidth =
+                resizedBitmap.getWidth();
+
+        int resizedHeight =
+                resizedBitmap.getHeight();
+
+        if (resizedWidth
+                != transform.getResizedWidth()
+                || resizedHeight
+                != transform.getResizedHeight()) {
+            throw new IllegalArgumentException(
+                    "Resized bitmap does not match detector transform"
+            );
+        }
+
+        int[] pixels =
+                new int[
+                        resizedWidth
+                                * resizedHeight
+                        ];
+
+        resizedBitmap.getPixels(
                 pixels,
                 0,
-                width,
+                resizedWidth,
                 0,
                 0,
-                width,
-                height
+                resizedWidth,
+                resizedHeight
         );
 
-        FloatBuffer buffer = FloatBuffer.allocate(
-                pixelCount * 3
-        );
+        int paddedPixelCount =
+                transform.getPaddedWidth()
+                        * transform.getPaddedHeight();
+
+        FloatBuffer buffer =
+                FloatBuffer.allocate(
+                        paddedPixelCount * 3
+                );
 
         writeChannel(
                 buffer,
                 pixels,
+                transform,
                 Channel.RED
         );
+
         writeChannel(
                 buffer,
                 pixels,
+                transform,
                 Channel.GREEN
         );
+
         writeChannel(
                 buffer,
                 pixels,
+                transform,
                 Channel.BLUE
         );
 
         buffer.rewind();
+
         return buffer;
     }
 
     private void writeChannel(
             FloatBuffer buffer,
-            int[] pixels,
+            int[] resizedPixels,
+            DetectorImageTransform transform,
             Channel channel
     ) {
-        for (int pixel : pixels) {
-            int component;
+        int resizedWidth =
+                transform.getResizedWidth();
 
-            switch (channel) {
-                case RED:
-                    component = Color.red(pixel);
-                    break;
-                case GREEN:
-                    component = Color.green(pixel);
-                    break;
-                case BLUE:
-                    component = Color.blue(pixel);
-                    break;
-                default:
-                    throw new IllegalStateException(
-                            "Unsupported image channel"
-                    );
+        int resizedHeight =
+                transform.getResizedHeight();
+
+        int paddedWidth =
+                transform.getPaddedWidth();
+
+        int paddedHeight =
+                transform.getPaddedHeight();
+
+        int paddingLeft =
+                transform.getPaddingLeft();
+
+        int paddingTop =
+                transform.getPaddingTop();
+
+        for (int paddedY = 0;
+             paddedY < paddedHeight;
+             paddedY++) {
+
+            int sourceY =
+                    paddedY - paddingTop;
+
+            for (int paddedX = 0;
+                 paddedX < paddedWidth;
+                 paddedX++) {
+
+                int sourceX =
+                        paddedX - paddingLeft;
+
+                int component = 0;
+
+                boolean insideResizedBitmap =
+                        sourceX >= 0
+                                && sourceX
+                                < resizedWidth
+                                && sourceY >= 0
+                                && sourceY
+                                < resizedHeight;
+
+                if (insideResizedBitmap) {
+                    int pixel =
+                            resizedPixels[
+                                    sourceY
+                                            * resizedWidth
+                                            + sourceX
+                                    ];
+
+                    component =
+                            readComponent(
+                                    pixel,
+                                    channel
+                            );
+                }
+
+                buffer.put(
+                        normalizeComponent(
+                                component
+                        )
+                );
             }
-
-            float normalized =
-                    (component / 255.0f - CHANNEL_MEAN)
-                            / CHANNEL_SCALE;
-
-            buffer.put(normalized);
         }
+    }
+
+    private int readComponent(
+            int pixel,
+            Channel channel
+    ) {
+        switch (channel) {
+            case RED:
+                return Color.red(pixel);
+
+            case GREEN:
+                return Color.green(pixel);
+
+            case BLUE:
+                return Color.blue(pixel);
+
+            default:
+                throw new IllegalStateException(
+                        "Unsupported image channel"
+                );
+        }
+    }
+
+    private float normalizeComponent(
+            int component
+    ) {
+        return (
+                component / 255.0f
+                        - CHANNEL_MEAN
+        ) / CHANNEL_SCALE;
     }
 
     private int roundUp(
