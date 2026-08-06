@@ -113,6 +113,49 @@ public final class WarehouseReferenceReviewRegressionTest {
         );
     }
 
+    @Test
+    public void crossedMarkerDoesNotBecomePartOfUnknownReferenceCode() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "mR2138fX4p",
+                        Collections.emptyList()
+                );
+
+        assertEquals(1, matches.size());
+
+        WarehouseReferenceMatch match =
+                matches.get(0);
+
+        assertEquals(
+                "MR",
+                match.getObservedReference().getCategory()
+        );
+
+        assertEquals(
+                "2138F",
+                match.getObservedReference().getCode()
+        );
+
+        DocumentReferenceData data =
+                documentParser.parse(match);
+
+        assertEquals(
+                Integer.valueOf(4),
+                data.getQuantity()
+        );
+
+        assertEquals(
+                "P",
+                data.getUnit()
+        );
+
+        assertEquals(
+                "mR2138fX4p",
+                data.getSourceText()
+        );
+    }
+
     private void assertCrossedLine(
             String source,
             WarehouseReference expected,

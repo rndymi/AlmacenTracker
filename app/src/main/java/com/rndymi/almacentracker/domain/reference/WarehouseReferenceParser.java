@@ -76,7 +76,9 @@ public final class WarehouseReferenceParser {
                             + "|X(?=[\\p{Z}\\s]*"
                             + "[0-9ILSZGJBOTF()王]{1,3}"
                             + "[\\p{Z}\\s]*"
-                            + "P(?:CS|QT|QTS)?(?:\\b|$))"
+                            + "P(?:CS|QT|QTS)?(?:\\b|$))",
+                    Pattern.CASE_INSENSITIVE
+                            | Pattern.UNICODE_CASE
             );
     private static final Pattern OCR_SPACED_CATEGORY_PATTERN =
             Pattern.compile(

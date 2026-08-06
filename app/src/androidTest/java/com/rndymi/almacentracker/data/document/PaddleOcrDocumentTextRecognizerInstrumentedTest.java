@@ -622,11 +622,13 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
     }
 
     @Test
-    public void recognize_sequentialRunsDoNotRetainUnboundedMemory()
+    public void recognize_warmRunsDoNotRetainUnboundedMemory()
             throws Exception {
+        recognizeAndAwaitSuccess();
+
         forceBestEffortCollection();
 
-        long memoryBefore =
+        long memoryAfterWarmUp =
                 approximateUsedMemoryBytes();
 
         for (int runIndex = 0;
@@ -637,22 +639,27 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
 
         forceBestEffortCollection();
 
-        long memoryAfter =
+        long memoryAfterRepeatedRuns =
                 approximateUsedMemoryBytes();
 
         long retainedGrowth =
                 Math.max(
                         0L,
-                        memoryAfter - memoryBefore
+                        memoryAfterRepeatedRuns
+                                - memoryAfterWarmUp
                 );
 
         long diagnosticLimit =
-                96L * 1024L * 1024L;
+                64L * 1024L * 1024L;
 
         assertTrue(
-                "Approximate retained memory grew by "
+                "Approximate retained memory after warm-up grew by "
                         + retainedGrowth
-                        + " bytes",
+                        + " bytes. "
+                        + "memoryAfterWarmUp="
+                        + memoryAfterWarmUp
+                        + ", memoryAfterRepeatedRuns="
+                        + memoryAfterRepeatedRuns,
                 retainedGrowth <= diagnosticLimit
         );
     }
