@@ -290,6 +290,78 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         assertTrue(documentImage.isClosed());
     }
 
+    @Test
+    public void recognize_nullImageReportsImageOpenError() {
+        AtomicReference<String> callback =
+                new AtomicReference<>();
+
+        textRecognizer.recognize(
+                null,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        callback.set("success");
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        callback.set("image");
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        callback.set("recognition");
+                    }
+                }
+        );
+
+        assertEquals("image", callback.get());
+    }
+
+    @Test
+    public void recognize_nullSourceReportsErrorAndClosesImage() {
+        Bitmap bitmap = createDocumentBitmap();
+        AndroidDocumentImage documentImage =
+                new AndroidDocumentImage(
+                        bitmap,
+                        bitmap.getWidth(),
+                        bitmap.getHeight(),
+                        0
+                );
+        AtomicReference<String> callback =
+                new AtomicReference<>();
+
+        textRecognizer.recognize(
+                documentImage,
+                null,
+                new DocumentRecognitionCallback() {
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        callback.set("success");
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        callback.set("image");
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        callback.set("recognition");
+                    }
+                }
+        );
+
+        assertEquals("recognition", callback.get());
+        assertTrue(documentImage.isClosed());
+        assertTrue(bitmap.isRecycled());
+    }
+
     private Bitmap createDocumentBitmap() {
         Bitmap bitmap =
                 Bitmap.createBitmap(
