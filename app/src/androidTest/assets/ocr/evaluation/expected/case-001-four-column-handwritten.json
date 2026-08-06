@@ -1,0 +1,168 @@
+{
+  "caseId": "case-001-four-column-handwritten",
+  "expectedTitle": null,
+  "expectedBuyerOrStore": "AKE",
+  "expectedGlobalDestination": "PORTO",
+  "expectedRegions": [
+    {
+      "id": "header",
+      "text": "AKE PORTO",
+      "left": 0.05,
+      "top": 0.03,
+      "right": 0.40,
+      "bottom": 0.12,
+      "optional": false
+    },
+    {
+      "id": "reference-mr8665",
+      "text": "MR8665",
+      "left": 0.05,
+      "top": 0.18,
+      "right": 0.22,
+      "bottom": 0.26,
+      "optional": false
+    },
+    {
+      "id": "reference-mr21854",
+      "text": "MR21854",
+      "left": 0.29,
+      "top": 0.18,
+      "right": 0.48,
+      "bottom": 0.26,
+      "optional": false
+    },
+    {
+      "id": "reference-ma1201",
+      "text": "MA1201",
+      "left": 0.55,
+      "top": 0.18,
+      "right": 0.72,
+      "bottom": 0.26,
+      "optional": false
+    },
+    {
+      "id": "reference-mr21571",
+      "text": "MR21571",
+      "left": 0.78,
+      "top": 0.18,
+      "right": 0.97,
+      "bottom": 0.26,
+      "optional": false
+    }
+  ],
+  "expectedLines": [
+    {
+      "lineIndex": 0,
+      "text": "AKE PORTO",
+      "columnIndex": null,
+      "globalLine": true
+    },
+    {
+      "lineIndex": 1,
+      "text": "MR8665",
+      "columnIndex": 0,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 2,
+      "text": "MR22547",
+      "columnIndex": 0,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 3,
+      "text": "MR22139",
+      "columnIndex": 0,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 4,
+      "text": "MR21854",
+      "columnIndex": 1,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 5,
+      "text": "MA871",
+      "columnIndex": 1,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 6,
+      "text": "MA987",
+      "columnIndex": 2,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 7,
+      "text": "MA1201",
+      "columnIndex": 2,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 8,
+      "text": "MA988",
+      "columnIndex": 3,
+      "globalLine": false
+    },
+    {
+      "lineIndex": 9,
+      "text": "MR21571",
+      "columnIndex": 3,
+      "globalLine": false
+    }
+  ],
+  "expectedReferences": [
+    {
+      "category": "MR",
+      "code": "8665",
+      "sourceLineIndex": 1,
+      "expectedMatchStatus": "UNIQUE_SUGGESTION",
+      "expectedQuantity": null,
+      "expectedUnit": null,
+      "expectedDestinations": [],
+      "observedOcrVariant": "MK866S",
+      "expectedSuggestion": "MR8665",
+      "knownInRoom": true
+    },
+    {
+      "category": "MR",
+      "code": "21854",
+      "sourceLineIndex": 4,
+      "expectedMatchStatus": "EXACT",
+      "expectedQuantity": null,
+      "expectedUnit": null,
+      "expectedDestinations": [],
+      "observedOcrVariant": null,
+      "expectedSuggestion": null,
+      "knownInRoom": true
+    },
+    {
+      "category": "MA",
+      "code": "1201",
+      "sourceLineIndex": 7,
+      "expectedMatchStatus": "UNIQUE_SUGGESTION",
+      "expectedQuantity": null,
+      "expectedUnit": null,
+      "expectedDestinations": [],
+      "observedOcrVariant": "MA201",
+      "expectedSuggestion": "MA1201",
+      "knownInRoom": true
+    },
+    {
+      "category": "MR",
+      "code": "21571",
+      "sourceLineIndex": 9,
+      "expectedMatchStatus": "UNIQUE_SUGGESTION",
+      "expectedQuantity": "1",
+      "expectedUnit": "P",
+      "expectedDestinations": [
+        "①",
+        "②"
+      ],
+      "observedOcrVariant": "MR215H",
+      "expectedSuggestion": "MR21571",
+      "knownInRoom": true
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "corpusVersion": "baseline-v1",
+  "cases": [
+    {
+      "id": "case-001-four-column-handwritten",
+      "imagePath": "ocr/evaluation/images/case-001-four-column-handwritten.png",
+      "expectedPath": "ocr/evaluation/expected/case-001-four-column-handwritten.json",
+      "description": "Synthetic handwritten four-column list with AKE PORTO header and controlled OCR anomalies",
+      "sourceType": "photo",
+      "documentType": "handwritten",
+      "lighting": "regular",
+      "perspective": "moderate",
+      "group": "multicolumn",
+      "expectedOrientationDegrees": 0,
+      "columnCount": 4,
+      "handwritten": true,
+      "publicRepositoryAllowed": true,
+      "containsPrivateData": false,
+      "source": "Synthetic test document created for AlmacenTracker",
+      "license": "Project-owned synthetic fixture"
+    }
+  ]
+}

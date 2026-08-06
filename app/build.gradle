@@ -29,6 +29,17 @@ android {
         }
     }
 
+    sourceSets {
+        test {
+            java.srcDir "src/sharedTest/java"
+        }
+
+        androidTest {
+            java.srcDir "src/sharedTest/java"
+            assets.srcDir "src/androidTest/assets"
+        }
+    }
+
     splits {
         abi {
             enable true

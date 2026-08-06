@@ -68,3 +68,9 @@ docs/md/
 *.md
 !README.md
 !**/NOTICE.md
+
+# Private OCR evaluation corpus
+local-ocr-corpus/
+
+# Generated OCR evaluation reports
+**/build/reports/ocr-evaluation/
