@@ -467,6 +467,158 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         }
     }
 
+    @Test
+    public void recognize_rejectsSecondConcurrentRequest()
+            throws Exception {
+        Bitmap firstBitmap =
+                createDocumentBitmap();
+
+        AndroidDocumentImage firstImage =
+                new AndroidDocumentImage(
+                        firstBitmap,
+                        firstBitmap.getWidth(),
+                        firstBitmap.getHeight(),
+                        0
+                );
+
+        Bitmap secondBitmap =
+                createDocumentBitmap();
+
+        AndroidDocumentImage secondImage =
+                new AndroidDocumentImage(
+                        secondBitmap,
+                        secondBitmap.getWidth(),
+                        secondBitmap.getHeight(),
+                        0
+                );
+
+        CountDownLatch firstLatch =
+                new CountDownLatch(1);
+
+        CountDownLatch secondLatch =
+                new CountDownLatch(1);
+
+        AtomicReference<String> firstError =
+                new AtomicReference<>();
+
+        AtomicReference<String> secondError =
+                new AtomicReference<>();
+
+        AtomicInteger firstCallbackCount =
+                new AtomicInteger();
+
+        AtomicInteger secondCallbackCount =
+                new AtomicInteger();
+
+        textRecognizer.recognize(
+                firstImage,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        firstCallbackCount.incrementAndGet();
+                        firstLatch.countDown();
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        firstCallbackCount.incrementAndGet();
+                        firstError.set("image");
+                        firstLatch.countDown();
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        firstCallbackCount.incrementAndGet();
+                        firstError.set("recognition");
+                        firstLatch.countDown();
+                    }
+                }
+        );
+
+        textRecognizer.recognize(
+                secondImage,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        secondCallbackCount.incrementAndGet();
+                        secondLatch.countDown();
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        secondCallbackCount.incrementAndGet();
+                        secondError.set("image");
+                        secondLatch.countDown();
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        secondCallbackCount.incrementAndGet();
+                        secondError.set("recognition");
+                        secondLatch.countDown();
+                    }
+                }
+        );
+
+        assertTrue(
+                secondLatch.await(
+                        5L,
+                        TimeUnit.SECONDS
+                )
+        );
+
+        assertEquals(
+                "recognition",
+                secondError.get()
+        );
+
+        assertEquals(
+                1,
+                secondCallbackCount.get()
+        );
+
+        assertTrue(
+                secondImage.isClosed()
+        );
+
+        assertTrue(
+                secondBitmap.isRecycled()
+        );
+
+        assertTrue(
+                firstLatch.await(
+                        RECOGNITION_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS
+                )
+        );
+
+        assertEquals(
+                null,
+                firstError.get()
+        );
+
+        assertEquals(
+                1,
+                firstCallbackCount.get()
+        );
+
+        assertTrue(
+                firstImage.isClosed()
+        );
+
+        assertTrue(
+                firstBitmap.isRecycled()
+        );
+    }
+
     private Bitmap createDocumentBitmap() {
         Bitmap bitmap =
                 Bitmap.createBitmap(
