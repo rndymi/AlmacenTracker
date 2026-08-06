@@ -48,6 +48,9 @@ import ai.onnxruntime.OrtEnvironment;
 public final class
 PaddleOcrDocumentTextRecognizerInstrumentedTest {
 
+    private static final int SEQUENTIAL_RUN_COUNT = 5;
+    private static final long RECOGNITION_TIMEOUT_SECONDS = 60L;
+
     private ExecutorService ocrExecutor;
     private PaddleOcrRuntimeProvider runtimeProvider;
     private PaddleOcrDocumentTextRecognizer textRecognizer;
@@ -360,6 +363,108 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         assertEquals("recognition", callback.get());
         assertTrue(documentImage.isClosed());
         assertTrue(bitmap.isRecycled());
+    }
+
+    @Test
+    public void recognize_supportsSeveralSequentialExecutions()
+            throws Exception {
+        for (int runIndex = 0;
+             runIndex < SEQUENTIAL_RUN_COUNT;
+             runIndex++) {
+
+            Bitmap bitmap =
+                    createDocumentBitmap();
+
+            AndroidDocumentImage documentImage =
+                    new AndroidDocumentImage(
+                            bitmap,
+                            bitmap.getWidth(),
+                            bitmap.getHeight(),
+                            0
+                    );
+
+            CountDownLatch latch =
+                    new CountDownLatch(1);
+
+            AtomicReference<RecognizedDocument>
+                    document =
+                    new AtomicReference<>();
+
+            AtomicReference<String> error =
+                    new AtomicReference<>();
+
+            AtomicInteger callbackCount =
+                    new AtomicInteger();
+
+            textRecognizer.recognize(
+                    documentImage,
+                    DocumentImageSource.PHOTO_PICKER,
+                    new DocumentRecognitionCallback() {
+
+                        @Override
+                        public void onSuccess(
+                                RecognizedDocument result
+                        ) {
+                            callbackCount.incrementAndGet();
+                            document.set(result);
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onImageOpenError() {
+                            callbackCount.incrementAndGet();
+                            error.set("image");
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onRecognitionError() {
+                            callbackCount.incrementAndGet();
+                            error.set("recognition");
+                            latch.countDown();
+                        }
+                    }
+            );
+
+            assertTrue(
+                    "OCR run timed out: "
+                            + runIndex,
+                    latch.await(
+                            RECOGNITION_TIMEOUT_SECONDS,
+                            TimeUnit.SECONDS
+                    )
+            );
+
+            assertEquals(
+                    "Unexpected error on OCR run "
+                            + runIndex,
+                    null,
+                    error.get()
+            );
+
+            assertEquals(
+                    "Each run must emit one terminal callback",
+                    1,
+                    callbackCount.get()
+            );
+
+            assertNotNull(
+                    "Each run must return a document",
+                    document.get()
+            );
+
+            assertTrue(
+                    "DocumentImage must be closed after run "
+                            + runIndex,
+                    documentImage.isClosed()
+            );
+
+            assertTrue(
+                    "Owned bitmap must be recycled after run "
+                            + runIndex,
+                    bitmap.isRecycled()
+            );
+        }
     }
 
     private Bitmap createDocumentBitmap() {
