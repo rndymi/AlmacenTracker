@@ -14,7 +14,6 @@ archCore = "2.2.0"
 androidxJunit = "1.3.0"
 cameraX = "1.6.1"
 mlKitBarcode = "17.3.0"
-mlKitTextRecognition = "16.0.1"
 exifInterface = "1.4.1"
 onnxRuntime = "1.24.3"
 
@@ -39,7 +38,6 @@ camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cam
 camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraX" }
 camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraX" }
 mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlKitBarcode" }
-mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlKitTextRecognition" }
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifInterface" }
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android",  version.ref = "onnxRuntime" }
 
