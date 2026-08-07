@@ -8,9 +8,11 @@ import android.view.View;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.feature.common.ui.RecyclerViewFastScroller;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListLocationBinding;
 import com.rndymi.almacentracker.domain.history.WithdrawalLocationStatus;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
@@ -33,6 +35,7 @@ public final class ReferenceListLocationActivity
     private ActivityReferenceListLocationBinding binding;
     private ReferenceListLocationViewModel viewModel;
     private ReferenceListLocationAdapter adapter;
+    private RecyclerViewFastScroller fastScroller;
 
     private static final String EXTRA_DOCUMENT_TITLE =
             "com.rndymi.almacentracker.extra."
@@ -135,8 +138,20 @@ public final class ReferenceListLocationActivity
                         this::openDetail
                 );
 
-        binding.locationsRecyclerView
-                .setAdapter(adapter);
+        LinearLayoutManager layoutManager =
+                new LinearLayoutManager(this);
+
+        binding.locationsRecyclerView.setLayoutManager(
+                layoutManager
+        );
+        binding.locationsRecyclerView.setAdapter(adapter);
+
+        fastScroller =
+                new RecyclerViewFastScroller(
+                        binding.locationsRecyclerView,
+                        layoutManager,
+                        binding.fastScrollHandle
+                );
     }
 
     private void configureViewModel() {
@@ -199,6 +214,10 @@ public final class ReferenceListLocationActivity
                         ? View.VISIBLE
                         : View.GONE
         );
+
+        if (!content && fastScroller != null) {
+            fastScroller.hideNow();
+        }
 
         binding.registerHistoryButton.setVisibility(
                 content && !state.getLocations().isEmpty()
@@ -264,6 +283,19 @@ public final class ReferenceListLocationActivity
                     View.VISIBLE
             );
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (fastScroller != null) {
+            fastScroller.detach();
+            fastScroller = null;
+        }
+
+        binding.locationsRecyclerView.setAdapter(null);
+        binding = null;
+
+        super.onDestroy();
     }
 
     private void openDetail(

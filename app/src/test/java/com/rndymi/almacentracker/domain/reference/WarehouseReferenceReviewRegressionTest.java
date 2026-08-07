@@ -102,7 +102,7 @@ public final class WarehouseReferenceReviewRegressionTest {
     @Test
     public void crossedMarkerSeparatesReferenceFromQuantityAndUnit() {
         assertCrossedLine(
-                "mR21388X40p",
+                "mR21388x40p",
                 reference("MR", "21388"),
                 40
         );
@@ -153,6 +153,231 @@ public final class WarehouseReferenceReviewRegressionTest {
         assertEquals(
                 "mR2138fX4p",
                 data.getSourceText()
+        );
+    }
+
+    @Test
+    public void crossedMarkerNeverBecomesCodeEvenWithoutDocumentData() {
+        WarehouseReferenceMatch match =
+                singleMatch(
+                        parser.parseOcrLine(
+                                0,
+                                "mR2138fX",
+                                Collections.emptyList()
+                        )
+                );
+
+        assertEquals(
+                "MR",
+                match.getObservedReference()
+                        .getCategory()
+        );
+        assertEquals(
+                "2138F",
+                match.getObservedReference()
+                        .getCode()
+        );
+        assertEquals(
+                "mR2138fX",
+                match.getSourceRawText()
+        );
+    }
+
+    @Test
+    public void xInsideCategoryIsNotTreatedAsCrossedMarker() {
+        WarehouseReferenceMatch suffixMatch =
+                singleMatch(
+                        parser.parseOcrLine(
+                                0,
+                                "MX21387",
+                                Collections.emptyList()
+                        )
+                );
+
+        assertEquals(
+                "MX",
+                suffixMatch.getObservedReference()
+                        .getCategory()
+        );
+        assertEquals(
+                "21387",
+                suffixMatch.getObservedReference()
+                        .getCode()
+        );
+
+        WarehouseReferenceMatch prefixMatch =
+                singleMatch(
+                        parser.parseOcrLine(
+                                1,
+                                "XM21387",
+                                Collections.emptyList()
+                        )
+                );
+
+        assertEquals(
+                "XM",
+                prefixMatch.getObservedReference()
+                        .getCategory()
+        );
+        assertEquals(
+                "21387",
+                prefixMatch.getObservedReference()
+                        .getCode()
+        );
+    }
+
+    @Test
+    public void crossedMarkerIsRemovedBeforeUnknownOcrReferenceExtraction() {
+        List<WarehouseReferenceMatch> matches =
+                parser.parseOcrLine(
+                        0,
+                        "mR2138fX4p",
+                        Collections.emptyList()
+                );
+
+        assertEquals(1, matches.size());
+
+        WarehouseReferenceMatch match =
+                matches.get(0);
+
+        assertEquals(
+                "MR",
+                match.getObservedReference()
+                        .getCategory()
+        );
+
+        assertEquals(
+                "2138F",
+                match.getObservedReference()
+                        .getCode()
+        );
+
+        DocumentReferenceData data =
+                documentParser.parse(match);
+
+        assertEquals(
+                Integer.valueOf(4),
+                data.getQuantity()
+        );
+
+        assertEquals(
+                "P",
+                data.getUnit()
+        );
+    }
+
+    @Test
+    public void crossedMarkerProducesEquivalentSegmentationForExactAndConfusedCodes() {
+        WarehouseReferenceMatch exactMatch =
+                singleMatch(
+                        parser.parseOcrLine(
+                                0,
+                                "mR21388X40p",
+                                Collections.emptyList()
+                        )
+                );
+
+        WarehouseReferenceMatch confusedMatch =
+                singleMatch(
+                        parser.parseOcrLine(
+                                1,
+                                "mR2138fX4p",
+                                Collections.emptyList()
+                        )
+                );
+
+        assertEquals(
+                "21388",
+                exactMatch.getObservedReference()
+                        .getCode()
+        );
+
+        assertEquals(
+                "2138F",
+                confusedMatch.getObservedReference()
+                        .getCode()
+        );
+
+        assertFalse(
+                exactMatch.getObservedReference()
+                        .getCode()
+                        .contains("X")
+        );
+
+        assertFalse(
+                confusedMatch.getObservedReference()
+                        .getCode()
+                        .contains("X")
+        );
+
+        assertEquals(
+                Integer.valueOf(40),
+                documentParser.parse(exactMatch)
+                        .getQuantity()
+        );
+
+        assertEquals(
+                Integer.valueOf(4),
+                documentParser.parse(confusedMatch)
+                        .getQuantity()
+        );
+    }
+
+    @Test
+    public void crossedConfusedCodeRemainsObservedAndSuggestsKnownReference() {
+        WarehouseReference expected =
+                reference(
+                        "MR",
+                        "21387"
+                );
+
+        WarehouseReferenceMatch match =
+                singleMatch(
+                        parser.parseOcrLine(
+                                0,
+                                "mR2138fX4p",
+                                Collections.singletonList(
+                                        expected
+                                )
+                        )
+                );
+
+        assertEquals(
+                "2138F",
+                match.getObservedReference()
+                        .getCode()
+        );
+
+        List<WarehouseReferenceSuggestion> suggestions =
+                resolver.resolve(
+                        match.getObservedReference(),
+                        Collections.singletonList(
+                                expected
+                        ),
+                        5
+                );
+
+        assertFalse(
+                suggestions.isEmpty()
+        );
+
+        assertEquals(
+                expected,
+                suggestions.get(0)
+                        .getReference()
+        );
+
+        DocumentReferenceData data =
+                documentParser.parse(match);
+
+        assertEquals(
+                Integer.valueOf(4),
+                data.getQuantity()
+        );
+
+        assertEquals(
+                "P",
+                data.getUnit()
         );
     }
 
@@ -239,5 +464,12 @@ public final class WarehouseReferenceReviewRegressionTest {
             String code
     ) {
         return new WarehouseReference(category, code);
+    }
+
+    private WarehouseReferenceMatch singleMatch(
+            List<WarehouseReferenceMatch> matches
+    ) {
+        assertEquals(1, matches.size());
+        return matches.get(0);
     }
 }

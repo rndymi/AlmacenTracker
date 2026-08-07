@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.feature.inventory.list;
+package com.rndymi.almacentracker.feature.common.ui;
 
 import static org.junit.Assert.assertEquals;
 

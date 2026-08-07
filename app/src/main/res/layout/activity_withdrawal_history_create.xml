@@ -74,22 +74,35 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/dateLabel"
+        <LinearLayout
+            android:id="@+id/dateRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
             android:layout_marginTop="16dp"
-            android:text="@string/withdrawal_history_registered_at"
-            android:textAppearance="?attr/textAppearanceLabelLarge" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/dateText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
+            <TextView
+                android:id="@+id/dateLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="@string/withdrawal_history_registered_at"
+                android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+            <TextView
+                android:id="@+id/dateText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/dateErrorText"
@@ -109,14 +122,38 @@
             android:layout_marginTop="16dp"
             android:textAppearance="?attr/textAppearanceTitleSmall" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/entriesRecyclerView"
+        <FrameLayout
+            android:id="@+id/entriesContainer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingVertical="8dp"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/entriesRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingVertical="8dp" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fastScrollHandle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_marginEnd="4dp"
+                android:alpha="0"
+                android:clickable="true"
+                android:contentDescription="@string/fast_scroll_to_bottom"
+                android:focusable="true"
+                android:visibility="gone"
+                app:backgroundTint="?attr/colorSecondaryContainer"
+                app:elevation="3dp"
+                app:fabCustomSize="40dp"
+                app:maxImageSize="20dp"
+                app:srcCompat="@drawable/ic_arrow_downward"
+                app:tint="?attr/colorOnSecondaryContainer" />
+
+        </FrameLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/continueButton"

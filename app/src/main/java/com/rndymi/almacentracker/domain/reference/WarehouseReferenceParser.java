@@ -80,6 +80,12 @@ public final class WarehouseReferenceParser {
                     Pattern.CASE_INSENSITIVE
                             | Pattern.UNICODE_CASE
             );
+    private static final Pattern CROSSED_REFERENCE_DELIMITER_PATTERN =
+            Pattern.compile(
+                    "X",
+                    Pattern.CASE_INSENSITIVE
+                            | Pattern.UNICODE_CASE
+            );
     private static final Pattern OCR_SPACED_CATEGORY_PATTERN =
             Pattern.compile(
                     "(?<![A-Z0-9])"
@@ -182,10 +188,15 @@ public final class WarehouseReferenceParser {
                         rawText
                 );
 
+        String referenceSearchText =
+                segmentBeforeCrossedMarker(
+                        normalizedOcrText
+                );
+
         List<WarehouseReferenceMatch> specialMatches =
                 extractSpecialReferenceCandidates(
                         lineIndex,
-                        normalizedOcrText,
+                        referenceSearchText,
                         rawText
                 );
 
@@ -196,7 +207,7 @@ public final class WarehouseReferenceParser {
         WarehouseReferenceMatch shiftedCandidate =
                 extractKnownSupportedSingleLetterCandidate(
                         lineIndex,
-                        normalizedOcrText,
+                        referenceSearchText,
                         rawText,
                         knownReferences
                 );
@@ -210,7 +221,7 @@ public final class WarehouseReferenceParser {
         List<WarehouseReferenceMatch> knownMatches =
                 findKnownReferencesInLine(
                         lineIndex,
-                        normalizedOcrText,
+                        referenceSearchText,
                         rawText,
                         knownReferences
                 );
@@ -222,7 +233,7 @@ public final class WarehouseReferenceParser {
         List<WarehouseReferenceMatch> strictMatches =
                 parseLine(
                         lineIndex,
-                        normalizedOcrText
+                        referenceSearchText
                 );
 
         if (!strictMatches.isEmpty()) {
@@ -234,13 +245,12 @@ public final class WarehouseReferenceParser {
 
         return extractOcrCandidates(
                 lineIndex,
-                normalizedOcrText,
+                referenceSearchText,
                 rawText
         );
     }
 
-    private WarehouseReferenceMatch
-    extractKnownSupportedSingleLetterCandidate(
+    private WarehouseReferenceMatch extractKnownSupportedSingleLetterCandidate(
             int lineIndex,
             String searchableSource,
             String originalSource,
@@ -291,8 +301,7 @@ public final class WarehouseReferenceParser {
         return null;
     }
 
-    private List<WarehouseReferenceMatch>
-    extractSpecialReferenceCandidates(
+    private List<WarehouseReferenceMatch> extractSpecialReferenceCandidates(
             int lineIndex,
             String searchableSource,
             String originalSource
@@ -547,8 +556,7 @@ public final class WarehouseReferenceParser {
         );
     }
 
-    private List<WarehouseReferenceMatch>
-    resolveInvalidCategories(
+    private List<WarehouseReferenceMatch> resolveInvalidCategories(
             List<WarehouseReferenceMatch> observedMatches,
             List<WarehouseReference> knownReferences
     ) {
@@ -606,8 +614,7 @@ public final class WarehouseReferenceParser {
         );
     }
 
-    private WarehouseReference
-    findUniqueCompatibleReference(
+    private WarehouseReference findUniqueCompatibleReference(
             WarehouseReference observed,
             List<WarehouseReference> knownReferences
     ) {
@@ -1306,6 +1313,39 @@ public final class WarehouseReferenceParser {
         Matcher matcher =
                 DOCUMENT_DATA_DELIMITER_PATTERN
                         .matcher(sourceText);
+
+        if (!matcher.find()) {
+            return sourceText;
+        }
+
+        return sourceText.substring(
+                0,
+                matcher.start()
+        );
+    }
+
+    private String segmentBeforeCrossedMarker(
+            String sourceText
+    ) {
+        if (sourceText == null
+                || sourceText.isEmpty()) {
+            return sourceText;
+        }
+
+        Matcher matcher =
+                CROSSED_REFERENCE_DELIMITER_PATTERN
+                        .matcher(sourceText);
+
+        Matcher categoryMatcher =
+                OCR_RAW_CATEGORY_PATTERN
+                        .matcher(sourceText);
+
+        if (categoryMatcher.find()) {
+            matcher.region(
+                    categoryMatcher.end(4),
+                    sourceText.length()
+            );
+        }
 
         if (!matcher.find()) {
             return sourceText;

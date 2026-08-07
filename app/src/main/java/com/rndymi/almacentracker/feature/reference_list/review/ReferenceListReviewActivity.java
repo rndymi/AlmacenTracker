@@ -10,11 +10,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.rndymi.almacentracker.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
+import com.rndymi.almacentracker.feature.common.ui.RecyclerViewFastScroller;
 import com.rndymi.almacentracker.databinding.ActivityReferenceListReviewBinding;
 import com.rndymi.almacentracker.databinding.DialogReferenceEditorBinding;
 import com.rndymi.almacentracker.domain.reference.DocumentReferenceData;
@@ -41,6 +43,7 @@ public final class ReferenceListReviewActivity
     private ActivityReferenceListReviewBinding binding;
     private ReferenceListReviewViewModel viewModel;
     private ReferenceListReviewAdapter adapter;
+    private RecyclerViewFastScroller fastScroller;
 
     @Nullable
     private String documentTitle;
@@ -219,8 +222,20 @@ public final class ReferenceListReviewActivity
                         }
                 );
 
-        binding.referencesRecyclerView
-                .setAdapter(adapter);
+        LinearLayoutManager layoutManager =
+                new LinearLayoutManager(this);
+
+        binding.referencesRecyclerView.setLayoutManager(
+                layoutManager
+        );
+        binding.referencesRecyclerView.setAdapter(adapter);
+
+        fastScroller =
+                new RecyclerViewFastScroller(
+                        binding.referencesRecyclerView,
+                        layoutManager,
+                        binding.fastScrollHandle
+                );
     }
 
     private void configureActions() {
@@ -317,6 +332,11 @@ public final class ReferenceListReviewActivity
                                 : View.VISIBLE
                 );
 
+        if (state.isEmpty()
+                && fastScroller != null) {
+            fastScroller.hideNow();
+        }
+
         binding.confirmButton.setEnabled(
                 state.canConfirm()
         );
@@ -334,6 +354,19 @@ public final class ReferenceListReviewActivity
                                 state.getReferenceCount()
                         )
         );
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (fastScroller != null) {
+            fastScroller.detach();
+            fastScroller = null;
+        }
+
+        binding.referencesRecyclerView.setAdapter(null);
+        binding = null;
+
+        super.onDestroy();
     }
 
     private void showReferenceEditor(

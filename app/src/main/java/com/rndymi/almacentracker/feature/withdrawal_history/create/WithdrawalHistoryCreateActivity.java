@@ -10,11 +10,13 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.rndymi.almacentracker.R;
 import com.rndymi.almacentracker.app.AlmacenTrackerApplication;
 import com.rndymi.almacentracker.core.common.event.UiEvent;
+import com.rndymi.almacentracker.feature.common.ui.RecyclerViewFastScroller;
 import com.rndymi.almacentracker.databinding.ActivityWithdrawalHistoryCreateBinding;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraft;
 import com.rndymi.almacentracker.domain.history.WithdrawalHistoryDraftEntry;
@@ -39,6 +41,7 @@ public final class WithdrawalHistoryCreateActivity
     private ActivityWithdrawalHistoryCreateBinding binding;
     private WithdrawalHistoryCreateViewModel viewModel;
     private WithdrawalHistoryCreateAdapter adapter;
+    private RecyclerViewFastScroller fastScroller;
     private boolean rendering;
     private boolean saveErrorShown;
 
@@ -185,9 +188,20 @@ public final class WithdrawalHistoryCreateActivity
                         }
                 );
 
-        binding.entriesRecyclerView.setAdapter(
-                adapter
+        LinearLayoutManager layoutManager =
+                new LinearLayoutManager(this);
+
+        binding.entriesRecyclerView.setLayoutManager(
+                layoutManager
         );
+        binding.entriesRecyclerView.setAdapter(adapter);
+
+        fastScroller =
+                new RecyclerViewFastScroller(
+                        binding.entriesRecyclerView,
+                        layoutManager,
+                        binding.fastScrollHandle
+                );
     }
 
     private void configureViewModel() {
@@ -381,6 +395,19 @@ public final class WithdrawalHistoryCreateActivity
         if (!state.hasSaveError()) {
             saveErrorShown = false;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (fastScroller != null) {
+            fastScroller.detach();
+            fastScroller = null;
+        }
+
+        binding.entriesRecyclerView.setAdapter(null);
+        binding = null;
+
+        super.onDestroy();
     }
 
     private void consumeConfirmationEvent(

@@ -33,6 +33,7 @@ import com.rndymi.almacentracker.feature.scanner.ScannerActivity;
 import com.rndymi.almacentracker.feature.reference_list.capture.ReferenceListCaptureActivity;
 import com.rndymi.almacentracker.feature.withdrawal_history.list.WithdrawalHistoryListActivity;
 import com.rndymi.almacentracker.R;
+import com.rndymi.almacentracker.feature.common.ui.RecyclerViewFastScroller;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,7 @@ public final class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private WarehouseItemAdapter warehouseItemAdapter;
-    private WarehouseItemFastScroller fastScroller;
+    private RecyclerViewFastScroller fastScroller;
     private WarehouseItemListViewModel viewModel;
     private ActivityResultLauncher<Intent> scannerActivityLauncher;
 
@@ -152,7 +153,7 @@ public final class MainActivity extends AppCompatActivity {
         binding.warehouseRecyclerView.setHasFixedSize(true);
 
         fastScroller =
-                new WarehouseItemFastScroller(
+                new RecyclerViewFastScroller(
                         binding.warehouseRecyclerView,
                         layoutManager,
                         binding.fastScrollHandle

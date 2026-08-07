@@ -211,6 +211,82 @@ public final class ReferenceListReviewViewModelTest {
     }
 
     @Test
+    public void applyInitialLinesKeepsCrossedMarkerOutOfReferenceCode() {
+        ReferenceListReviewViewModel resolvingViewModel =
+                new ReferenceListReviewViewModel(
+                        new WarehouseReferenceParser(),
+                        new WarehouseItemRepositoryStub() {
+
+                            @Override
+                            public void findAll(
+                                    RepositoryCallback<
+                                            List<WarehouseItem>
+                                            > callback
+                            ) {
+                                callback.onSuccess(
+                                        Arrays.asList(
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21387"
+                                                ),
+                                                warehouseItem(
+                                                        "MR",
+                                                        "21388"
+                                                )
+                                        )
+                                );
+                            }
+                        }
+                );
+
+        resolvingViewModel.applyInitialLines(
+                Collections.singletonList(
+                        "mR2138fX4p"
+                )
+        );
+
+        ReferenceListReviewUiState state =
+                resolvingViewModel
+                        .getUiState()
+                        .getValue();
+
+        assertNotNull(state);
+        assertEquals(1, state.getReferenceCount());
+
+        ReferenceProposal proposal =
+                state.getProposals().get(0);
+
+        assertEquals(
+                "MR 2138F",
+                proposal.getObservedReference()
+                        .displayValue()
+        );
+        assertEquals(
+                ReferenceProposal.MatchStatus.UNIQUE_SUGGESTION,
+                proposal.getMatchStatus()
+        );
+        assertEquals(
+                "MR 21387",
+                proposal.getSuggestions().get(0)
+                        .displayValue()
+        );
+        assertEquals(
+                Integer.valueOf(4),
+                proposal.getDocumentData()
+                        .getQuantity()
+        );
+        assertEquals(
+                "P",
+                proposal.getDocumentData()
+                        .getUnit()
+        );
+        assertEquals(
+                "mR2138fX4p",
+                proposal.getSourceRawText()
+        );
+    }
+
+    @Test
     public void applyInitialLinesJoinsSplitInputAndOffersUniqueReference() {
         ReferenceListReviewViewModel resolvingViewModel =
                 new ReferenceListReviewViewModel(
