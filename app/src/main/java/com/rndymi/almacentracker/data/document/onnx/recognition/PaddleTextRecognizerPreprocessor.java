@@ -275,10 +275,17 @@ public final class PaddleTextRecognizerPreprocessor {
     private OnnxTensor createTensor(
             Bitmap bitmap
     ) throws OrtException {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
+        int width =
+                bitmap.getWidth();
 
-        int[] pixels = new int[width * height];
+        int height =
+                bitmap.getHeight();
+
+        int pixelCount =
+                width * height;
+
+        int[] pixels =
+                new int[pixelCount];
 
         bitmap.getPixels(
                 pixels,
@@ -290,47 +297,60 @@ public final class PaddleTextRecognizerPreprocessor {
                 height
         );
 
-        FloatBuffer buffer = FloatBuffer.allocate(
-                CHANNEL_COUNT * width * height
+        FloatBuffer buffer =
+                FloatBuffer.allocate(
+                        CHANNEL_COUNT
+                                * pixelCount
+                );
+
+        writeNormalizedChannel(
+                buffer,
+                pixels,
+                16
         );
 
-        int channelSize = width * height;
+        writeNormalizedChannel(
+                buffer,
+                pixels,
+                8
+        );
 
-        float[] values =
-                new float[CHANNEL_COUNT * channelSize];
+        writeNormalizedChannel(
+                buffer,
+                pixels,
+                0
+        );
 
-        for (int index = 0;
-             index < pixels.length;
-             index++) {
-            int pixel = pixels[index];
-
-            float red =
-                    ((pixel >> 16) & 0xFF) / 255.0f;
-            float green =
-                    ((pixel >> 8) & 0xFF) / 255.0f;
-            float blue =
-                    (pixel & 0xFF) / 255.0f;
-
-            values[index] = normalize(red);
-            values[channelSize + index] =
-                    normalize(green);
-            values[(2 * channelSize) + index] =
-                    normalize(blue);
-        }
-
-        buffer.put(values);
         buffer.rewind();
 
         return OnnxTensor.createTensor(
                 environment,
                 buffer,
                 new long[]{
-                        1,
+                        1L,
                         CHANNEL_COUNT,
                         height,
                         width
                 }
         );
+    }
+
+    private void writeNormalizedChannel(
+            FloatBuffer buffer,
+            int[] pixels,
+            int bitShift
+    ) {
+        for (int pixel : pixels) {
+            float component =
+                    (
+                            (pixel >> bitShift)
+                                    & 0xFF
+                    ) / 255.0f;
+
+            buffer.put(
+                    normalize(component)
+            );
+        }
     }
 
     private float normalize(

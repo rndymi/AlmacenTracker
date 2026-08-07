@@ -10,6 +10,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.os.Debug;
+import android.os.SystemClock;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -47,6 +49,9 @@ import ai.onnxruntime.OrtEnvironment;
 @RunWith(AndroidJUnit4.class)
 public final class
 PaddleOcrDocumentTextRecognizerInstrumentedTest {
+
+    private static final int SEQUENTIAL_RUN_COUNT = 5;
+    private static final long RECOGNITION_TIMEOUT_SECONDS = 60L;
 
     private ExecutorService ocrExecutor;
     private PaddleOcrRuntimeProvider runtimeProvider;
@@ -290,6 +295,375 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         assertTrue(documentImage.isClosed());
     }
 
+    @Test
+    public void recognize_nullImageReportsImageOpenError() {
+        AtomicReference<String> callback =
+                new AtomicReference<>();
+
+        textRecognizer.recognize(
+                null,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        callback.set("success");
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        callback.set("image");
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        callback.set("recognition");
+                    }
+                }
+        );
+
+        assertEquals("image", callback.get());
+    }
+
+    @Test
+    public void recognize_nullSourceReportsErrorAndClosesImage() {
+        Bitmap bitmap = createDocumentBitmap();
+        AndroidDocumentImage documentImage =
+                new AndroidDocumentImage(
+                        bitmap,
+                        bitmap.getWidth(),
+                        bitmap.getHeight(),
+                        0
+                );
+        AtomicReference<String> callback =
+                new AtomicReference<>();
+
+        textRecognizer.recognize(
+                documentImage,
+                null,
+                new DocumentRecognitionCallback() {
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        callback.set("success");
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        callback.set("image");
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        callback.set("recognition");
+                    }
+                }
+        );
+
+        assertEquals("recognition", callback.get());
+        assertTrue(documentImage.isClosed());
+        assertTrue(bitmap.isRecycled());
+    }
+
+    @Test
+    public void recognize_supportsSeveralSequentialExecutions()
+            throws Exception {
+        for (int runIndex = 0;
+             runIndex < SEQUENTIAL_RUN_COUNT;
+             runIndex++) {
+
+            Bitmap bitmap =
+                    createDocumentBitmap();
+
+            AndroidDocumentImage documentImage =
+                    new AndroidDocumentImage(
+                            bitmap,
+                            bitmap.getWidth(),
+                            bitmap.getHeight(),
+                            0
+                    );
+
+            CountDownLatch latch =
+                    new CountDownLatch(1);
+
+            AtomicReference<RecognizedDocument>
+                    document =
+                    new AtomicReference<>();
+
+            AtomicReference<String> error =
+                    new AtomicReference<>();
+
+            AtomicInteger callbackCount =
+                    new AtomicInteger();
+
+            textRecognizer.recognize(
+                    documentImage,
+                    DocumentImageSource.PHOTO_PICKER,
+                    new DocumentRecognitionCallback() {
+
+                        @Override
+                        public void onSuccess(
+                                RecognizedDocument result
+                        ) {
+                            callbackCount.incrementAndGet();
+                            document.set(result);
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onImageOpenError() {
+                            callbackCount.incrementAndGet();
+                            error.set("image");
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onRecognitionError() {
+                            callbackCount.incrementAndGet();
+                            error.set("recognition");
+                            latch.countDown();
+                        }
+                    }
+            );
+
+            assertTrue(
+                    "OCR run timed out: "
+                            + runIndex,
+                    latch.await(
+                            RECOGNITION_TIMEOUT_SECONDS,
+                            TimeUnit.SECONDS
+                    )
+            );
+
+            assertEquals(
+                    "Unexpected error on OCR run "
+                            + runIndex,
+                    null,
+                    error.get()
+            );
+
+            assertEquals(
+                    "Each run must emit one terminal callback",
+                    1,
+                    callbackCount.get()
+            );
+
+            assertNotNull(
+                    "Each run must return a document",
+                    document.get()
+            );
+
+            assertTrue(
+                    "DocumentImage must be closed after run "
+                            + runIndex,
+                    documentImage.isClosed()
+            );
+
+            assertTrue(
+                    "Owned bitmap must be recycled after run "
+                            + runIndex,
+                    bitmap.isRecycled()
+            );
+        }
+    }
+
+    @Test
+    public void recognize_rejectsSecondConcurrentRequest()
+            throws Exception {
+        Bitmap firstBitmap =
+                createDocumentBitmap();
+
+        AndroidDocumentImage firstImage =
+                new AndroidDocumentImage(
+                        firstBitmap,
+                        firstBitmap.getWidth(),
+                        firstBitmap.getHeight(),
+                        0
+                );
+
+        Bitmap secondBitmap =
+                createDocumentBitmap();
+
+        AndroidDocumentImage secondImage =
+                new AndroidDocumentImage(
+                        secondBitmap,
+                        secondBitmap.getWidth(),
+                        secondBitmap.getHeight(),
+                        0
+                );
+
+        CountDownLatch firstLatch =
+                new CountDownLatch(1);
+
+        CountDownLatch secondLatch =
+                new CountDownLatch(1);
+
+        AtomicReference<String> firstError =
+                new AtomicReference<>();
+
+        AtomicReference<String> secondError =
+                new AtomicReference<>();
+
+        AtomicInteger firstCallbackCount =
+                new AtomicInteger();
+
+        AtomicInteger secondCallbackCount =
+                new AtomicInteger();
+
+        textRecognizer.recognize(
+                firstImage,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        firstCallbackCount.incrementAndGet();
+                        firstLatch.countDown();
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        firstCallbackCount.incrementAndGet();
+                        firstError.set("image");
+                        firstLatch.countDown();
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        firstCallbackCount.incrementAndGet();
+                        firstError.set("recognition");
+                        firstLatch.countDown();
+                    }
+                }
+        );
+
+        textRecognizer.recognize(
+                secondImage,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument document
+                    ) {
+                        secondCallbackCount.incrementAndGet();
+                        secondLatch.countDown();
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        secondCallbackCount.incrementAndGet();
+                        secondError.set("image");
+                        secondLatch.countDown();
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        secondCallbackCount.incrementAndGet();
+                        secondError.set("recognition");
+                        secondLatch.countDown();
+                    }
+                }
+        );
+
+        assertTrue(
+                secondLatch.await(
+                        5L,
+                        TimeUnit.SECONDS
+                )
+        );
+
+        assertEquals(
+                "recognition",
+                secondError.get()
+        );
+
+        assertEquals(
+                1,
+                secondCallbackCount.get()
+        );
+
+        assertTrue(
+                secondImage.isClosed()
+        );
+
+        assertTrue(
+                secondBitmap.isRecycled()
+        );
+
+        assertTrue(
+                firstLatch.await(
+                        RECOGNITION_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS
+                )
+        );
+
+        assertEquals(
+                null,
+                firstError.get()
+        );
+
+        assertEquals(
+                1,
+                firstCallbackCount.get()
+        );
+
+        assertTrue(
+                firstImage.isClosed()
+        );
+
+        assertTrue(
+                firstBitmap.isRecycled()
+        );
+    }
+
+    @Test
+    public void recognize_warmRunsDoNotRetainUnboundedMemory()
+            throws Exception {
+        recognizeAndAwaitSuccess();
+
+        forceBestEffortCollection();
+
+        long memoryAfterWarmUp =
+                approximateUsedMemoryBytes();
+
+        for (int runIndex = 0;
+             runIndex < SEQUENTIAL_RUN_COUNT;
+             runIndex++) {
+            recognizeAndAwaitSuccess();
+        }
+
+        forceBestEffortCollection();
+
+        long memoryAfterRepeatedRuns =
+                approximateUsedMemoryBytes();
+
+        long retainedGrowth =
+                Math.max(
+                        0L,
+                        memoryAfterRepeatedRuns
+                                - memoryAfterWarmUp
+                );
+
+        long diagnosticLimit =
+                64L * 1024L * 1024L;
+
+        assertTrue(
+                "Approximate retained memory after warm-up grew by "
+                        + retainedGrowth
+                        + " bytes. "
+                        + "memoryAfterWarmUp="
+                        + memoryAfterWarmUp
+                        + ", memoryAfterRepeatedRuns="
+                        + memoryAfterRepeatedRuns,
+                retainedGrowth <= diagnosticLimit
+        );
+    }
+
     private Bitmap createDocumentBitmap() {
         Bitmap bitmap =
                 Bitmap.createBitmap(
@@ -335,5 +709,103 @@ PaddleOcrDocumentTextRecognizerInstrumentedTest {
         );
 
         return bitmap;
+    }
+
+    private void recognizeAndAwaitSuccess()
+            throws Exception {
+        Bitmap bitmap =
+                createDocumentBitmap();
+
+        AndroidDocumentImage documentImage =
+                new AndroidDocumentImage(
+                        bitmap,
+                        bitmap.getWidth(),
+                        bitmap.getHeight(),
+                        0
+                );
+
+        CountDownLatch latch =
+                new CountDownLatch(1);
+
+        AtomicReference<RecognizedDocument>
+                document =
+                new AtomicReference<>();
+
+        AtomicReference<String> error =
+                new AtomicReference<>();
+
+        textRecognizer.recognize(
+                documentImage,
+                DocumentImageSource.PHOTO_PICKER,
+                new DocumentRecognitionCallback() {
+
+                    @Override
+                    public void onSuccess(
+                            RecognizedDocument result
+                    ) {
+                        document.set(result);
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onImageOpenError() {
+                        error.set("image");
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onRecognitionError() {
+                        error.set("recognition");
+                        latch.countDown();
+                    }
+                }
+        );
+
+        assertTrue(
+                latch.await(
+                        RECOGNITION_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS
+                )
+        );
+
+        assertEquals(
+                null,
+                error.get()
+        );
+
+        assertNotNull(
+                document.get()
+        );
+
+        assertTrue(
+                documentImage.isClosed()
+        );
+
+        assertTrue(
+                bitmap.isRecycled()
+        );
+    }
+
+    private void forceBestEffortCollection() {
+        Runtime.getRuntime().gc();
+        System.runFinalization();
+        SystemClock.sleep(250L);
+
+        Runtime.getRuntime().gc();
+        SystemClock.sleep(250L);
+    }
+
+    private long approximateUsedMemoryBytes() {
+        Runtime runtime =
+                Runtime.getRuntime();
+
+        long javaUsed =
+                runtime.totalMemory()
+                        - runtime.freeMemory();
+
+        long nativeUsed =
+                Debug.getNativeHeapAllocatedSize();
+
+        return javaUsed + nativeUsed;
     }
 }

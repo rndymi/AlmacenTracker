@@ -15,7 +15,9 @@ public final class DocumentReferenceDataParser {
                             + "|X(?=[\\p{Z}\\s]*"
                             + "[0-9ILSZGJBOTF()王]{1,3}"
                             + "[\\p{Z}\\s]*"
-                            + "P(?:CS|QT|QTS)?(?:\\b|$))"
+                            + "P(?:CS|QT|QTS)?(?:\\b|$))",
+                    Pattern.CASE_INSENSITIVE
+                            | Pattern.UNICODE_CASE
             );
     private static final Pattern DOCUMENT_DATA_PATTERN =
             Pattern.compile(

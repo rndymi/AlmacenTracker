@@ -72,5 +72,8 @@ docs/md/
 # Private OCR evaluation corpus
 local-ocr-corpus/
 
+# Local OCR evaluation results
+/local-evaluation/
+
 # Generated OCR evaluation reports
 **/build/reports/ocr-evaluation/

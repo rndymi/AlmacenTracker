@@ -1,4 +1,4 @@
-package com.rndymi.almacentracker.feature.inventory.list;
+package com.rndymi.almacentracker.feature.common.ui;
 
 import android.view.MotionEvent;
 import android.view.View;
@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.rndymi.almacentracker.R;
 
-final class WarehouseItemFastScroller {
+public final class RecyclerViewFastScroller {
 
     private static final long HIDE_DELAY_MILLIS = 350L;
     private static final long HIDE_DURATION_MILLIS = 120L;
@@ -104,7 +104,7 @@ final class WarehouseItemFastScroller {
                 }
             };
 
-    WarehouseItemFastScroller(
+    public RecyclerViewFastScroller(
             RecyclerView recyclerView,
             LinearLayoutManager layoutManager,
             FloatingActionButton handle
@@ -144,12 +144,12 @@ final class WarehouseItemFastScroller {
         hideImmediately();
     }
 
-    void hideNow() {
+    public void hideNow() {
         trackingTouch = false;
         hideImmediately();
     }
 
-    void detach() {
+    public void detach() {
         handle.removeCallbacks(hideRunnable);
         handle.animate().cancel();
         recyclerView.removeOnScrollListener(
