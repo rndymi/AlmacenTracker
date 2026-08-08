@@ -8,30 +8,15 @@ Cada mercadería se identifica mediante una combinación única de categoría y 
 
 ## Versión
 
-**AlmacenTracker v1.4.0 — En desarrollo**
+**AlmacenTracker v1.4.0**
 
-Objetivo:
+Novedades principales:
 
 ```text
-Evaluar y evolucionar el OCR local mediante PP-OCRv5 y ONNX Runtime
-sin perder el funcionamiento offline
+Evolución del OCR documental local mediante PP-OCRv5 y ONNX Runtime,
+con orientación manual, reconstrucción multicolumna,
+interpretación revisable y mejoras de estabilidad
 ```
-
----
-
-## Development version
-
-AlmacenTracker v1.4.0 se encuentra actualmente en desarrollo.
-
-El proyecto incluye la infraestructura local inicial necesaria para 
-cargar y validar los modelos de detección y reconocimiento de PP-OCRv5 con ONNX Runtime.
-
-El flujo funcional de reconocimiento de documentos continúa utilizando ML Kit
-mientras se implementan y evalúan el detector, el reconocedor y el flujo completo de documentos de 
-PP-OCRv5 en las siguientes historias de usuario.
-
-Todos los recursos de OCR se procesan de forma local. 
-La aplicación no requiere conexión a Internet para cargar los modelos incluidos.
 
 ---
 
@@ -48,6 +33,7 @@ La aplicación no requiere conexión a Internet para cargar los modelos incluido
 - Validar y normalizar los datos introducidos.
 - Evitar combinaciones duplicadas de categoría y código.
 - Mostrar estados vacíos y búsquedas sin resultados.
+- Utilizar desplazamiento rápido en listados largos cuando corresponde.
 
 ### Gestión de archivos CSV
 
@@ -64,20 +50,31 @@ La aplicación no requiere conexión a Internet para cargar los modelos incluido
 - Utilizar el escáner durante el registro y la edición.
 - Mantener la introducción manual cuando la cámara no está disponible.
 - Controlar permisos, cancelaciones y errores de cámara.
+- Utilizar ML Kit Barcode Scanning exclusivamente para el escaneo individual.
 
 ### Procesamiento de listas
 
 - Tomar fotografías de listas.
 - Seleccionar imágenes o capturas de pantalla.
-- Procesar imágenes localmente mediante reconocimiento de texto.
-- Corregir orientación, escala y contraste antes del OCR.
-- Reconstruir referencias de listas de una o dos columnas.
+- Procesar imágenes localmente mediante PP-OCRv5 y ONNX Runtime.
+- Corregir la orientación inicial mediante EXIF.
+- Girar manualmente la imagen a izquierda o derecha antes de ejecutar el OCR.
+- Reprocesar una imagen después de corregir su orientación.
+- Detectar y reconocer regiones de texto localmente.
+- Reconstruir listas de una, dos o varias columnas cuando existe evidencia espacial suficiente.
+- Conservar encabezados y líneas documentales durante la reconstrucción.
+- Mantener el orden de lectura de las columnas.
 - Revisar coincidencias exactas, sugeridas, ambiguas o no encontradas.
+- Proponer correcciones para errores OCR compatibles con referencias conocidas.
+- Interpretar referencias especiales sin sustituir silenciosamente el texto reconocido.
+- Conservar cantidad y unidad como datos documentales.
+- Conservar títulos, comprador o tienda y destinos documentales cuando corresponda.
 - Corregir, añadir, eliminar y confirmar referencias.
 - Consultar conjuntamente la ubicación de las referencias confirmadas.
 - Identificar referencias no encontradas.
-- Conservar el orden documental.
+- Mantener la revisión manual obligatoria.
 - Procesar las imágenes sin enviarlas a servicios externos.
+- Liberar los recursos temporales utilizados durante el procesamiento.
 
 ### Historial documental
 
@@ -99,179 +96,115 @@ La aplicación no requiere conexión a Internet para cargar los modelos incluido
 - Conservar los criterios al abrir y cerrar un detalle.
 - Eliminar un registro histórico con confirmación.
 - Eliminar sus líneas mediante cascada sin modificar la mercadería.
+- Utilizar desplazamiento rápido en listados largos cuando corresponde.
 - Funcionar completamente sin conexión a Internet.
-
-### Funcionalidades previstas para v1.4
-
-- Evaluar PP-OCRv5 como evolución del reconocimiento local de listas.
-- Integrar ONNX Runtime para ejecutar modelos OCR en el dispositivo.
-- Incorporar un modelo de detección de texto optimizado para dispositivos móviles.
-- Incorporar un modelo de reconocimiento de texto optimizado para dispositivos móviles.
-- Preparar la carga local de los modelos necesarios para el procesamiento.
-- Mantener las imágenes y los resultados dentro del dispositivo.
-- Separar la detección de regiones de texto del reconocimiento de su contenido.
-- Adaptar la salida del nuevo motor al contrato documental existente.
-- Mantener la reconstrucción de filas y columnas.
-- Mantener la revisión obligatoria antes de confirmar referencias.
-- Conservar la corrección, adición y eliminación manual de referencias.
-- Comparar la precisión del reconocimiento sobre listas reales de prueba.
-- Medir el tiempo de procesamiento.
-- Medir el consumo aproximado de memoria.
-- Evaluar el impacto de los modelos sobre el tamaño de la aplicación.
-- Controlar errores de inicialización, carga y ejecución del motor OCR.
-- Evitar bloqueos del hilo principal durante el procesamiento.
-- Liberar correctamente imágenes, tensores y recursos nativos.
-- Mantener compatibilidad con fotografías, imágenes y capturas de pantalla.
-- Mantener el funcionamiento completamente offline.
-- Conservar intactos la mercadería, los archivos CSV y el historial documental.
-- Mantener una separación clara entre la interfaz, el contrato OCR y la implementación técnica.
-- Añadir pruebas unitarias, instrumentadas y comparativas para el nuevo procesamiento.
 
 ---
 
-## Evolución del OCR local en v1.4
+## OCR documental local
 
-La versión 1.4 se centrará en evaluar y evolucionar el reconocimiento local de documentos mediante PP-OCRv5 y ONNX Runtime.
+AlmacenTracker v1.4.0 utiliza PP-OCRv5 como motor activo para el reconocimiento documental de listas.
 
-El flujo previsto será:
+El procesamiento se ejecuta localmente mediante:
+
+```text
+PP-OCRv5
++
+ONNX Runtime
+```
+
+Los modelos de detección y reconocimiento, junto con el diccionario necesario, forman parte de la aplicación. El flujo documental no requiere descargar modelos ni enviar imágenes a servicios externos.
 
 ```text
 fotografía o imagen
         ↓
 preprocesamiento local
         ↓
-detección de regiones de texto
+detección de regiones
         ↓
-reconocimiento del contenido
+reconocimiento de texto
         ↓
 reconstrucción documental
         ↓
-extracción de referencias y datos documentales
+interpretación revisable
         ↓
 revisión del usuario
-```
-
-La evaluación inicial considerará modelos optimizados para dispositivos móviles:
-
-```text
-PP-OCRv5_mobile_det
-PP-OCRv5_mobile_rec
-```
-
-El modelo de detección deberá localizar las regiones que contienen texto.
-
-El modelo de reconocimiento deberá convertir cada región detectada en contenido textual.
-
-La integración deberá adaptar sus resultados a los contratos existentes del proyecto, evitando que Activities y ViewModels dependan directamente de clases internas de ONNX Runtime.
-
----
-
-## Objetivos de la evaluación
-
-La incorporación del nuevo procesamiento no se considerará satisfactoria únicamente porque el modelo pueda ejecutarse.
-
-La evaluación deberá comprobar:
-
-- precisión sobre referencias impresas;
-- precisión sobre referencias con espacios;
-- conservación de ceros iniciales;
-- reconocimiento de letras finales;
-- separación entre referencia, cantidad y unidad;
-- comportamiento en listas de una columna;
-- comportamiento en listas de dos columnas;
-- tolerancia a inclinación moderada;
-- comportamiento con iluminación irregular;
-- comportamiento con imágenes de distinta resolución;
-- tiempo total de procesamiento;
-- memoria utilizada durante la inferencia;
-- estabilidad en dispositivos compatibles;
-- impacto sobre el tamaño de las APK;
-- recuperación después de errores;
-- funcionamiento sin conexión.
-
-La decisión final deberá basarse en resultados medibles y no únicamente en una prueba aislada.
-
----
-
-## Contrato del reconocimiento documental
-
-La interfaz de usuario no deberá conocer directamente:
-
-- sesiones de ONNX Runtime;
-- tensores;
-- nombres internos de entradas y salidas;
-- dimensiones específicas de los modelos;
-- detalles de posprocesamiento;
-- archivos internos de los modelos.
-
-El flujo deberá conservar un contrato equivalente a:
-
-```text
-DocumentTextRecognizer
         ↓
-RecognizedDocument
-        ↓
-RecognizedTextLine
+ubicaciones e historial
 ```
 
-La implementación técnica podrá evolucionar sin obligar a reescribir el flujo de captura, revisión, localización o historial.
-
-Cuando exista más de una implementación real, el contrato podrá admitir componentes como:
+El reconocimiento documental y el escaneo individual son componentes diferentes:
 
 ```text
-DocumentTextRecognizer
-        ├── implementación actual
-        └── OnnxPaddleDocumentTextRecognizer
+PP-OCRv5 + ONNX Runtime
+        → listas y documentos
+
+ML Kit Barcode Scanning
+        → códigos de barras y códigos QR
 ```
 
-La separación deberá responder a una necesidad real de sustitución y evaluación, no a una organización ceremonial.
+ML Kit Text Recognition no forma parte del OCR documental de v1.4.0.
 
 ---
 
-## Preprocesamiento y posprocesamiento
+## Orientación de imágenes
 
-La versión 1.4 deberá conservar o mejorar el preprocesamiento local existente:
+Las imágenes pueden corregirse antes del OCR mediante:
 
-- lectura segura de la imagen;
-- corrección de orientación;
-- reducción controlada de resolución;
-- mejora moderada del contraste;
-- prevención de consumo excesivo de memoria;
-- liberación de bitmaps intermedios.
+- orientación EXIF;
+- giro manual de 90 grados a la izquierda;
+- giro manual de 90 grados a la derecha;
+- combinaciones equivalentes de 0, 90, 180 y 270 grados.
 
-La detección deberá producir regiones de texto ordenables.
+El giro manual no modifica el archivo original.
 
-El reconocimiento deberá conservar el contenido como texto.
-
-El posprocesamiento deberá permitir:
-
-- ordenar regiones;
-- reconstruir filas;
-- detectar una o dos columnas;
-- conservar el orden de lectura;
-- separar identidad, cantidad y unidad;
-- mantener el texto original cuando aporte contexto;
-- evitar correcciones automáticas agresivas;
-- entregar propuestas revisables por el usuario.
+Si el usuario gira una imagen después de haberla procesado, el resultado anterior se invalida y la imagen puede procesarse nuevamente con la nueva orientación.
 
 ---
 
-## Revisión obligatoria
+## Reconstrucción de listas
 
-El resultado del OCR continuará siendo una propuesta.
+La reconstrucción documental utiliza la posición de las regiones reconocidas para conservar un orden de lectura útil.
 
-La aplicación deberá permitir:
+La aplicación puede trabajar con:
 
-- revisar cada referencia;
-- corregir categoría y código;
-- conservar ceros iniciales;
-- corregir cantidad y unidad;
-- añadir referencias omitidas;
-- eliminar falsos positivos;
-- resolver coincidencias sugeridas o ambiguas;
-- confirmar únicamente una lista válida.
+- una columna;
+- dos columnas;
+- tres o más columnas cuando existe evidencia espacial suficiente;
+- columnas con diferente número de referencias;
+- encabezados o líneas globales;
+- regiones OCR que necesitan separarse antes de ordenar el documento.
 
-La incorporación de PP-OCRv5 no deberá eliminar el control del usuario sobre el documento reconocido.
+La lectura se realiza verticalmente dentro de cada columna y de izquierda a derecha entre columnas.
+
+Cuando la estructura espacial es ambigua, la aplicación prioriza una degradación segura antes que mezclar referencias de columnas distintas.
+
+---
+
+## Interpretación revisable
+
+El texto obtenido mediante OCR se considera siempre una propuesta.
+
+La aplicación puede utilizar referencias conocidas en Room para ayudar a resolver errores habituales de reconocimiento, sin reemplazar silenciosamente el valor observado.
+
+El flujo puede distinguir entre:
+
+- coincidencia exacta;
+- sugerencia única;
+- ambigüedad;
+- referencia no encontrada.
+
+También puede conservar información documental asociada, como:
+
+- cantidad;
+- unidad;
+- título;
+- comprador o tienda;
+- destino documental.
+
+Los errores OCR potenciales se tratan únicamente cuando son compatibles con la estructura esperada y con la información disponible.
+
+La revisión manual continúa siendo obligatoria antes de confirmar la lista.
 
 ---
 
@@ -347,16 +280,44 @@ La introducción manual continúa disponible cuando el permiso no se concede o l
 
 Permite tomar una fotografía o seleccionar una imagen para:
 
-- procesar el texto localmente;
-- reconstruir referencias de una o dos columnas;
+- corregir su orientación cuando sea necesario;
+- procesar el documento localmente mediante PP-OCRv5;
+- reconstruir listas de una, dos o varias columnas;
+- interpretar referencias y datos documentales;
 - revisar coincidencias exactas, sugeridas, ambiguas o no encontradas;
 - corregir, añadir o eliminar referencias;
 - consultar sus ubicaciones en el orden confirmado;
 - preparar y registrar el historial documental.
 
-El reconocimiento continuará considerándose experimental mientras la evaluación de v1.4 no determine resultados suficientemente estables.
+La calidad del reconocimiento depende de la orientación, nitidez, iluminación y legibilidad de la imagen. El usuario debe revisar siempre las propuestas antes de continuar.
 
 Las fotografías no se conservan permanentemente ni se envían a servicios externos.
+
+---
+
+## Evaluación y estabilidad del OCR
+
+La versión 1.4 incorpora una infraestructura reproducible para evaluar el comportamiento del reconocimiento documental.
+
+La evaluación permite separar errores correspondientes a:
+
+- detección de regiones;
+- reconocimiento de caracteres;
+- reconstrucción de líneas;
+- orden de columnas;
+- interpretación documental;
+- comparación con referencias conocidas.
+
+También permite observar:
+
+- tiempo de procesamiento;
+- diferencia entre primera ejecución y ejecuciones posteriores;
+- consumo aproximado de memoria;
+- estabilidad en ejecuciones consecutivas.
+
+Las métricas son diagnósticas y no sustituyen la revisión funcional del usuario.
+
+La versión también reduce asignaciones y copias temporales del pipeline OCR, reutiliza las sesiones ONNX durante su ciclo de vida y mantiene la inferencia fuera del hilo principal.
 
 ---
 
@@ -375,15 +336,16 @@ El historial documental no forma parte actualmente de estos archivos CSV.
 
 ## Tecnologías
 
-### Tecnologías actuales
-
 - Android
 - Java
 - Android Views
 - View Binding
 - Material Components
 - CameraX
-- ML Kit
+- ML Kit Barcode Scanning
+- PP-OCRv5
+- ONNX Runtime
+- ExifInterface
 - ViewModel y LiveData
 - Room y SQLite
 - JUnit
@@ -391,15 +353,6 @@ El historial documental no forma parte actualmente de estos archivos CSV.
 - Espresso
 - Gradle
 - GitHub Actions
-
-### Tecnologías previstas para v1.4
-
-- PP-OCRv5
-- ONNX Runtime
-- Modelos OCR optimizados para dispositivos móviles
-- Procesamiento local de tensores
-- Inferencia fuera del hilo principal
-- Pruebas comparativas del reconocimiento
 
 ---
 
@@ -427,9 +380,36 @@ contrato de dominio
 implementación técnica
 ```
 
-La interfaz no deberá conocer DAO, entidades Room, consultas SQL, clases internas del motor OCR ni modelos ONNX.
+El OCR documental permanece detrás de:
 
-Se introducirán puertos, adaptadores o servicios adicionales únicamente cuando representen límites o responsabilidades reales.
+```text
+DocumentTextRecognizer
+        ↑
+PaddleOcrDocumentTextRecognizer
+```
+
+La interfaz no conoce directamente sesiones de ONNX Runtime, tensores, modelos internos, DAO, entidades Room ni consultas SQL.
+
+Se introducen puertos, adaptadores o servicios adicionales únicamente cuando representan límites o responsabilidades reales.
+
+---
+
+## Funcionamiento offline
+
+Las funciones principales de AlmacenTracker continúan funcionando sin conexión a Internet:
+
+- gestión de mercadería;
+- importación y exportación CSV;
+- copias de seguridad y restauración;
+- escaneo individual;
+- procesamiento OCR;
+- revisión de listas;
+- consulta de ubicaciones;
+- historial documental.
+
+Los modelos PP-OCRv5 y el diccionario forman parte de la aplicación.
+
+El procesamiento documental no requiere un backend ni un servicio OCR remoto.
 
 ---
 
@@ -440,8 +420,8 @@ Se introducirán puertos, adaptadores o servicios adicionales únicamente cuando
 - El escaneo individual requiere una cámara compatible.
 - La selección de imágenes utiliza el selector de fotos de Android.
 - El reconocimiento depende de la calidad, orientación y legibilidad de la imagen.
-- Los modelos previstos para v1.4 deberán ejecutarse localmente.
-- El dispositivo deberá disponer de memoria suficiente para cargar y ejecutar los modelos.
+- Los modelos PP-OCRv5 se incluyen en la aplicación y se ejecutan localmente mediante ONNX Runtime.
+- El dispositivo debe disponer de memoria suficiente para cargar y ejecutar los modelos.
 - Las cantidades del historial son documentales y no representan stock.
 
 ---
